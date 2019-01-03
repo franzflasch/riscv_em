@@ -14,6 +14,8 @@ addi x8, zero, 0
 addi x9, zero, 0
 addi x10, zero, 0
 addi x11, zero, 0
+call repeat
+
 addi x12, zero, 0
 addi x13, zero, 0
 addi x14, zero, 0

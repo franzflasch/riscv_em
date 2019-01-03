@@ -125,7 +125,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
                               (extract32(rv32_core->instruction, 20, 1) << 11) | 
                               (extract32(rv32_core->instruction, 12, 8) << 12) );
       /* sign extend the 20 bit number */
-      if((1<<20) && 1) rv32_core->jump_offset=(rv32_core->jump_offset | 0xFFF00000);
+      if((1<<19) & rv32_core->jump_offset) rv32_core->jump_offset=(rv32_core->jump_offset | 0xFFF00000);
       rv32_core->execute_cb = instr_JAL;
       break;
     case INSTR_ADDI:
@@ -230,6 +230,7 @@ uint32_t test_instructions[] =
 0x00000493,
 0x00000513,
 0x00000593,
+0x02c000ef,
 0x00000613,
 0x00000693,
 0x00000713,
