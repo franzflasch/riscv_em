@@ -21,6 +21,8 @@
 /* UJ-Type Instructions */
 #define INSTR_JAL 0x6F   /* JUMP and Link */
 
+/* I-Type Instructions */
+#define INSTR_JALR 0x67
 #define INSTR_ADDI 0x13  /* Add immediate to rs and store to rd */
 
 static inline uint32_t extract32(uint32_t value, int start, int length)
@@ -69,14 +71,21 @@ static void instr_JAL(void *rv32_core_data)
   rv32_core->x[rv32_core->rd] = rv32_core->pc;
 
   rv32_core->pc = (rv32_core->pc-4) + rv32_core->jump_offset;
+}
 
-  printf("JUMP ADDRESS: %x\n", rv32_core->jump_offset);
+static void instr_JALR(void *rv32_core_data)
+{
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+  rv32_core->x[rv32_core->rd] = rv32_core->pc;
+
+  rv32_core->pc = (rv32_core->x[rv32_core->rs] + rv32_core->jump_offset);
+  rv32_core->pc &= ~(1<<0);
 }
 
 static void instr_ADDI(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-  rv32_core->x[rv32_core->rd] = ((rv32_core->immediate + rv32_core->rs) & 0xFFFFFFFF);
+  rv32_core->x[rv32_core->rd] = ((rv32_core->immediate + rv32_core->x[rv32_core->rs]) & 0xFFFFFFFF);
 }
 
 uint32_t rv32_core_fetch(rv32_core_td *rv32_core)
@@ -128,6 +137,13 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
       if((1<<19) & rv32_core->jump_offset) rv32_core->jump_offset=(rv32_core->jump_offset | 0xFFF00000);
       rv32_core->execute_cb = instr_JAL;
       break;
+    case INSTR_JALR:
+      rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
+      rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+      rv32_core->jump_offset = ((rv32_core->instruction >> 20) & 0xFFF);
+      if((1<<11) & rv32_core->jump_offset) rv32_core->jump_offset=(rv32_core->jump_offset | 0xFFFFF000);
+      rv32_core->execute_cb = instr_JALR;
+      break;
     case INSTR_ADDI:
       rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
       rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
@@ -146,6 +162,9 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
 uint32_t rv32_core_execute(rv32_core_td *rv32_core)
 {
   rv32_core->execute_cb(rv32_core);
+  
+  /* clear x0 if any instruction has written into it */
+  rv32_core->x[0] = 0;
 
   return 0;
 }
@@ -230,7 +249,8 @@ uint32_t test_instructions[] =
 0x00000493,
 0x00000513,
 0x00000593,
-0x02c000ef,
+0x008000ef,
+0x030000ef,
 0x00000613,
 0x00000693,
 0x00000713,
@@ -241,6 +261,8 @@ uint32_t test_instructions[] =
 0x00000993,
 0x00000a13,
 0x00000a93,
+0x00008067,
+0xfd5ff0ef,
 0x00000b13,
 0x00000b93,
 0x00000c13,
@@ -251,7 +273,6 @@ uint32_t test_instructions[] =
 0x00000e93,
 0x00000f13,
 0x00000f93,
-0xfd9ff0ef,
 };
 
 

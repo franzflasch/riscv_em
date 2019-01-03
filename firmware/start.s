@@ -1,7 +1,6 @@
 .section .text
 
 start:
-
 # zero-initialize register file
 addi x1, zero, 0
 # x2 (sp) is initialized by reset
@@ -13,9 +12,11 @@ addi x7, zero, 0
 addi x8, zero, 0
 addi x9, zero, 0
 addi x10, zero, 0
-addi x11, zero, 0
-call repeat
+addi x11, zero, 0 
+call init_x12_x21
+call test_jump
 
+init_x12_x21:
 addi x12, zero, 0
 addi x13, zero, 0
 addi x14, zero, 0
@@ -26,9 +27,10 @@ addi x18, zero, 0
 addi x19, zero, 0
 addi x20, zero, 0
 addi x21, zero, 0
+ret
 
-repeat:
-
+test_jump:
+call init_x12_x21
 addi x22, zero, 0
 addi x23, zero, 0
 addi x24, zero, 0
@@ -39,5 +41,6 @@ addi x28, zero, 0
 addi x29, zero, 0
 addi x30, zero, 0
 addi x31, zero, 0
+#call repeat
 
-call repeat
+
