@@ -21,7 +21,7 @@
 /* UJ-Type Instructions */
 #define INSTR_JAL 0x6F   /* JUMP and Link */
 
-/* I-Type Instructions */
+/* I- and R-Type Instructions */
 #define INSTR_JALR 0x67
 #define INSTR_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI 0x13 
 #define FUNC3_INSTR_ADDI  0x0
@@ -37,6 +37,12 @@
 #define FUNC3_INSTR_SRLI_SRAI  0x5
 #define FUNC7_INSTR_SRLI  0x00
 #define FUNC7_INSTR_SRAI  0x20
+
+#define INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND 0x33
+
+#define FUNC3_INSTR_ADD_SUB 0x0
+#define FUNC7_INSTR_ADD 0x00
+#define FUNC7_INSTR_SUB 0x20
 
 /* B-Type Instructions */
 #define INSTR_BEQ_BNE_BLT_BGE_BLTU_BGEU 0x63
@@ -86,7 +92,7 @@ static void instr_LUI(void *rv32_core_data)
 static void instr_AUIPC(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-  rv32_core->x[rv32_core->rd] = rv32_core->pc + (rv32_core->immediate << 12);
+  rv32_core->x[rv32_core->rd] = (rv32_core->pc-4) + (rv32_core->immediate << 12);
 }
 
 static void instr_JAL(void *rv32_core_data)
@@ -177,7 +183,7 @@ static void instr_XORI(void *rv32_core_data)
   if(signed_immediate == -1)
     rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] ^ 1;
   else
-    rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] ^ rv32_core->x[rv32_core->immediate];
+    rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] ^ rv32_core->immediate;
 }
 
 static void instr_ORI(void *rv32_core_data)
@@ -186,7 +192,7 @@ static void instr_ORI(void *rv32_core_data)
 
   if((1<<11) & rv32_core->immediate) rv32_core->immediate=(rv32_core->immediate | 0xFFFFF000);
 
-  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] | rv32_core->x[rv32_core->immediate];
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] | rv32_core->immediate;
 }
 
 static void instr_ANDI(void *rv32_core_data)
@@ -195,7 +201,20 @@ static void instr_ANDI(void *rv32_core_data)
 
   if((1<<11) & rv32_core->immediate) rv32_core->immediate=(rv32_core->immediate | 0xFFFFF000);
 
-  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] & rv32_core->x[rv32_core->immediate];
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] & rv32_core->immediate;
+}
+
+static void instr_ADD(void *rv32_core_data)
+{
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] + rv32_core->x[rv32_core->rs2];
+}
+
+static void instr_SUB(void *rv32_core_data)
+{
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] - rv32_core->x[rv32_core->rs2];
 }
 
 uint32_t rv32_core_fetch(rv32_core_td *rv32_core)
@@ -204,7 +223,7 @@ uint32_t rv32_core_fetch(rv32_core_td *rv32_core)
 
   rv32_core->instruction = rv32_core->read_mem(rv32_core->priv, addr);
 
-  printf("fetching instruction: %x\n", rv32_core->instruction);
+  //printf("fetching instruction: %x\n", rv32_core->instruction);
 
   /* increase program counter here */
   rv32_core->pc += 4;
@@ -259,7 +278,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
       break;
     case INSTR_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI:
       rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
-      rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x3);
+      rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
       rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
       rv32_core->immediate = ((rv32_core->instruction >> 20) & 0xFFF);
   
@@ -284,19 +303,37 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
           rv32_core->execute_cb = instr_ANDI;
           break;
         case FUNC3_INSTR_SLLI:
-          rv32_core->func7 = ((rv32_core->instruction >> 25) & 0x7);
+          rv32_core->func7 = ((rv32_core->instruction >> 25) & 0x7F);
 //          if(rv32_core->func7 == FUNC7_INSTR_SLLI) rv32_core->execute_cb = instr_SLLI;
+          printf("SLLI not implemented yet!\n");
+          exit(-1);
           break;
         case FUNC3_INSTR_SRLI_SRAI:
-          rv32_core->func7 = ((rv32_core->instruction >> 25) & 0x7);
+          rv32_core->func7 = ((rv32_core->instruction >> 25) & 0x7F);
 //          if(rv32_core->func7 == FUNC7_INSTR_SRLI) rv32_core->execute_cb = instr_SRLI;
-//          else if(rv32_core->func7 == FUNC7_INSTR_SRAI) rv32_core->execute_cb = instr_SRLI;
+          printf("SRLI and SRAI not implemented yet\n");
+          exit(-1);
+          break;
+      }
+      break;
+    case INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND:
+      rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
+      rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
+      rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+      rv32_core->rs2 = ((rv32_core->instruction >> 20) & 0x1F);
+      rv32_core->func7 = ((rv32_core->instruction >> 25) & 0x7F);
+
+      switch(rv32_core->func3)
+      {
+        case FUNC3_INSTR_ADD_SUB:
+          if(rv32_core->func7 == FUNC7_INSTR_ADD) rv32_core->execute_cb = instr_ADD;
+          else if(rv32_core->func7 == FUNC7_INSTR_SUB) rv32_core->execute_cb = instr_SUB; 
           break;
       }
       break;
     case INSTR_BEQ_BNE_BLT_BGE_BLTU_BGEU:
       rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
-      rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x3);     
+      rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);     
       rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
       rv32_core->rs2 = ((rv32_core->instruction >> 20) & 0x1F);
       rv32_core->jump_offset=((extract32(rv32_core->instruction, 8, 4) << 1) | 
@@ -363,8 +400,11 @@ void rv32_core_reg_dump(rv32_core_td *rv32_core)
     printf("x[%d]: %x\n", i, rv32_core->x[i]);
   }
   printf("pc: %x\n", rv32_core->pc);
+  printf("last register values:\n");
   printf("instruction: %x\n", rv32_core->instruction);
-  printf("rd: %x rs: %x imm: %x jump_offs: %x\n", rv32_core->rd, rv32_core->rs, rv32_core->immediate, rv32_core->jump_offset);
+  printf("rd: %x rs: %x rs2: %x imm: %x\n", rv32_core->rd, rv32_core->rs, rv32_core->rs2, rv32_core->immediate);
+  printf("func3: %x func7: %x jump_offset %x\n", rv32_core->func3, rv32_core->func7, rv32_core->jump_offset);
+  printf("\n");
 }
 
 void rv32_core_init(rv32_core_td *rv32_core,
@@ -405,190 +445,48 @@ void rv32_soc_write_mem(rv32_soc_td *rv32_soc, uint32_t address, uint32_t value)
   rv32_soc->ram[address] = value;
 }
 
-uint32_t test_instructions[] = 
+void rv32_soc_init(rv32_soc_td *rv32_soc, char *rom_file_name)
 {
-0x008000ef,
-0x04200f93,
-0x00000093,
-0x00008f13,
-0x00000e93,
-0x00200193,
-0xffdf16e3,
-0x00100093,
-0x00108f13,
-0x00200e93,
-0x00300193,
-0xfddf1ce3,
-0x00300093,
-0x00708f13,
-0x00a00e93,
-0x00400193,
-0xfddf12e3,
-0x00000093,
-0x80008f13,
-0x80000e93,
-0x00500193,
-0xfbdf18e3,
-0x800000b7,
-0x00008f13,
-0x80000eb7,
-0x00600193,
-0xf9df1ee3,
-0x800000b7,
-0x80008f13,
-0x80000eb7,
-0x800e8e93,
-0x00700193,
-0xf9df12e3,
-0x00000093,
-0x7ff08f13,
-0x7ff00e93,
-0x00800193,
-0xf7df18e3,
-0x800000b7,
-0xfff08093,
-0x00008f13,
-0x80000eb7,
-0xfffe8e93,
-0x00900193,
-0xf5df1ae3,
-0x800000b7,
-0xfff08093,
-0x7ff08f13,
-0x80000eb7,
-0x7fee8e93,
-0x00a00193,
-0xf3df1ce3,
-0x800000b7,
-0x7ff08f13,
-0x80000eb7,
-0x7ffe8e93,
-0x00b00193,
-0xf3df10e3,
-0x800000b7,
-0xfff08093,
-0x80008f13,
-0x7ffffeb7,
-0x7ffe8e93,
-0x00c00193,
-0xf1df12e3,
-0x00000093,
-0xfff08f13,
-0xfff00e93,
-0x00d00193,
-0xefdf18e3,
-0xfff00093,
-0x00108f13,
-0x00000e93,
-0x00e00193,
-0xeddf1ee3,
-0xfff00093,
-0xfff08f13,
-0xffe00e93,
-0x00f00193,
-0xeddf14e3,
-0x800000b7,
-0xfff08093,
-0x00108f13,
-0x80000eb7,
-0x01000193,
-0xebdf18e3,
-0x00d00093,
-0x00b08093,
-0x01800e93,
-0x01100193,
-0xe9d09ee3,
-0x00000213,
-0x00d00093,
-0x00b08f13,
-0x000f0313,
-0x00120213,
-0x00200293,
-0xfe5216e3,
-0x01800e93,
-0x01200193,
-0xe7d31ae3,
-0x00000213,
-0x00d00093,
-0x00a08f13,
-0x00000013,
-0x000f0313,
-0x00120213,
-0x00200293,
-0xfe5214e3,
-0x01700e93,
-0x01300193,
-0xe5d314e3,
-0x00000213,
-0x00d00093,
-0x00908f13,
-0x00000013,
-0x00000013,
-0x000f0313,
-0x00120213,
-0x00200293,
-0xfe5212e3,
-0x01600e93,
-0x01400193,
-0xe1d31ce3,
-0x00000213,
-0x00d00093,
-0x00b08f13,
-0x00120213,
-0x00200293,
-0xfe5218e3,
-0x01800e93,
-0x01500193,
-0xdfdf1ae3,
-0x00000213,
-0x00d00093,
-0x00000013,
-0x00a08f13,
-0x00120213,
-0x00200293,
-0xfe5216e3,
-0x01700e93,
-0x01600193,
-0xdddf16e3,
-0x00000213,
-0x00d00093,
-0x00000013,
-0x00000013,
-0x00908f13,
-0x00120213,
-0x00200293,
-0xfe5214e3,
-0x01600e93,
-0x01700193,
-0xdbdf10e3,
-0x02000093,
-0x02000e93,
-0x01800193,
-0xd9d098e3,
-0x02100093,
-0x03208013,
-0x00000e93,
-0x01900193,
-0xd7d01ee3,
+  FILE * p_rom_file = NULL;
+  unsigned long lsize = 0;
+  size_t result = 0;
 
-};
+  p_rom_file = fopen(rom_file_name, "rb");
+  if(p_rom_file == NULL) 
+  {
+    printf("Could not open rom file!\n");
+    exit(-1);
+  }
 
+  fseek(p_rom_file, 0, SEEK_END);
+  lsize = ftell(p_rom_file);
+  rewind(p_rom_file);
 
-void rv32_soc_init(rv32_soc_td *rv32_soc)
-{
+  if(lsize > sizeof(rv32_soc->rom))
+  {
+    printf("Not able to load rom file of size %lu, rom space is %lu\n", lsize, sizeof(rv32_soc->rom));
+    exit(-2);
+  }
+
   memset(rv32_soc, 0, sizeof(rv32_soc_td));
 
   rv32_core_init(&rv32_soc->rv32_core, rv32_soc,(read_mem_func)rv32_soc_read_mem,(write_mem_func)rv32_soc_write_mem);
 
-  memcpy(rv32_soc->rom, test_instructions, sizeof(test_instructions));
+  result = fread(&rv32_soc->rom, sizeof(char), lsize, p_rom_file);
+  if(result != lsize)
+  {
+    printf("Error while reading file!\n");
+    exit(-3);   
+  }
 
   uint32_t i = 0;
-
   printf("RV32 ROM contents\n");
-  for(i=0;i<(sizeof(test_instructions)/sizeof(test_instructions[0]));i++)
+  for(i=0;i<lsize/sizeof(uint32_t);i++)
   {
     printf("%x\n", rv32_soc->rom[i]);
   }
+
+  fclose(p_rom_file);
 
   printf("RV32 SOC initialized!\n");
 }
@@ -598,13 +496,19 @@ int main(int argc, char *argv[])
   (void) argc;
   (void) argv;
 
+  if(argc < 2)
+  {
+    printf("please specify a rom file!\n");
+    exit(-1);
+  }
+
   rv32_soc_td rv32_soc;
 
-  rv32_soc_init(&rv32_soc);
+  rv32_soc_init(&rv32_soc, argv[1]);
 
   while(1)
   {
-    rv32_core_run(&rv32_soc.rv32_core);
     rv32_core_reg_dump(&rv32_soc.rv32_core);
+    rv32_core_run(&rv32_soc.rv32_core); 
   }
 }
