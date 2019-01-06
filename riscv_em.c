@@ -8,8 +8,8 @@
 #define XREG_RETURN_ADDRESS 0
 #define XREG_STACK_POINTER 2
 
-#define NR_RAM_WORDS 512 
-#define NR_ROM_WORDS 512
+#define NR_RAM_WORDS 1024 
+#define NR_ROM_WORDS 1024
 
 #define STACK_POINTER_START_VAL (4*NR_RAM_WORDS)
 #define PROGRAM_COUNTER_START_VAL 0x100000
@@ -67,13 +67,37 @@
 #define FUNC7_INSTR_AND 0x00
 
 
+#define INSTR_LB_LH_LW_LBU_LHU 0x03
+#define FUNC3_INSTR_LB 0x0
+#define FUNC3_INSTR_LH 0x1
+#define FUNC3_INSTR_LW 0x2
+#define FUNC3_INSTR_LBU 0x4
+#define FUNC3_INSTR_LHU 0x5
+
 /* B-Type Instructions */
 #define INSTR_BEQ_BNE_BLT_BGE_BLTU_BGEU 0x63
+#define FUNC3_INSTR_BEQ 0x0
 #define FUNC3_INSTR_BNE 0x1
+#define FUNC3_INSTR_BLT 0x4
+#define FUNC3_INSTR_BGE 0x5
+#define FUNC3_INSTR_BLTU 0x6
+#define FUNC3_INSTR_BGEU 0x7
 
+/* S-Type Instructions */
+#define INSTR_SB_SH_SW 0x23
+#define FUNC3_INSTR_SB 0x0
+#define FUNC3_INSTR_SH 0x1
+#define FUNC3_INSTR_SW 0x2
+
+/* System level instruction */
+#define INSTR_FENCE_FENCE_I 0x0F
+#define FUNC3_INSTR_FENCE 0x0
+#define FUNC3_INSTR_FENCE_I 0x1
+
+#define INSTR_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI 0x73
 
 typedef uint32_t (*read_mem_func)(void *priv, uint32_t address);
-typedef void (*write_mem_func)(void *priv, uint32_t address, uint32_t value);
+typedef void (*write_mem_func)(void *priv, uint32_t address, uint32_t value, uint8_t nr_bytes);
 
 static inline uint32_t extract32(uint32_t value, int start, int length)
 {
@@ -135,10 +159,61 @@ static void instr_JALR(void *rv32_core_data)
   rv32_core->pc &= ~(1<<0);
 }
 
+static void instr_BEQ(void *rv32_core_data)
+{
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+  if(rv32_core->x[rv32_core->rs] == rv32_core->x[rv32_core->rs2])
+    rv32_core->pc = (rv32_core->pc-4) + rv32_core->jump_offset;
+}
+
 static void instr_BNE(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
   if(rv32_core->x[rv32_core->rs] != rv32_core->x[rv32_core->rs2])
+    rv32_core->pc = (rv32_core->pc-4) + rv32_core->jump_offset;
+}
+
+static void instr_BLT(void *rv32_core_data)
+{
+  int32_t signed_rs = 0;
+  int32_t signed_rs2 = 0;
+  
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  signed_rs = rv32_core->x[rv32_core->rs];
+  signed_rs2 = rv32_core->x[rv32_core->rs2];
+  
+  if(signed_rs < signed_rs2)
+    rv32_core->pc = (rv32_core->pc-4) + rv32_core->jump_offset;
+}
+
+static void instr_BGE(void *rv32_core_data)
+{
+  int32_t signed_rs = 0;
+  int32_t signed_rs2 = 0;
+  
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  signed_rs = rv32_core->x[rv32_core->rs];
+  signed_rs2 = rv32_core->x[rv32_core->rs2];
+  
+  if(signed_rs >= signed_rs2)
+    rv32_core->pc = (rv32_core->pc-4) + rv32_core->jump_offset;
+}
+
+static void instr_BLTU(void *rv32_core_data)
+{
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+  
+  if(rv32_core->x[rv32_core->rs] < rv32_core->x[rv32_core->rs2])
+    rv32_core->pc = (rv32_core->pc-4) + rv32_core->jump_offset;
+}
+
+static void instr_BGEU(void *rv32_core_data)
+{
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+  
+  if(rv32_core->x[rv32_core->rs] >= rv32_core->x[rv32_core->rs2])
     rv32_core->pc = (rv32_core->pc-4) + rv32_core->jump_offset;
 }
 
@@ -336,14 +411,154 @@ static void instr_SRA(void *rv32_core_data)
   rv32_core->x[rv32_core->rd] = signed_rs >> (rv32_core->x[rv32_core->rs2] & 0x1F);
 }
 
+static void instr_LB(void *rv32_core_data)
+{
+  int32_t signed_offset = 0;
+  uint32_t address = 0;
+  uint8_t tmp_load_val = 0;
+
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
+
+  signed_offset = rv32_core->immediate;
+
+  address = rv32_core->x[rv32_core->rs] + signed_offset;
+
+  tmp_load_val = rv32_core->read_mem(rv32_core->priv, address) & 0x000000FF;
+  if((1<<7) & tmp_load_val) rv32_core->x[rv32_core->rd] = (tmp_load_val | 0xFFFFFF00);
+  else rv32_core->x[rv32_core->rd] = tmp_load_val;
+}
+
+static void instr_LH(void *rv32_core_data)
+{
+  int32_t signed_offset = 0;
+  uint32_t address = 0;
+  uint16_t tmp_load_val = 0;
+
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
+
+  signed_offset = rv32_core->immediate;
+
+  address = rv32_core->x[rv32_core->rs] + signed_offset;
+
+  tmp_load_val = rv32_core->read_mem(rv32_core->priv, address) & 0x0000FFFF;
+  if((1<<15) & tmp_load_val) rv32_core->x[rv32_core->rd] = (tmp_load_val | 0xFFFF0000);
+  else rv32_core->x[rv32_core->rd] = tmp_load_val;
+}
+
+static void instr_LW(void *rv32_core_data)
+{
+  int32_t signed_offset = 0;
+  uint32_t address = 0;
+  
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
+
+  signed_offset = rv32_core->immediate;
+
+  address = rv32_core->x[rv32_core->rs] + signed_offset;
+
+  rv32_core->x[rv32_core->rd] = rv32_core->read_mem(rv32_core->priv, address);
+}
+
+static void instr_LBU(void *rv32_core_data)
+{
+  int32_t signed_offset = 0;
+  uint32_t address = 0;
+  
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
+  
+  signed_offset = rv32_core->immediate;
+
+  address = rv32_core->x[rv32_core->rs] + signed_offset;
+
+  rv32_core->x[rv32_core->rd] = rv32_core->read_mem(rv32_core->priv, address) & 0x000000FF;
+}
+
+static void instr_LHU(void *rv32_core_data)
+{
+  int32_t signed_offset = 0;
+  uint32_t address = 0;
+  
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
+
+  signed_offset = rv32_core->immediate;
+
+  address = rv32_core->x[rv32_core->rs] + signed_offset;
+
+  rv32_core->x[rv32_core->rd] = rv32_core->read_mem(rv32_core->priv, address) & 0x0000FFFF;
+}
+
+static void instr_SB(void *rv32_core_data)
+{
+  int32_t signed_offset = 0;
+  uint32_t address = 0;
+  uint8_t value_to_write = 0;
+  
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
+
+  signed_offset = rv32_core->immediate;
+
+  address = rv32_core->x[rv32_core->rs] + signed_offset;
+
+  value_to_write = (uint8_t)rv32_core->x[rv32_core->rs2];
+
+  rv32_core->write_mem(rv32_core->priv, address, value_to_write, 1);
+}
+
+static void instr_SH(void *rv32_core_data)
+{
+  int32_t signed_offset = 0;
+  uint32_t address = 0;
+  uint16_t value_to_write = 0;
+  
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
+
+  signed_offset = rv32_core->immediate;
+
+  address = rv32_core->x[rv32_core->rs] + signed_offset;
+
+  value_to_write = (uint16_t)rv32_core->x[rv32_core->rs2];
+
+  rv32_core->write_mem(rv32_core->priv, address, value_to_write, 2);
+}
+
+static void instr_SW(void *rv32_core_data)
+{
+  int32_t signed_offset = 0;
+  uint32_t address = 0;
+  uint32_t value_to_write = 0;
+  
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
+
+  signed_offset = rv32_core->immediate;
+
+  address = rv32_core->x[rv32_core->rs] + signed_offset;
+
+  value_to_write = (uint32_t)rv32_core->x[rv32_core->rs2];
+
+  rv32_core->write_mem(rv32_core->priv, address, value_to_write, 4);
+}
 
 uint32_t rv32_core_fetch(rv32_core_td *rv32_core)
 {
   uint32_t addr = rv32_core->pc;
 
   rv32_core->instruction = rv32_core->read_mem(rv32_core->priv, addr);
-
-  //printf("fetching instruction: %x\n", rv32_core->instruction);
 
   /* increase program counter here */
   rv32_core->pc += 4;
@@ -379,11 +594,8 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
       rv32_core->execute_cb = instr_LUI;
       break;
     case INSTR_AUIPC:
-       /* get destination register */
       rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
-      /* get immediate value */
       rv32_core->immediate = ((rv32_core->instruction >> 12) & 0xFFFFF);
-      /* set instruction callback */
       rv32_core->execute_cb = instr_AUIPC; 
       break;
     case INSTR_JAL:
@@ -407,7 +619,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
       rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
       rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
       rv32_core->immediate = ((rv32_core->instruction >> 20) & 0xFFF);
-  
+
       switch(rv32_core->func3)
       {
         case FUNC3_INSTR_ADDI:
@@ -504,13 +716,86 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
 
       switch(rv32_core->func3)
       {
+        case FUNC3_INSTR_BEQ:
+          rv32_core->execute_cb = instr_BEQ;
+          break;                
         case FUNC3_INSTR_BNE:
           rv32_core->execute_cb = instr_BNE;
+          break;
+        case FUNC3_INSTR_BLT:
+          rv32_core->execute_cb = instr_BLT;
+          break;
+        case FUNC3_INSTR_BGE:
+          rv32_core->execute_cb = instr_BGE;
+          break; 
+        case FUNC3_INSTR_BLTU:
+          rv32_core->execute_cb = instr_BLTU;
+          break;
+        case FUNC3_INSTR_BGEU:
+          rv32_core->execute_cb = instr_BGEU;
+          break;         
+        default:
+          die(rv32_core->instruction);
+          break;
+      }
+      break;
+    case INSTR_LB_LH_LW_LBU_LHU:
+      rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
+      rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
+      rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+      rv32_core->immediate = ((rv32_core->instruction >> 20) & 0xFFF);
+
+      switch(rv32_core->func3)
+      {
+        case FUNC3_INSTR_LB:
+          rv32_core->execute_cb = instr_LB; 
+          break;
+        case FUNC3_INSTR_LH:
+          rv32_core->execute_cb = instr_LH;
+          break;
+        case FUNC3_INSTR_LW:
+          rv32_core->execute_cb = instr_LW;
+          break;
+        case FUNC3_INSTR_LBU:
+          rv32_core->execute_cb = instr_LBU;
+          break;
+        case FUNC3_INSTR_LHU:
+          rv32_core->execute_cb = instr_LHU;
+          break;         
+        default:
+          die(rv32_core->instruction);
+          break;
+      }
+      break;
+    case INSTR_SB_SH_SW:
+      rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
+      rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+      rv32_core->rs2 = ((rv32_core->instruction >> 20) & 0x1F);
+      rv32_core->immediate = (((rv32_core->instruction >> 25) << 5) | ((rv32_core->instruction >> 7) & 0x1F));
+  
+      switch(rv32_core->func3)
+      {
+        case FUNC3_INSTR_SB:
+          rv32_core->execute_cb = instr_SB; 
+          break;
+        case FUNC3_INSTR_SH:
+          rv32_core->execute_cb = instr_SH;
+          break;
+        case FUNC3_INSTR_SW:
+          rv32_core->execute_cb = instr_SW;
           break;
         default:
           die(rv32_core->instruction);
           break;
       }
+      break;
+    case INSTR_FENCE_FENCE_I:
+      printf("FENCE IS NOT IMPLEMENTED!\n");
+      exit(-1);
+      break;
+    case INSTR_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI: 
+      printf("ECALL EBREAK AND CS** CALLS ARE NOT IMPLEMENTED!\n");
+      exit(-1);
       break;
     default:
       printf("Unknown opcode! %x\n", rv32_core->opcode);
@@ -531,28 +816,11 @@ uint32_t rv32_core_execute(rv32_core_td *rv32_core)
   return 0;
 }
 
-/*
-uint32_t rv32_core_mem_access(rv32_core_td *rv32_core)
-{
-  return 0;
-}
-
-uint32_t rv32_core_write_back(rv32_core_td *rv32_core)
-{
-  return 0;
-}
-*/
-
 void rv32_core_run(rv32_core_td *rv32_core)
 {
   rv32_core_fetch(rv32_core);
   rv32_core_decode(rv32_core);
   rv32_core_execute(rv32_core);
-
-/*
-  rv32_core_mem_access(rv32_core);
-  rv32_core_write_back(rv32_core);
-*/
 }
 
 void rv32_core_reg_dump_before_exec(rv32_core_td *rv32_core)
@@ -601,17 +869,66 @@ typedef struct rv32_soc_struct
 
 uint32_t rv32_soc_read_mem(rv32_soc_td *rv32_soc, uint32_t address)
 {
-  if(address < 0x100000)
-    return rv32_soc->ram[address >> 2];
-  else if((address >= 0x100000) && (address <= 0x200000))
-    return rv32_soc->rom[(address-0x100000) >> 2];
+  uint8_t align_offset = address & 0x3;
+  uint32_t read_val = 0;
+  uint32_t read_val2 = 0;
+  uint32_t return_val = 0;
 
-  else return 0;
+  if(address < 0x100000)
+  {
+    read_val = rv32_soc->ram[address >> 2];
+    if(align_offset)
+      read_val2 = rv32_soc->ram[(address >> 2) + 1];
+  }
+  else if((address >= 0x100000) && (address <= 0x200000))
+  {
+    read_val = rv32_soc->rom[(address-0x100000) >> 2];
+    if(align_offset)
+      read_val2 = rv32_soc->ram[((address-0x100000) >> 2) + 1];   
+  }
+
+  switch(align_offset)
+  {
+    case 1:
+      return_val = (read_val2 << 24) | (read_val >> 8);
+      break;
+    case 2:
+      return_val = (read_val2 << 16) | (read_val >> 16);
+      break;
+    case 3:
+      return_val = (read_val2 << 8) | (read_val >> 24);
+      break;
+    default:
+      return_val = read_val;
+      break;
+  }
+  
+  return return_val;
 }
 
-void rv32_soc_write_mem(rv32_soc_td *rv32_soc, uint32_t address, uint32_t value)
+void rv32_soc_write_mem(rv32_soc_td *rv32_soc, uint32_t address, uint32_t value, uint8_t nr_bytes)
 {
-  rv32_soc->ram[address] = value;
+  uint8_t align_offset = address & 0x3;
+  uint32_t address_for_write = 0;
+  uint8_t *ptr_address = NULL;
+
+  printf("writing to value %x to address %x\n", value, address >> 2); 
+  if(address < 0x100000)
+  {
+    address_for_write = address >> 2;
+    ptr_address = (uint8_t *)&rv32_soc->ram[address_for_write];
+
+  }
+  else if((address >= 0x100000) && (address <= 0x200000))
+  {
+    address_for_write = (address-0x100000) >> 2;
+    ptr_address = (uint8_t *)&rv32_soc->rom[address_for_write];
+  }
+
+  memcpy(ptr_address+align_offset, &value, nr_bytes);
+  printf("NEW VAL in address: %x %x\n", address, rv32_soc->rom[address_for_write]);
+
+  return;
 }
 
 void rv32_soc_init(rv32_soc_td *rv32_soc, char *rom_file_name)
@@ -672,7 +989,6 @@ int main(int argc, char *argv[])
   }
 
   rv32_soc_td rv32_soc;
-
   rv32_soc_init(&rv32_soc, argv[1]);
 
   while(1)
