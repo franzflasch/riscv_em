@@ -38,11 +38,34 @@
 #define FUNC7_INSTR_SRLI  0x00
 #define FUNC7_INSTR_SRAI  0x20
 
-#define INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND 0x33
 
+#define INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND 0x33
 #define FUNC3_INSTR_ADD_SUB 0x0
 #define FUNC7_INSTR_ADD 0x00
 #define FUNC7_INSTR_SUB 0x20
+
+#define FUNC3_INSTR_SLL 0x1
+#define FUNC7_INSTR_SLL 0x00
+
+#define FUNC3_INSTR_SLT 0x2
+#define FUNC7_INSTR_SLT 0x00
+
+#define FUNC3_INSTR_SLTU 0x3
+#define FUNC7_INSTR_SLTU 0x00
+
+#define FUNC3_INSTR_XOR 0x4
+#define FUNC7_INSTR_XOR 0x00
+
+#define FUNC3_INSTR_SRL_SRA 0x5
+#define FUNC7_INSTR_SRL 0x00
+#define FUNC7_INSTR_SRA 0x20
+
+#define FUNC3_INSTR_OR 0x6
+#define FUNC7_INSTR_OR 0x00
+
+#define FUNC3_INSTR_AND 0x7
+#define FUNC7_INSTR_AND 0x00
+
 
 /* B-Type Instructions */
 #define INSTR_BEQ_BNE_BLT_BGE_BLTU_BGEU 0x63
@@ -238,9 +261,81 @@ static void instr_ADD(void *rv32_core_data)
 static void instr_SUB(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-
   rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] - rv32_core->x[rv32_core->rs2];
 }
+
+static void instr_SLL(void *rv32_core_data)
+{
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] << (rv32_core->x[rv32_core->rs2] & 0x1F);
+}
+
+static void instr_SLT(void *rv32_core_data)
+{
+  int32_t signed_rs = 0;
+  int32_t signed_rs2 = 0;
+
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  signed_rs = rv32_core->x[rv32_core->rs];
+  signed_rs2 = rv32_core->x[rv32_core->rs2];
+
+  if(signed_rs < signed_rs2) rv32_core->x[rv32_core->rd] = 1;
+  else rv32_core->x[rv32_core->rd] = 0;
+}
+
+static void instr_SLTU(void *rv32_core_data)
+{
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  if(rv32_core->rs == 0)
+  {
+    if(rv32_core->x[rv32_core->rs2])
+      rv32_core->x[rv32_core->rd] = 1;
+    else
+      rv32_core->x[rv32_core->rd] = 0;
+  }
+  else 
+  {
+    if(rv32_core->x[rv32_core->rs] < rv32_core->x[rv32_core->rs2]) rv32_core->x[rv32_core->rd] = 1;
+    else rv32_core->x[rv32_core->rd] = 0;
+  }
+}
+
+static void instr_XOR(void *rv32_core_data)
+{
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] ^ rv32_core->x[rv32_core->rs2];
+}
+
+static void instr_SRL(void *rv32_core_data)
+{
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] >> (rv32_core->x[rv32_core->rs2] & 0x1F);
+}
+
+static void instr_OR(void *rv32_core_data)
+{
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] | (rv32_core->x[rv32_core->rs2]);
+}
+
+static void instr_AND(void *rv32_core_data)
+{
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] & (rv32_core->x[rv32_core->rs2]);
+}
+
+static void instr_SRA(void *rv32_core_data)
+{
+  int32_t signed_rs = 0; 
+
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  signed_rs = rv32_core->x[rv32_core->rs];
+  rv32_core->x[rv32_core->rd] = signed_rs >> (rv32_core->x[rv32_core->rs2] & 0x1F);
+}
+
 
 uint32_t rv32_core_fetch(rv32_core_td *rv32_core)
 {
@@ -254,6 +349,12 @@ uint32_t rv32_core_fetch(rv32_core_td *rv32_core)
   rv32_core->pc += 4;
 
   return 0;
+}
+
+void die(uint32_t instruction)
+{
+  printf("Unknown instruction %x\n", instruction);
+  exit(-1);
 }
 
 uint32_t rv32_core_decode(rv32_core_td *rv32_core)
@@ -330,11 +431,16 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
         case FUNC3_INSTR_SLLI:
           rv32_core->func7 = ((rv32_core->instruction >> 25) & 0x7F);
           if(rv32_core->func7 == FUNC7_INSTR_SLLI) rv32_core->execute_cb = instr_SLLI;
+          else die(rv32_core->instruction);
           break;
         case FUNC3_INSTR_SRLI_SRAI:
           rv32_core->func7 = ((rv32_core->instruction >> 25) & 0x7F);
           if(rv32_core->func7 == FUNC7_INSTR_SRLI) rv32_core->execute_cb = instr_SRLI;
           else if(rv32_core->func7 == FUNC7_INSTR_SRAI) rv32_core->execute_cb = instr_SRAI;
+          else die(rv32_core->instruction);
+          break;
+        default:
+          die(rv32_core->instruction);
           break;
       }
       break;
@@ -349,7 +455,40 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
       {
         case FUNC3_INSTR_ADD_SUB:
           if(rv32_core->func7 == FUNC7_INSTR_ADD) rv32_core->execute_cb = instr_ADD;
-          else if(rv32_core->func7 == FUNC7_INSTR_SUB) rv32_core->execute_cb = instr_SUB; 
+          else if(rv32_core->func7 == FUNC7_INSTR_SUB) rv32_core->execute_cb = instr_SUB;
+          else die(rv32_core->instruction);
+          break;
+        case FUNC3_INSTR_SLL:
+          if(rv32_core->func7 == FUNC7_INSTR_SLL) rv32_core->execute_cb = instr_SLL;
+          else die(rv32_core->instruction);
+          break;
+        case FUNC3_INSTR_SLT:
+          if(rv32_core->func7 == FUNC7_INSTR_SLT) rv32_core->execute_cb = instr_SLT;
+          else die(rv32_core->instruction);
+          break;
+        case FUNC3_INSTR_SLTU:
+          if(rv32_core->func7 == FUNC7_INSTR_SLT) rv32_core->execute_cb = instr_SLTU;
+          else die(rv32_core->instruction);
+          break;
+         case FUNC3_INSTR_XOR:
+          if(rv32_core->func7 == FUNC7_INSTR_XOR) rv32_core->execute_cb = instr_XOR;
+          else die(rv32_core->instruction);
+          break;
+        case FUNC3_INSTR_SRL_SRA:
+          if(rv32_core->func7 == FUNC7_INSTR_SRL) rv32_core->execute_cb = instr_SRL;
+          else if(rv32_core->func7 == FUNC7_INSTR_SRA) rv32_core->execute_cb = instr_SRA;
+          else die(rv32_core->instruction);
+          break;
+        case FUNC3_INSTR_OR:
+          if(rv32_core->func7 == FUNC7_INSTR_OR) rv32_core->execute_cb = instr_OR;
+          else die(rv32_core->instruction);
+          break;
+        case FUNC3_INSTR_AND:
+          if(rv32_core->func7 == FUNC7_INSTR_AND) rv32_core->execute_cb = instr_AND;
+          else die(rv32_core->instruction);
+          break;         
+        default:
+          die(rv32_core->instruction);
           break;
       }
       break;
@@ -367,6 +506,9 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
       {
         case FUNC3_INSTR_BNE:
           rv32_core->execute_cb = instr_BNE;
+          break;
+        default:
+          die(rv32_core->instruction);
           break;
       }
       break;
