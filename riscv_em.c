@@ -204,6 +204,31 @@ static void instr_ANDI(void *rv32_core_data)
   rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] & rv32_core->immediate;
 }
 
+static void instr_SLLI(void *rv32_core_data)
+{
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+  rv32_core->x[rv32_core->rd] = (rv32_core->x[rv32_core->rs] << rv32_core->immediate);
+}
+
+static void instr_SRAI(void *rv32_core_data)
+{
+  int32_t rs_val = 0;
+
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  /* a right shift on signed ints seem to be always arithmetic */
+  rs_val = rv32_core->x[rv32_core->rs];
+  rs_val = rs_val >> rv32_core->immediate;
+  
+  rv32_core->x[rv32_core->rd] = rs_val;
+}
+
+static void instr_SRLI(void *rv32_core_data)
+{
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+  rv32_core->x[rv32_core->rd] = (rv32_core->x[rv32_core->rs] >> rv32_core->immediate);
+}
+
 static void instr_ADD(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
@@ -304,15 +329,12 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
           break;
         case FUNC3_INSTR_SLLI:
           rv32_core->func7 = ((rv32_core->instruction >> 25) & 0x7F);
-//          if(rv32_core->func7 == FUNC7_INSTR_SLLI) rv32_core->execute_cb = instr_SLLI;
-          printf("SLLI not implemented yet!\n");
-          exit(-1);
+          if(rv32_core->func7 == FUNC7_INSTR_SLLI) rv32_core->execute_cb = instr_SLLI;
           break;
         case FUNC3_INSTR_SRLI_SRAI:
           rv32_core->func7 = ((rv32_core->instruction >> 25) & 0x7F);
-//          if(rv32_core->func7 == FUNC7_INSTR_SRLI) rv32_core->execute_cb = instr_SRLI;
-          printf("SRLI and SRAI not implemented yet\n");
-          exit(-1);
+          if(rv32_core->func7 == FUNC7_INSTR_SRLI) rv32_core->execute_cb = instr_SRLI;
+          else if(rv32_core->func7 == FUNC7_INSTR_SRAI) rv32_core->execute_cb = instr_SRAI;
           break;
       }
       break;
@@ -391,7 +413,7 @@ void rv32_core_run(rv32_core_td *rv32_core)
 */
 }
 
-void rv32_core_reg_dump(rv32_core_td *rv32_core)
+void rv32_core_reg_dump_before_exec(rv32_core_td *rv32_core)
 {
   int i = 0;
 
@@ -400,11 +422,16 @@ void rv32_core_reg_dump(rv32_core_td *rv32_core)
     printf("x[%d]: %x\n", i, rv32_core->x[i]);
   }
   printf("pc: %x\n", rv32_core->pc);
-  printf("last register values:\n");
+}
+
+void rv32_core_reg_internal_after_exec(rv32_core_td *rv32_core)
+{
+  printf("internal regs after execution:\n");
   printf("instruction: %x\n", rv32_core->instruction);
   printf("rd: %x rs: %x rs2: %x imm: %x\n", rv32_core->rd, rv32_core->rs, rv32_core->rs2, rv32_core->immediate);
   printf("func3: %x func7: %x jump_offset %x\n", rv32_core->func3, rv32_core->func7, rv32_core->jump_offset);
-  printf("\n");
+  printf("next pc: %x\n", rv32_core->pc); 
+  printf("\n"); 
 }
 
 void rv32_core_init(rv32_core_td *rv32_core,
@@ -508,7 +535,8 @@ int main(int argc, char *argv[])
 
   while(1)
   {
-    rv32_core_reg_dump(&rv32_soc.rv32_core);
-    rv32_core_run(&rv32_soc.rv32_core); 
+    rv32_core_reg_dump_before_exec(&rv32_soc.rv32_core);
+    rv32_core_run(&rv32_soc.rv32_core);
+    rv32_core_reg_internal_after_exec(&rv32_soc.rv32_core);
   }
 }
