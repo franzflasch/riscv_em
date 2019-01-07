@@ -3,8 +3,10 @@
 # ISA Test How-To:
 1. Build riscv baremetal toolchain with the build-gcc toolchain script.
 
-2. Clone official ISA test repo, besides the riscv_em. Both projects must be in the same folder!
-https://github.com/riscv/riscv-tests.git
+2. Clone official ISA test repo, besides the riscv_em. Both projects must be in the same folder!   
+```console
+git clone https://github.com/riscv/riscv-tests.git   
+```
 
 3. go into isa_test_env/riscv_em directory.
 
