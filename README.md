@@ -26,9 +26,13 @@ called correctly and that finally the pass label was called. If the fail label w
 it should stuck in a loop anyways, however it is always better to double check;)
 
 objdump example calls 
-- get text assembly:
-riscv32-none-elf-objdump -d -j .text bne.elf
+- get text assembly:  
+```console
+riscv32-none-elf-objdump -d -j .text bne.elf   
+```
 
-- get data assembly:
-riscv32-none-elf-objdump -d -j .data bne.elf
+- get data assembly:  
+```console
+riscv32-none-elf-objdump -d -j .data bne.elf   
+```
 
