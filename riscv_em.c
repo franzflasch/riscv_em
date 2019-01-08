@@ -8,91 +8,87 @@
 #define XREG_RETURN_ADDRESS 0
 #define XREG_STACK_POINTER 2
 
-#define NR_RAM_WORDS 1024 
+#define NR_RAM_WORDS 1024
 #define NR_ROM_WORDS 1024
 
 #define STACK_POINTER_START_VAL (4*NR_RAM_WORDS)
 #define PROGRAM_COUNTER_START_VAL 0x100000
 
+/* R-Type Instructions */
+#define INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND 0x33
+  #define FUNC3_INSTR_ADD_SUB 0x0
+    #define FUNC7_INSTR_ADD 0x00
+    #define FUNC7_INSTR_SUB 0x20
+  #define FUNC3_INSTR_SLL 0x1
+    #define FUNC7_INSTR_SLL 0x00
+  #define FUNC3_INSTR_SLT 0x2
+    #define FUNC7_INSTR_SLT 0x00
+  #define FUNC3_INSTR_SLTU 0x3
+    #define FUNC7_INSTR_SLTU 0x00
+  #define FUNC3_INSTR_XOR 0x4
+    #define FUNC7_INSTR_XOR 0x00
+  #define FUNC3_INSTR_SRL_SRA 0x5
+    #define FUNC7_INSTR_SRL 0x00
+    #define FUNC7_INSTR_SRA 0x20
+  #define FUNC3_INSTR_OR 0x6
+    #define FUNC7_INSTR_OR 0x00
+  #define FUNC3_INSTR_AND 0x7
+    #define FUNC7_INSTR_AND 0x00
+
+/* I-Type Instructions */
+#define INSTR_JALR 0x67
+  #define FUNC3_INSTR_JALR  0x0
+
+#define INSTR_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI 0x13
+  #define FUNC3_INSTR_ADDI  0x0
+  #define FUNC3_INSTR_SLTI  0x2
+  #define FUNC3_INSTR_SLTIU 0x3
+  #define FUNC3_INSTR_XORI  0x4
+  #define FUNC3_INSTR_ORI   0x6
+  #define FUNC3_INSTR_ANDI  0x7
+  #define FUNC3_INSTR_SLLI  0x1
+/* TODO: NOT USED ANYMORE
+#define FUNC7_INSTR_SLLI  0x00
+*/
+  #define FUNC3_INSTR_SRLI_SRAI  0x5
+/* TODO: NOT USED ANYMORE
+#define FUNC7_INSTR_SRLI  0x00
+#define FUNC7_INSTR_SRAI  0x20
+*/
+
+#define INSTR_LB_LH_LW_LBU_LHU 0x03
+  #define FUNC3_INSTR_LB 0x0
+  #define FUNC3_INSTR_LH 0x1
+  #define FUNC3_INSTR_LW 0x2
+  #define FUNC3_INSTR_LBU 0x4
+  #define FUNC3_INSTR_LHU 0x5
+
+/* S-Type Instructions */
+#define INSTR_SB_SH_SW 0x23
+  #define FUNC3_INSTR_SB 0x0
+  #define FUNC3_INSTR_SH 0x1
+  #define FUNC3_INSTR_SW 0x2
+
+/* B-Type Instructions */
+#define INSTR_BEQ_BNE_BLT_BGE_BLTU_BGEU 0x63
+  #define FUNC3_INSTR_BEQ 0x0
+  #define FUNC3_INSTR_BNE 0x1
+  #define FUNC3_INSTR_BLT 0x4
+  #define FUNC3_INSTR_BGE 0x5
+  #define FUNC3_INSTR_BLTU 0x6
+  #define FUNC3_INSTR_BGEU 0x7
+
 /* U-Type Instructions */
 #define INSTR_LUI 0x37   /* LOAD UPPER IMMEDIATE INTO DESTINATION REGISTER */
 #define INSTR_AUIPC 0x17 /* ADD UPPER IMMEDIATE TO PROGRAM COUNTER */
 
-/* UJ-Type Instructions */
+/* J-Type Instructions */
 #define INSTR_JAL 0x6F   /* JUMP and Link */
 
-/* I- and R-Type Instructions */
-#define INSTR_JALR 0x67
-#define INSTR_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI 0x13 
-#define FUNC3_INSTR_ADDI  0x0
-#define FUNC3_INSTR_SLTI  0x2
-#define FUNC3_INSTR_SLTIU 0x3
-#define FUNC3_INSTR_XORI  0x4
-#define FUNC3_INSTR_ORI   0x6 
-#define FUNC3_INSTR_ANDI  0x7
-
-#define FUNC3_INSTR_SLLI  0x1
-#define FUNC7_INSTR_SLLI  0x00
-
-#define FUNC3_INSTR_SRLI_SRAI  0x5
-#define FUNC7_INSTR_SRLI  0x00
-#define FUNC7_INSTR_SRAI  0x20
-
-
-#define INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND 0x33
-#define FUNC3_INSTR_ADD_SUB 0x0
-#define FUNC7_INSTR_ADD 0x00
-#define FUNC7_INSTR_SUB 0x20
-
-#define FUNC3_INSTR_SLL 0x1
-#define FUNC7_INSTR_SLL 0x00
-
-#define FUNC3_INSTR_SLT 0x2
-#define FUNC7_INSTR_SLT 0x00
-
-#define FUNC3_INSTR_SLTU 0x3
-#define FUNC7_INSTR_SLTU 0x00
-
-#define FUNC3_INSTR_XOR 0x4
-#define FUNC7_INSTR_XOR 0x00
-
-#define FUNC3_INSTR_SRL_SRA 0x5
-#define FUNC7_INSTR_SRL 0x00
-#define FUNC7_INSTR_SRA 0x20
-
-#define FUNC3_INSTR_OR 0x6
-#define FUNC7_INSTR_OR 0x00
-
-#define FUNC3_INSTR_AND 0x7
-#define FUNC7_INSTR_AND 0x00
-
-
-#define INSTR_LB_LH_LW_LBU_LHU 0x03
-#define FUNC3_INSTR_LB 0x0
-#define FUNC3_INSTR_LH 0x1
-#define FUNC3_INSTR_LW 0x2
-#define FUNC3_INSTR_LBU 0x4
-#define FUNC3_INSTR_LHU 0x5
-
-/* B-Type Instructions */
-#define INSTR_BEQ_BNE_BLT_BGE_BLTU_BGEU 0x63
-#define FUNC3_INSTR_BEQ 0x0
-#define FUNC3_INSTR_BNE 0x1
-#define FUNC3_INSTR_BLT 0x4
-#define FUNC3_INSTR_BGE 0x5
-#define FUNC3_INSTR_BLTU 0x6
-#define FUNC3_INSTR_BGEU 0x7
-
-/* S-Type Instructions */
-#define INSTR_SB_SH_SW 0x23
-#define FUNC3_INSTR_SB 0x0
-#define FUNC3_INSTR_SH 0x1
-#define FUNC3_INSTR_SW 0x2
-
-/* System level instruction */
+/* System level instructions */
 #define INSTR_FENCE_FENCE_I 0x0F
-#define FUNC3_INSTR_FENCE 0x0
-#define FUNC3_INSTR_FENCE_I 0x1
+  #define FUNC3_INSTR_FENCE 0x0
+  #define FUNC3_INSTR_FENCE_I 0x1
 
 #define INSTR_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI 0x73
 
@@ -153,6 +149,10 @@ static void instr_JAL(void *rv32_core_data)
 static void instr_JALR(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  rv32_core->jump_offset = rv32_core->immediate;
+  if((1<<11) & rv32_core->jump_offset) rv32_core->jump_offset=(rv32_core->jump_offset | 0xFFFFF000);
+
   rv32_core->x[rv32_core->rd] = rv32_core->pc;
 
   rv32_core->pc = (rv32_core->x[rv32_core->rs] + rv32_core->jump_offset);
@@ -177,12 +177,12 @@ static void instr_BLT(void *rv32_core_data)
 {
   int32_t signed_rs = 0;
   int32_t signed_rs2 = 0;
-  
+
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
   signed_rs = rv32_core->x[rv32_core->rs];
   signed_rs2 = rv32_core->x[rv32_core->rs2];
-  
+
   if(signed_rs < signed_rs2)
     rv32_core->pc = (rv32_core->pc-4) + rv32_core->jump_offset;
 }
@@ -191,12 +191,12 @@ static void instr_BGE(void *rv32_core_data)
 {
   int32_t signed_rs = 0;
   int32_t signed_rs2 = 0;
-  
+
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
   signed_rs = rv32_core->x[rv32_core->rs];
   signed_rs2 = rv32_core->x[rv32_core->rs2];
-  
+
   if(signed_rs >= signed_rs2)
     rv32_core->pc = (rv32_core->pc-4) + rv32_core->jump_offset;
 }
@@ -204,7 +204,7 @@ static void instr_BGE(void *rv32_core_data)
 static void instr_BLTU(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-  
+
   if(rv32_core->x[rv32_core->rs] < rv32_core->x[rv32_core->rs2])
     rv32_core->pc = (rv32_core->pc-4) + rv32_core->jump_offset;
 }
@@ -212,7 +212,7 @@ static void instr_BLTU(void *rv32_core_data)
 static void instr_BGEU(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-  
+
   if(rv32_core->x[rv32_core->rs] >= rv32_core->x[rv32_core->rs2])
     rv32_core->pc = (rv32_core->pc-4) + rv32_core->jump_offset;
 }
@@ -246,7 +246,7 @@ static void instr_SLTI(void *rv32_core_data)
 
   if(signed_rs_val < signed_immediate)
     rv32_core->x[rv32_core->rd] = 1;
-  else 
+  else
     rv32_core->x[rv32_core->rd] = 0;
 }
 
@@ -264,7 +264,7 @@ static void instr_SLTIU(void *rv32_core_data)
 
   if(unsigned_rs_val < unsigned_immediate)
     rv32_core->x[rv32_core->rd] = 1;
-  else 
+  else
     rv32_core->x[rv32_core->rd] = 0;
 }
 
@@ -317,7 +317,7 @@ static void instr_SRAI(void *rv32_core_data)
   /* a right shift on signed ints seem to be always arithmetic */
   rs_val = rv32_core->x[rv32_core->rs];
   rs_val = rs_val >> rv32_core->immediate;
-  
+
   rv32_core->x[rv32_core->rd] = rs_val;
 }
 
@@ -325,6 +325,16 @@ static void instr_SRLI(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
   rv32_core->x[rv32_core->rd] = (rv32_core->x[rv32_core->rs] >> rv32_core->immediate);
+}
+
+static void instr_SRLI_SRAI(void *rv32_core_data)
+{
+  uint8_t arithmetic_shift = 0;
+  rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+
+  arithmetic_shift = ((rv32_core->instruction >> 25) & 0x7F);
+  if(arithmetic_shift & (1<<5)) instr_SRAI(rv32_core);
+  else instr_SRLI(rv32_core);
 }
 
 static void instr_ADD(void *rv32_core_data)
@@ -370,7 +380,7 @@ static void instr_SLTU(void *rv32_core_data)
     else
       rv32_core->x[rv32_core->rd] = 0;
   }
-  else 
+  else
   {
     if(rv32_core->x[rv32_core->rs] < rv32_core->x[rv32_core->rs2]) rv32_core->x[rv32_core->rd] = 1;
     else rv32_core->x[rv32_core->rd] = 0;
@@ -403,7 +413,7 @@ static void instr_AND(void *rv32_core_data)
 
 static void instr_SRA(void *rv32_core_data)
 {
-  int32_t signed_rs = 0; 
+  int32_t signed_rs = 0;
 
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
@@ -453,7 +463,7 @@ static void instr_LW(void *rv32_core_data)
 {
   int32_t signed_offset = 0;
   uint32_t address = 0;
-  
+
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
   if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
@@ -469,11 +479,11 @@ static void instr_LBU(void *rv32_core_data)
 {
   int32_t signed_offset = 0;
   uint32_t address = 0;
-  
+
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
   if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
-  
+
   signed_offset = rv32_core->immediate;
 
   address = rv32_core->x[rv32_core->rs] + signed_offset;
@@ -485,7 +495,7 @@ static void instr_LHU(void *rv32_core_data)
 {
   int32_t signed_offset = 0;
   uint32_t address = 0;
-  
+
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
   if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
@@ -502,7 +512,7 @@ static void instr_SB(void *rv32_core_data)
   int32_t signed_offset = 0;
   uint32_t address = 0;
   uint8_t value_to_write = 0;
-  
+
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
   if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
@@ -521,7 +531,7 @@ static void instr_SH(void *rv32_core_data)
   int32_t signed_offset = 0;
   uint32_t address = 0;
   uint16_t value_to_write = 0;
-  
+
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
   if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
@@ -540,7 +550,7 @@ static void instr_SW(void *rv32_core_data)
   int32_t signed_offset = 0;
   uint32_t address = 0;
   uint32_t value_to_write = 0;
-  
+
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
   if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
@@ -552,6 +562,180 @@ static void instr_SW(void *rv32_core_data)
   value_to_write = (uint32_t)rv32_core->x[rv32_core->rs2];
 
   rv32_core->write_mem(rv32_core->priv, address, value_to_write, 4);
+}
+
+static void die(uint32_t instruction)
+{
+  printf("Unknown instruction %x\n", instruction);
+  exit(-1);
+}
+
+typedef struct instruction_hook_struct
+{
+  uint32_t index;
+  void (*preparation_cb)(rv32_core_td *rv32_core, int32_t *next_subcode);
+  void (*execution_cb)(void *rv32_core_data);
+  struct instruction_hook_struct *next;
+
+} instruction_hook_td;
+
+static void R_type_preparation_func3(rv32_core_td *rv32_core, int32_t *next_subcode)
+{
+  rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
+  rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
+  rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+  rv32_core->rs2 = ((rv32_core->instruction >> 20) & 0x1F);
+
+  *next_subcode = rv32_core->func3;
+}
+
+static void R_type_preparation_func7(rv32_core_td *rv32_core, int32_t *next_subcode)
+{
+  rv32_core->func7 = ((rv32_core->instruction >> 25) & 0x7F);
+
+  *next_subcode = rv32_core->func7;
+}
+
+static void I_type_preparation(rv32_core_td *rv32_core, int32_t *next_subcode)
+{
+  rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
+  rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
+  rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+  rv32_core->immediate = ((rv32_core->instruction >> 20) & 0xFFF);
+  *next_subcode = rv32_core->func3;
+}
+
+static void S_type_preparation(rv32_core_td *rv32_core, int32_t *next_subcode)
+{
+  rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
+  rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+  rv32_core->rs2 = ((rv32_core->instruction >> 20) & 0x1F);
+  rv32_core->immediate = (((rv32_core->instruction >> 25) << 5) | ((rv32_core->instruction >> 7) & 0x1F));
+
+  *next_subcode = rv32_core->func3;
+}
+
+static void B_type_preparation(rv32_core_td *rv32_core, int32_t *next_subcode)
+{
+  rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
+  rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
+  rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+  rv32_core->rs2 = ((rv32_core->instruction >> 20) & 0x1F);
+  rv32_core->jump_offset=((extract32(rv32_core->instruction, 8, 4) << 1) |
+                          (extract32(rv32_core->instruction, 25, 6) << 5) |
+                          (extract32(rv32_core->instruction, 7, 1) << 11));
+  if((1<<11) & rv32_core->jump_offset) rv32_core->jump_offset=(rv32_core->jump_offset | 0xFFFFF000);
+
+  *next_subcode = rv32_core->func3;
+}
+
+static void U_type_preparation(rv32_core_td *rv32_core, int32_t *next_subcode)
+{
+  /* get destination register */
+  rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
+  /* get immediate value */
+  rv32_core->immediate = ((rv32_core->instruction >> 12) & 0xFFFFF);
+
+  *next_subcode = -1;
+}
+
+static void J_type_preparation(rv32_core_td *rv32_core, int32_t *next_subcode)
+{
+  rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
+  rv32_core->jump_offset=((extract32(rv32_core->instruction, 21, 10) << 1) |
+                          (extract32(rv32_core->instruction, 20, 1) << 11) |
+                          (extract32(rv32_core->instruction, 12, 8) << 12) );
+  /* sign extend the 20 bit number */
+  if((1<<19) & rv32_core->jump_offset) rv32_core->jump_offset=(rv32_core->jump_offset | 0xFFF00000);
+
+  *next_subcode = -1;
+}
+
+static instruction_hook_td JALR_func3_subcode_list[] = {
+  { FUNC3_INSTR_JALR, NULL, instr_JALR, NULL}
+};
+
+static instruction_hook_td BEQ_BNE_BLT_BGE_BLTU_BGEU_func3_subcode_list[] = {
+  { FUNC3_INSTR_BEQ, NULL, instr_BEQ, NULL},
+  { FUNC3_INSTR_BNE, NULL, instr_BNE, NULL},
+  { FUNC3_INSTR_BLT, NULL, instr_BLT, NULL},
+  { FUNC3_INSTR_BGE, NULL, instr_BGE, NULL},
+  { FUNC3_INSTR_BLTU, NULL, instr_BLTU, NULL},
+  { FUNC3_INSTR_BGEU, NULL, instr_BGEU, NULL},
+};
+
+static instruction_hook_td LB_LH_LW_LBU_LHU_func3_subcode_list[] = {
+  { FUNC3_INSTR_LB, NULL, instr_LB, NULL},
+  { FUNC3_INSTR_LH, NULL, instr_LH, NULL},
+  { FUNC3_INSTR_LW, NULL, instr_LW, NULL},
+  { FUNC3_INSTR_LBU, NULL, instr_LBU, NULL},
+  { FUNC3_INSTR_LHU, NULL, instr_LHU, NULL},
+};
+
+static instruction_hook_td SB_SH_SW_func3_subcode_list[] = {
+  { FUNC3_INSTR_SB, NULL, instr_SB, NULL},
+  { FUNC3_INSTR_SH, NULL, instr_SH, NULL},
+  { FUNC3_INSTR_SW, NULL, instr_SW, NULL}
+};
+
+static instruction_hook_td ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI_func3_subcode_list[] = {
+  { FUNC3_INSTR_ADDI, NULL, instr_ADDI, NULL},
+  { FUNC3_INSTR_SLTI, NULL, instr_SLTI, NULL},
+  { FUNC3_INSTR_SLTIU, NULL, instr_SLTIU, NULL},
+  { FUNC3_INSTR_XORI, NULL, instr_XORI, NULL},
+  { FUNC3_INSTR_ORI, NULL, instr_ORI, NULL},
+  { FUNC3_INSTR_ANDI, NULL, instr_ANDI, NULL},
+  { FUNC3_INSTR_SLLI, NULL, instr_SLLI, NULL},
+  { FUNC3_INSTR_SRLI_SRAI, NULL, instr_SRLI_SRAI, NULL}
+};
+
+static instruction_hook_td ADD_SUB_func7_subcode_list[] = {
+  { FUNC7_INSTR_ADD, NULL, instr_ADD, NULL},
+  { FUNC7_INSTR_SUB, NULL, instr_SUB, NULL}
+};
+
+static instruction_hook_td SRL_SRA_func7_subcode_list[] = {
+  { FUNC7_INSTR_SRL, NULL, instr_SRL, NULL},
+  { FUNC7_INSTR_SRA, NULL, instr_SRA, NULL}
+};
+
+static instruction_hook_td ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list[] = {
+  { FUNC3_INSTR_ADD_SUB, R_type_preparation_func7, NULL, ADD_SUB_func7_subcode_list},
+  { FUNC3_INSTR_SLL, NULL, instr_SLL, NULL},
+  { FUNC3_INSTR_SLT, NULL, instr_SLT, NULL},
+  { FUNC3_INSTR_SLTU, NULL, instr_SLTU, NULL},
+  { FUNC3_INSTR_XOR, NULL, instr_XOR, NULL},
+  { FUNC3_INSTR_SRL_SRA, R_type_preparation_func7, NULL, SRL_SRA_func7_subcode_list},
+  { FUNC3_INSTR_OR, NULL, instr_OR, NULL},
+  { FUNC3_INSTR_AND, NULL, instr_AND, NULL}
+};
+
+static instruction_hook_td main_opcode_list[] = {
+  { INSTR_LUI, U_type_preparation, instr_LUI, NULL},
+  { INSTR_AUIPC, U_type_preparation, instr_AUIPC, NULL},
+  { INSTR_JAL, J_type_preparation, instr_JAL, NULL},
+  { INSTR_JALR, I_type_preparation, NULL, JALR_func3_subcode_list},
+  { INSTR_BEQ_BNE_BLT_BGE_BLTU_BGEU, B_type_preparation, NULL, BEQ_BNE_BLT_BGE_BLTU_BGEU_func3_subcode_list},
+  { INSTR_LB_LH_LW_LBU_LHU, I_type_preparation, NULL, LB_LH_LW_LBU_LHU_func3_subcode_list},
+  { INSTR_SB_SH_SW, S_type_preparation, NULL, SB_SH_SW_func3_subcode_list},
+  { INSTR_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI, I_type_preparation, NULL, ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI_func3_subcode_list},
+  { INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND, R_type_preparation_func3, NULL, ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list},
+  { INSTR_FENCE_FENCE_I, NULL, NULL, NULL}, /* Not implemented */
+  { INSTR_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI, NULL, NULL, NULL}, /* Not implemented */
+};
+
+static void rv32_call_from_opcode_list(rv32_core_td *rv32_core, instruction_hook_td *opcode_list, uint32_t opcode)
+{
+  int32_t next_subcode = -1;
+
+  if(opcode_list[opcode].preparation_cb != NULL)
+    opcode_list[opcode].preparation_cb(rv32_core, &next_subcode);
+
+  if(opcode_list[opcode].execution_cb != NULL)
+    rv32_core->execute_cb = opcode_list[opcode].execution_cb;
+
+  if((next_subcode != -1) && (opcode_list[opcode].next != NULL))
+    rv32_call_from_opcode_list(rv32_core, opcode_list[opcode].next, next_subcode);
 }
 
 uint32_t rv32_core_fetch(rv32_core_td *rv32_core)
@@ -566,12 +750,6 @@ uint32_t rv32_core_fetch(rv32_core_td *rv32_core)
   return 0;
 }
 
-void die(uint32_t instruction)
-{
-  printf("Unknown instruction %x\n", instruction);
-  exit(-1);
-}
-
 uint32_t rv32_core_decode(rv32_core_td *rv32_core)
 {
   rv32_core->opcode = (rv32_core->instruction & 0x7F);
@@ -583,6 +761,12 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
   rv32_core->immediate = 0;
   rv32_core->jump_offset = 0;
 
+  rv32_call_from_opcode_list(rv32_core, main_opcode_list, rv32_core->opcode);
+
+  if(rv32_core->execute_cb == NULL)
+    die(rv32_core->instruction);
+
+#if 0
   switch(rv32_core->opcode)
   {
     case INSTR_LUI:
@@ -596,12 +780,12 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
     case INSTR_AUIPC:
       rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
       rv32_core->immediate = ((rv32_core->instruction >> 12) & 0xFFFFF);
-      rv32_core->execute_cb = instr_AUIPC; 
+      rv32_core->execute_cb = instr_AUIPC;
       break;
     case INSTR_JAL:
       rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
-      rv32_core->jump_offset=((extract32(rv32_core->instruction, 21, 10) << 1) | 
-                              (extract32(rv32_core->instruction, 20, 1) << 11) | 
+      rv32_core->jump_offset=((extract32(rv32_core->instruction, 21, 10) << 1) |
+                              (extract32(rv32_core->instruction, 20, 1) << 11) |
                               (extract32(rv32_core->instruction, 12, 8) << 12) );
       /* sign extend the 20 bit number */
       if((1<<19) & rv32_core->jump_offset) rv32_core->jump_offset=(rv32_core->jump_offset | 0xFFF00000);
@@ -698,7 +882,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
         case FUNC3_INSTR_AND:
           if(rv32_core->func7 == FUNC7_INSTR_AND) rv32_core->execute_cb = instr_AND;
           else die(rv32_core->instruction);
-          break;         
+          break;
         default:
           die(rv32_core->instruction);
           break;
@@ -706,11 +890,11 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
       break;
     case INSTR_BEQ_BNE_BLT_BGE_BLTU_BGEU:
       rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
-      rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);     
+      rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
       rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
       rv32_core->rs2 = ((rv32_core->instruction >> 20) & 0x1F);
-      rv32_core->jump_offset=((extract32(rv32_core->instruction, 8, 4) << 1) | 
-                              (extract32(rv32_core->instruction, 25, 6) << 5) | 
+      rv32_core->jump_offset=((extract32(rv32_core->instruction, 8, 4) << 1) |
+                              (extract32(rv32_core->instruction, 25, 6) << 5) |
                               (extract32(rv32_core->instruction, 7, 1) << 11));
       if((1<<11) & rv32_core->jump_offset) rv32_core->jump_offset=(rv32_core->jump_offset | 0xFFFFF000);
 
@@ -718,7 +902,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
       {
         case FUNC3_INSTR_BEQ:
           rv32_core->execute_cb = instr_BEQ;
-          break;                
+          break;
         case FUNC3_INSTR_BNE:
           rv32_core->execute_cb = instr_BNE;
           break;
@@ -727,13 +911,13 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
           break;
         case FUNC3_INSTR_BGE:
           rv32_core->execute_cb = instr_BGE;
-          break; 
+          break;
         case FUNC3_INSTR_BLTU:
           rv32_core->execute_cb = instr_BLTU;
           break;
         case FUNC3_INSTR_BGEU:
           rv32_core->execute_cb = instr_BGEU;
-          break;         
+          break;
         default:
           die(rv32_core->instruction);
           break;
@@ -748,7 +932,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
       switch(rv32_core->func3)
       {
         case FUNC3_INSTR_LB:
-          rv32_core->execute_cb = instr_LB; 
+          rv32_core->execute_cb = instr_LB;
           break;
         case FUNC3_INSTR_LH:
           rv32_core->execute_cb = instr_LH;
@@ -761,7 +945,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
           break;
         case FUNC3_INSTR_LHU:
           rv32_core->execute_cb = instr_LHU;
-          break;         
+          break;
         default:
           die(rv32_core->instruction);
           break;
@@ -772,11 +956,11 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
       rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
       rv32_core->rs2 = ((rv32_core->instruction >> 20) & 0x1F);
       rv32_core->immediate = (((rv32_core->instruction >> 25) << 5) | ((rv32_core->instruction >> 7) & 0x1F));
-  
+
       switch(rv32_core->func3)
       {
         case FUNC3_INSTR_SB:
-          rv32_core->execute_cb = instr_SB; 
+          rv32_core->execute_cb = instr_SB;
           break;
         case FUNC3_INSTR_SH:
           rv32_core->execute_cb = instr_SH;
@@ -793,7 +977,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
       printf("FENCE IS NOT IMPLEMENTED!\n");
       exit(-1);
       break;
-    case INSTR_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI: 
+    case INSTR_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI:
       printf("ECALL EBREAK AND CS** CALLS ARE NOT IMPLEMENTED!\n");
       exit(-1);
       break;
@@ -802,6 +986,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
       exit(-1);
       break;
   }
+#endif
 
   return 0;
 }
@@ -809,7 +994,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
 uint32_t rv32_core_execute(rv32_core_td *rv32_core)
 {
   rv32_core->execute_cb(rv32_core);
-  
+
   /* clear x0 if any instruction has written into it */
   rv32_core->x[0] = 0;
 
@@ -840,8 +1025,8 @@ void rv32_core_reg_internal_after_exec(rv32_core_td *rv32_core)
   printf("instruction: %x\n", rv32_core->instruction);
   printf("rd: %x rs: %x rs2: %x imm: %x\n", rv32_core->rd, rv32_core->rs, rv32_core->rs2, rv32_core->immediate);
   printf("func3: %x func7: %x jump_offset %x\n", rv32_core->func3, rv32_core->func7, rv32_core->jump_offset);
-  printf("next pc: %x\n", rv32_core->pc); 
-  printf("\n"); 
+  printf("next pc: %x\n", rv32_core->pc);
+  printf("\n");
 }
 
 void rv32_core_init(rv32_core_td *rv32_core,
@@ -884,7 +1069,7 @@ uint32_t rv32_soc_read_mem(rv32_soc_td *rv32_soc, uint32_t address)
   {
     read_val = rv32_soc->rom[(address-0x100000) >> 2];
     if(align_offset)
-      read_val2 = rv32_soc->ram[((address-0x100000) >> 2) + 1];   
+      read_val2 = rv32_soc->ram[((address-0x100000) >> 2) + 1];
   }
 
   switch(align_offset)
@@ -902,7 +1087,7 @@ uint32_t rv32_soc_read_mem(rv32_soc_td *rv32_soc, uint32_t address)
       return_val = read_val;
       break;
   }
-  
+
   return return_val;
 }
 
@@ -912,7 +1097,7 @@ void rv32_soc_write_mem(rv32_soc_td *rv32_soc, uint32_t address, uint32_t value,
   uint32_t address_for_write = 0;
   uint8_t *ptr_address = NULL;
 
-  printf("writing to value %x to address %x\n", value, address >> 2); 
+  printf("writing to value %x to address %x\n", value, address >> 2);
   if(address < 0x100000)
   {
     address_for_write = address >> 2;
@@ -938,7 +1123,7 @@ void rv32_soc_init(rv32_soc_td *rv32_soc, char *rom_file_name)
   size_t result = 0;
 
   p_rom_file = fopen(rom_file_name, "rb");
-  if(p_rom_file == NULL) 
+  if(p_rom_file == NULL)
   {
     printf("Could not open rom file!\n");
     exit(-1);
@@ -962,7 +1147,7 @@ void rv32_soc_init(rv32_soc_td *rv32_soc, char *rom_file_name)
   if(result != lsize)
   {
     printf("Error while reading file!\n");
-    exit(-3);   
+    exit(-3);
   }
 
   uint32_t i = 0;
