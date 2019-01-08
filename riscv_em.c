@@ -938,9 +938,6 @@ void rv32_soc_init(rv32_soc_td *rv32_soc, char *rom_file_name)
 
 int main(int argc, char *argv[])
 {
-  (void) argc;
-  (void) argv;
-
   if(argc < 2)
   {
     printf("please specify a rom file!\n");
