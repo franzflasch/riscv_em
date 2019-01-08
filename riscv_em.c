@@ -109,7 +109,7 @@ typedef struct rv32_core_struct
   uint32_t instruction;
   uint8_t opcode;
   uint8_t rd;
-  uint8_t rs;
+  uint8_t rs1;
   uint8_t rs2;
   uint8_t func3;
   uint8_t func7;
@@ -155,21 +155,21 @@ static void instr_JALR(void *rv32_core_data)
 
   rv32_core->x[rv32_core->rd] = rv32_core->pc;
 
-  rv32_core->pc = (rv32_core->x[rv32_core->rs] + rv32_core->jump_offset);
+  rv32_core->pc = (rv32_core->x[rv32_core->rs1] + rv32_core->jump_offset);
   rv32_core->pc &= ~(1<<0);
 }
 
 static void instr_BEQ(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-  if(rv32_core->x[rv32_core->rs] == rv32_core->x[rv32_core->rs2])
+  if(rv32_core->x[rv32_core->rs1] == rv32_core->x[rv32_core->rs2])
     rv32_core->pc = (rv32_core->pc-4) + rv32_core->jump_offset;
 }
 
 static void instr_BNE(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-  if(rv32_core->x[rv32_core->rs] != rv32_core->x[rv32_core->rs2])
+  if(rv32_core->x[rv32_core->rs1] != rv32_core->x[rv32_core->rs2])
     rv32_core->pc = (rv32_core->pc-4) + rv32_core->jump_offset;
 }
 
@@ -180,7 +180,7 @@ static void instr_BLT(void *rv32_core_data)
 
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-  signed_rs = rv32_core->x[rv32_core->rs];
+  signed_rs = rv32_core->x[rv32_core->rs1];
   signed_rs2 = rv32_core->x[rv32_core->rs2];
 
   if(signed_rs < signed_rs2)
@@ -194,7 +194,7 @@ static void instr_BGE(void *rv32_core_data)
 
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-  signed_rs = rv32_core->x[rv32_core->rs];
+  signed_rs = rv32_core->x[rv32_core->rs1];
   signed_rs2 = rv32_core->x[rv32_core->rs2];
 
   if(signed_rs >= signed_rs2)
@@ -205,7 +205,7 @@ static void instr_BLTU(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-  if(rv32_core->x[rv32_core->rs] < rv32_core->x[rv32_core->rs2])
+  if(rv32_core->x[rv32_core->rs1] < rv32_core->x[rv32_core->rs2])
     rv32_core->pc = (rv32_core->pc-4) + rv32_core->jump_offset;
 }
 
@@ -213,7 +213,7 @@ static void instr_BGEU(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-  if(rv32_core->x[rv32_core->rs] >= rv32_core->x[rv32_core->rs2])
+  if(rv32_core->x[rv32_core->rs1] >= rv32_core->x[rv32_core->rs2])
     rv32_core->pc = (rv32_core->pc-4) + rv32_core->jump_offset;
 }
 
@@ -227,7 +227,7 @@ static void instr_ADDI(void *rv32_core_data)
   if((1<<11) & rv32_core->immediate) signed_immediate = (rv32_core->immediate | 0xFFFFF000);
   else signed_immediate = rv32_core->immediate;
 
-  signed_rs_val = rv32_core->x[rv32_core->rs];
+  signed_rs_val = rv32_core->x[rv32_core->rs1];
 
   rv32_core->x[rv32_core->rd] = (signed_immediate + signed_rs_val);
 }
@@ -242,7 +242,7 @@ static void instr_SLTI(void *rv32_core_data)
   if((1<<11) & rv32_core->immediate) signed_immediate = (rv32_core->immediate | 0xFFFFF000);
   else signed_immediate = rv32_core->immediate;
 
-  signed_rs_val = rv32_core->x[rv32_core->rs];
+  signed_rs_val = rv32_core->x[rv32_core->rs1];
 
   if(signed_rs_val < signed_immediate)
     rv32_core->x[rv32_core->rd] = 1;
@@ -260,7 +260,7 @@ static void instr_SLTIU(void *rv32_core_data)
   if((1<<11) & rv32_core->immediate) unsigned_immediate = (rv32_core->immediate | 0xFFFFF000);
   else unsigned_immediate = rv32_core->immediate;
 
-  unsigned_rs_val = rv32_core->x[rv32_core->rs];
+  unsigned_rs_val = rv32_core->x[rv32_core->rs1];
 
   if(unsigned_rs_val < unsigned_immediate)
     rv32_core->x[rv32_core->rd] = 1;
@@ -279,9 +279,9 @@ static void instr_XORI(void *rv32_core_data)
   signed_immediate = rv32_core->immediate;
 
   if(signed_immediate == -1)
-    rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] ^ 1;
+    rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs1] ^ 1;
   else
-    rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] ^ rv32_core->immediate;
+    rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs1] ^ rv32_core->immediate;
 }
 
 static void instr_ORI(void *rv32_core_data)
@@ -290,7 +290,7 @@ static void instr_ORI(void *rv32_core_data)
 
   if((1<<11) & rv32_core->immediate) rv32_core->immediate=(rv32_core->immediate | 0xFFFFF000);
 
-  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] | rv32_core->immediate;
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs1] | rv32_core->immediate;
 }
 
 static void instr_ANDI(void *rv32_core_data)
@@ -299,13 +299,13 @@ static void instr_ANDI(void *rv32_core_data)
 
   if((1<<11) & rv32_core->immediate) rv32_core->immediate=(rv32_core->immediate | 0xFFFFF000);
 
-  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] & rv32_core->immediate;
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs1] & rv32_core->immediate;
 }
 
 static void instr_SLLI(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-  rv32_core->x[rv32_core->rd] = (rv32_core->x[rv32_core->rs] << rv32_core->immediate);
+  rv32_core->x[rv32_core->rd] = (rv32_core->x[rv32_core->rs1] << rv32_core->immediate);
 }
 
 static void instr_SRAI(void *rv32_core_data)
@@ -315,7 +315,7 @@ static void instr_SRAI(void *rv32_core_data)
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
   /* a right shift on signed ints seem to be always arithmetic */
-  rs_val = rv32_core->x[rv32_core->rs];
+  rs_val = rv32_core->x[rv32_core->rs1];
   rs_val = rs_val >> rv32_core->immediate;
 
   rv32_core->x[rv32_core->rd] = rs_val;
@@ -324,7 +324,7 @@ static void instr_SRAI(void *rv32_core_data)
 static void instr_SRLI(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-  rv32_core->x[rv32_core->rd] = (rv32_core->x[rv32_core->rs] >> rv32_core->immediate);
+  rv32_core->x[rv32_core->rd] = (rv32_core->x[rv32_core->rs1] >> rv32_core->immediate);
 }
 
 static void instr_SRLI_SRAI(void *rv32_core_data)
@@ -340,19 +340,19 @@ static void instr_SRLI_SRAI(void *rv32_core_data)
 static void instr_ADD(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] + rv32_core->x[rv32_core->rs2];
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs1] + rv32_core->x[rv32_core->rs2];
 }
 
 static void instr_SUB(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] - rv32_core->x[rv32_core->rs2];
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs1] - rv32_core->x[rv32_core->rs2];
 }
 
 static void instr_SLL(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] << (rv32_core->x[rv32_core->rs2] & 0x1F);
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs1] << (rv32_core->x[rv32_core->rs2] & 0x1F);
 }
 
 static void instr_SLT(void *rv32_core_data)
@@ -362,7 +362,7 @@ static void instr_SLT(void *rv32_core_data)
 
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-  signed_rs = rv32_core->x[rv32_core->rs];
+  signed_rs = rv32_core->x[rv32_core->rs1];
   signed_rs2 = rv32_core->x[rv32_core->rs2];
 
   if(signed_rs < signed_rs2) rv32_core->x[rv32_core->rd] = 1;
@@ -373,7 +373,7 @@ static void instr_SLTU(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-  if(rv32_core->rs == 0)
+  if(rv32_core->rs1 == 0)
   {
     if(rv32_core->x[rv32_core->rs2])
       rv32_core->x[rv32_core->rd] = 1;
@@ -382,7 +382,7 @@ static void instr_SLTU(void *rv32_core_data)
   }
   else
   {
-    if(rv32_core->x[rv32_core->rs] < rv32_core->x[rv32_core->rs2]) rv32_core->x[rv32_core->rd] = 1;
+    if(rv32_core->x[rv32_core->rs1] < rv32_core->x[rv32_core->rs2]) rv32_core->x[rv32_core->rd] = 1;
     else rv32_core->x[rv32_core->rd] = 0;
   }
 }
@@ -390,25 +390,25 @@ static void instr_SLTU(void *rv32_core_data)
 static void instr_XOR(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] ^ rv32_core->x[rv32_core->rs2];
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs1] ^ rv32_core->x[rv32_core->rs2];
 }
 
 static void instr_SRL(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] >> (rv32_core->x[rv32_core->rs2] & 0x1F);
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs1] >> (rv32_core->x[rv32_core->rs2] & 0x1F);
 }
 
 static void instr_OR(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] | (rv32_core->x[rv32_core->rs2]);
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs1] | (rv32_core->x[rv32_core->rs2]);
 }
 
 static void instr_AND(void *rv32_core_data)
 {
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs] & (rv32_core->x[rv32_core->rs2]);
+  rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs1] & (rv32_core->x[rv32_core->rs2]);
 }
 
 static void instr_SRA(void *rv32_core_data)
@@ -417,7 +417,7 @@ static void instr_SRA(void *rv32_core_data)
 
   rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-  signed_rs = rv32_core->x[rv32_core->rs];
+  signed_rs = rv32_core->x[rv32_core->rs1];
   rv32_core->x[rv32_core->rd] = signed_rs >> (rv32_core->x[rv32_core->rs2] & 0x1F);
 }
 
@@ -433,7 +433,7 @@ static void instr_LB(void *rv32_core_data)
 
   signed_offset = rv32_core->immediate;
 
-  address = rv32_core->x[rv32_core->rs] + signed_offset;
+  address = rv32_core->x[rv32_core->rs1] + signed_offset;
 
   tmp_load_val = rv32_core->read_mem(rv32_core->priv, address) & 0x000000FF;
   if((1<<7) & tmp_load_val) rv32_core->x[rv32_core->rd] = (tmp_load_val | 0xFFFFFF00);
@@ -452,7 +452,7 @@ static void instr_LH(void *rv32_core_data)
 
   signed_offset = rv32_core->immediate;
 
-  address = rv32_core->x[rv32_core->rs] + signed_offset;
+  address = rv32_core->x[rv32_core->rs1] + signed_offset;
 
   tmp_load_val = rv32_core->read_mem(rv32_core->priv, address) & 0x0000FFFF;
   if((1<<15) & tmp_load_val) rv32_core->x[rv32_core->rd] = (tmp_load_val | 0xFFFF0000);
@@ -470,7 +470,7 @@ static void instr_LW(void *rv32_core_data)
 
   signed_offset = rv32_core->immediate;
 
-  address = rv32_core->x[rv32_core->rs] + signed_offset;
+  address = rv32_core->x[rv32_core->rs1] + signed_offset;
 
   rv32_core->x[rv32_core->rd] = rv32_core->read_mem(rv32_core->priv, address);
 }
@@ -486,7 +486,7 @@ static void instr_LBU(void *rv32_core_data)
 
   signed_offset = rv32_core->immediate;
 
-  address = rv32_core->x[rv32_core->rs] + signed_offset;
+  address = rv32_core->x[rv32_core->rs1] + signed_offset;
 
   rv32_core->x[rv32_core->rd] = rv32_core->read_mem(rv32_core->priv, address) & 0x000000FF;
 }
@@ -502,7 +502,7 @@ static void instr_LHU(void *rv32_core_data)
 
   signed_offset = rv32_core->immediate;
 
-  address = rv32_core->x[rv32_core->rs] + signed_offset;
+  address = rv32_core->x[rv32_core->rs1] + signed_offset;
 
   rv32_core->x[rv32_core->rd] = rv32_core->read_mem(rv32_core->priv, address) & 0x0000FFFF;
 }
@@ -519,7 +519,7 @@ static void instr_SB(void *rv32_core_data)
 
   signed_offset = rv32_core->immediate;
 
-  address = rv32_core->x[rv32_core->rs] + signed_offset;
+  address = rv32_core->x[rv32_core->rs1] + signed_offset;
 
   value_to_write = (uint8_t)rv32_core->x[rv32_core->rs2];
 
@@ -538,7 +538,7 @@ static void instr_SH(void *rv32_core_data)
 
   signed_offset = rv32_core->immediate;
 
-  address = rv32_core->x[rv32_core->rs] + signed_offset;
+  address = rv32_core->x[rv32_core->rs1] + signed_offset;
 
   value_to_write = (uint16_t)rv32_core->x[rv32_core->rs2];
 
@@ -557,7 +557,7 @@ static void instr_SW(void *rv32_core_data)
 
   signed_offset = rv32_core->immediate;
 
-  address = rv32_core->x[rv32_core->rs] + signed_offset;
+  address = rv32_core->x[rv32_core->rs1] + signed_offset;
 
   value_to_write = (uint32_t)rv32_core->x[rv32_core->rs2];
 
@@ -583,7 +583,7 @@ static void R_type_preparation_func3(rv32_core_td *rv32_core, int32_t *next_subc
 {
   rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
   rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
-  rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+  rv32_core->rs1 = ((rv32_core->instruction >> 15) & 0x1F);
   rv32_core->rs2 = ((rv32_core->instruction >> 20) & 0x1F);
 
   *next_subcode = rv32_core->func3;
@@ -600,7 +600,7 @@ static void I_type_preparation(rv32_core_td *rv32_core, int32_t *next_subcode)
 {
   rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
   rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
-  rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+  rv32_core->rs1 = ((rv32_core->instruction >> 15) & 0x1F);
   rv32_core->immediate = ((rv32_core->instruction >> 20) & 0xFFF);
   *next_subcode = rv32_core->func3;
 }
@@ -608,7 +608,7 @@ static void I_type_preparation(rv32_core_td *rv32_core, int32_t *next_subcode)
 static void S_type_preparation(rv32_core_td *rv32_core, int32_t *next_subcode)
 {
   rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
-  rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+  rv32_core->rs1 = ((rv32_core->instruction >> 15) & 0x1F);
   rv32_core->rs2 = ((rv32_core->instruction >> 20) & 0x1F);
   rv32_core->immediate = (((rv32_core->instruction >> 25) << 5) | ((rv32_core->instruction >> 7) & 0x1F));
 
@@ -619,7 +619,7 @@ static void B_type_preparation(rv32_core_td *rv32_core, int32_t *next_subcode)
 {
   rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
   rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
-  rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+  rv32_core->rs1 = ((rv32_core->instruction >> 15) & 0x1F);
   rv32_core->rs2 = ((rv32_core->instruction >> 20) & 0x1F);
   rv32_core->jump_offset=((extract32(rv32_core->instruction, 8, 4) << 1) |
                           (extract32(rv32_core->instruction, 25, 6) << 5) |
@@ -754,7 +754,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
 {
   rv32_core->opcode = (rv32_core->instruction & 0x7F);
   rv32_core->rd = 0;
-  rv32_core->rs = 0;
+  rv32_core->rs1 = 0;
   rv32_core->rs2 = 0;
   rv32_core->func3 = 0;
   rv32_core->func7 = 0;
@@ -793,7 +793,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
       break;
     case INSTR_JALR:
       rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
-      rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+      rv32_core->rs1 = ((rv32_core->instruction >> 15) & 0x1F);
       rv32_core->jump_offset = ((rv32_core->instruction >> 20) & 0xFFF);
       if((1<<11) & rv32_core->jump_offset) rv32_core->jump_offset=(rv32_core->jump_offset | 0xFFFFF000);
       rv32_core->execute_cb = instr_JALR;
@@ -801,7 +801,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
     case INSTR_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI:
       rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
       rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
-      rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+      rv32_core->rs1 = ((rv32_core->instruction >> 15) & 0x1F);
       rv32_core->immediate = ((rv32_core->instruction >> 20) & 0xFFF);
 
       switch(rv32_core->func3)
@@ -843,7 +843,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
     case INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND:
       rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
       rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
-      rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+      rv32_core->rs1 = ((rv32_core->instruction >> 15) & 0x1F);
       rv32_core->rs2 = ((rv32_core->instruction >> 20) & 0x1F);
       rv32_core->func7 = ((rv32_core->instruction >> 25) & 0x7F);
 
@@ -891,7 +891,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
     case INSTR_BEQ_BNE_BLT_BGE_BLTU_BGEU:
       rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
       rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
-      rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+      rv32_core->rs1 = ((rv32_core->instruction >> 15) & 0x1F);
       rv32_core->rs2 = ((rv32_core->instruction >> 20) & 0x1F);
       rv32_core->jump_offset=((extract32(rv32_core->instruction, 8, 4) << 1) |
                               (extract32(rv32_core->instruction, 25, 6) << 5) |
@@ -926,7 +926,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
     case INSTR_LB_LH_LW_LBU_LHU:
       rv32_core->rd = ((rv32_core->instruction >> 7) & 0x1F);
       rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
-      rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+      rv32_core->rs1 = ((rv32_core->instruction >> 15) & 0x1F);
       rv32_core->immediate = ((rv32_core->instruction >> 20) & 0xFFF);
 
       switch(rv32_core->func3)
@@ -953,7 +953,7 @@ uint32_t rv32_core_decode(rv32_core_td *rv32_core)
       break;
     case INSTR_SB_SH_SW:
       rv32_core->func3 = ((rv32_core->instruction >> 12) & 0x7);
-      rv32_core->rs = ((rv32_core->instruction >> 15) & 0x1F);
+      rv32_core->rs1 = ((rv32_core->instruction >> 15) & 0x1F);
       rv32_core->rs2 = ((rv32_core->instruction >> 20) & 0x1F);
       rv32_core->immediate = (((rv32_core->instruction >> 25) << 5) | ((rv32_core->instruction >> 7) & 0x1F));
 
@@ -1023,7 +1023,7 @@ void rv32_core_reg_internal_after_exec(rv32_core_td *rv32_core)
 {
   printf("internal regs after execution:\n");
   printf("instruction: %x\n", rv32_core->instruction);
-  printf("rd: %x rs: %x rs2: %x imm: %x\n", rv32_core->rd, rv32_core->rs, rv32_core->rs2, rv32_core->immediate);
+  printf("rd: %x rs1: %x rs2: %x imm: %x\n", rv32_core->rd, rv32_core->rs1, rv32_core->rs2, rv32_core->immediate);
   printf("func3: %x func7: %x jump_offset %x\n", rv32_core->func3, rv32_core->func7, rv32_core->jump_offset);
   printf("next pc: %x\n", rv32_core->pc);
   printf("\n");
