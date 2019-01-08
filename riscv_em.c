@@ -3,6 +3,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Helpers */
+static inline uint32_t extract32(uint32_t value, int start, int length)
+{
+    return (value >> start) & (~0U >> (32 - length));
+}
+
+/* Defines */
 #define NR_RV32I_REGS 32
 #define XREG_ZERO 0
 #define XREG_RETURN_ADDRESS 0
@@ -87,11 +94,6 @@
 
 typedef uint32_t (*read_mem_func)(void *priv, uint32_t address);
 typedef void (*write_mem_func)(void *priv, uint32_t address, uint32_t value, uint8_t nr_bytes);
-
-static inline uint32_t extract32(uint32_t value, int start, int length)
-{
-    return (value >> start) & (~0U >> (32 - length));
-}
 
 typedef struct rv32_core_struct
 {
@@ -559,7 +561,8 @@ typedef struct instruction_desc_struct
 
 } instruction_desc_td;
 #define INIT_INSTRUCTION_LIST_DESC(instruction_list) \
-  static instruction_desc_td  instruction_list##_desc = { sizeof(instruction_list)/sizeof(instruction_list[0]), instruction_list }
+  static instruction_desc_td  instruction_list##_desc = \
+  { sizeof(instruction_list)/sizeof(instruction_list[0]), instruction_list }
 
 static void R_type_preparation_func3(rv32_core_td *rv32_core, int32_t *next_subcode)
 {
@@ -710,7 +713,6 @@ static instruction_hook_td RV32I_opcode_list[] = {
 };
 INIT_INSTRUCTION_LIST_DESC(RV32I_opcode_list);
 
-
 static void rv32_call_from_opcode_list(rv32_core_td *rv32_core, instruction_desc_td *opcode_list_desc, uint32_t opcode)
 {
   uint32_t opcode_index = 0;
@@ -737,6 +739,8 @@ static void rv32_call_from_opcode_list(rv32_core_td *rv32_core, instruction_desc
     rv32_call_from_opcode_list(rv32_core, opcode_list[opcode_index].next, next_subcode);
 }
 
+
+/******************* Public functions *******************************/
 uint32_t rv32_core_fetch(rv32_core_td *rv32_core)
 {
   uint32_t addr = rv32_core->pc;
