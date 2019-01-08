@@ -1,4 +1,5 @@
 # riscv_em
+Currently only a subset of the RV32I instruction set is implemented.
 
 # ISA Test How-To:
 1. Build riscv baremetal toolchain with the build-gcc toolchain script.
