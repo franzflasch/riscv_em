@@ -15,10 +15,10 @@ static inline uint32_t extract32(uint32_t value, int start, int length)
 #define XREG_RETURN_ADDRESS 0
 #define XREG_STACK_POINTER 2
 
-#define NR_RAM_WORDS 1024
-#define NR_ROM_WORDS 1024
+#define NR_RAM_WORDS 4096
+#define NR_ROM_WORDS 4096
 
-#define STACK_POINTER_START_VAL (4*NR_RAM_WORDS)
+#define STACK_POINTER_START_VAL 0x0 //(4*NR_RAM_WORDS)
 #define PROGRAM_COUNTER_START_VAL 0x100000
 
 /* R-Type Instructions */
@@ -875,7 +875,7 @@ void rv32_soc_write_mem(rv32_soc_td *rv32_soc, uint32_t address, uint32_t value,
   uint32_t address_for_write = 0;
   uint8_t *ptr_address = NULL;
 
-  printf("writing to value %x to address %x\n", value, address >> 2);
+  printf("writing value %x to address %x\n", value, address);
   if(address < 0x100000)
   {
     address_for_write = address >> 2;
@@ -889,7 +889,6 @@ void rv32_soc_write_mem(rv32_soc_td *rv32_soc, uint32_t address, uint32_t value,
   }
 
   memcpy(ptr_address+align_offset, &value, nr_bytes);
-  printf("NEW VAL in address: %x %x\n", address, rv32_soc->rom[address_for_write]);
 
   return;
 }
@@ -953,8 +952,8 @@ int main(int argc, char *argv[])
 
   while(1)
   {
-    rv32_core_reg_dump_before_exec(&rv32_soc.rv32_core);
+    //rv32_core_reg_dump_before_exec(&rv32_soc.rv32_core);
     rv32_core_run(&rv32_soc.rv32_core);
-    rv32_core_reg_internal_after_exec(&rv32_soc.rv32_core);
+    //rv32_core_reg_internal_after_exec(&rv32_soc.rv32_core);
   }
 }
