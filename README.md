@@ -5,7 +5,7 @@ get a better knowledge of the risc-v instruction set.
 
 Currently only a subset of the RV32I instruction set is implemented.  
 Only FENCE and the CSR instructions of the RV32I ISA are not implemented, as 
-for this simple 'baremetal' emulator they are not needed anyways.  
+for this simple 'bare-metal' emulator they are not needed anyways.  
 
 Implementation focus was simplicity NOT efficiency!  
 
