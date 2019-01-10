@@ -1,5 +1,5 @@
 # riscv_em
-This is a simple risc-v emulator written in C.  
+This is a simple risc-v emulator written in C. 
 I wrote this single file risc-v emulator just for fun and to  
 get a better knowledge of the risc-v instruction set.  
 
@@ -27,7 +27,7 @@ https://github.com/franzflasch/build-tools-gcc.git
 Or you can also use the official risc-v toolchain:  
 https://github.com/riscv/riscv-gnu-toolchain.git  
 
-Look into /firmware and try to figure it out how to build you own firmware.  
+Look into /firmware and try to figure it out how to build your own firmware.  
 It is quite simple;)  
 
 # ISA Test How-To:  
