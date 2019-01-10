@@ -9,7 +9,7 @@ for this simple 'bare-metal' emulator they are not needed anyways.
 
 Implementation focus was simplicity NOT efficiency!  
 
-The emulator is capable of running simple c programs. Please see /firmware for details.  
+The emulator is capable of running simple C programs. Please see /firmware for details.  
 
 # How-To build:  
 ```console  
