@@ -1,3 +1,7 @@
+#/bin/bash
+
+set -e
+
 riscv32-none-elf-gcc -march=rv32i -Wl,-Bstatic,-T,sections.lds,--strip-debug -ffreestanding -nostdlib -o hx8kdemo_fw.elf start.s main.c
 
 # print text section

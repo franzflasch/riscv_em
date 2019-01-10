@@ -3,6 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef DEBUG
+#define DEBUG_PRINT(...) do{ printf( __VA_ARGS__ ); } while( 0 )
+#else
+#define DEBUG_PRINT(...) do{ } while ( 0 )
+#endif
+
 /* Helpers */
 static inline uint32_t extract32(uint32_t value, int start, int length)
 {
@@ -788,23 +794,27 @@ void rv32_core_run(rv32_core_td *rv32_core)
 
 void rv32_core_reg_dump_before_exec(rv32_core_td *rv32_core)
 {
+  (void) rv32_core;
+
   int i = 0;
 
   for(i=0;i<NR_RV32I_REGS;i++)
   {
-    printf("x[%d]: %x\n", i, rv32_core->x[i]);
+    DEBUG_PRINT("x[%d]: %x\n", i, rv32_core->x[i]);
   }
-  printf("pc: %x\n", rv32_core->pc);
+  DEBUG_PRINT("pc: %x\n", rv32_core->pc);
 }
 
 void rv32_core_reg_internal_after_exec(rv32_core_td *rv32_core)
 {
-  printf("internal regs after execution:\n");
-  printf("instruction: %x\n", rv32_core->instruction);
-  printf("rd: %x rs1: %x rs2: %x imm: %x\n", rv32_core->rd, rv32_core->rs1, rv32_core->rs2, rv32_core->immediate);
-  printf("func3: %x func7: %x jump_offset %x\n", rv32_core->func3, rv32_core->func7, rv32_core->jump_offset);
-  printf("next pc: %x\n", rv32_core->pc);
-  printf("\n");
+  (void) rv32_core;
+
+  DEBUG_PRINT("internal regs after execution:\n");
+  DEBUG_PRINT("instruction: %x\n", rv32_core->instruction);
+  DEBUG_PRINT("rd: %x rs1: %x rs2: %x imm: %x\n", rv32_core->rd, rv32_core->rs1, rv32_core->rs2, rv32_core->immediate);
+  DEBUG_PRINT("func3: %x func7: %x jump_offset %x\n", rv32_core->func3, rv32_core->func7, rv32_core->jump_offset);
+  DEBUG_PRINT("next pc: %x\n", rv32_core->pc);
+  DEBUG_PRINT("\n");
 }
 
 void rv32_core_init(rv32_core_td *rv32_core,
@@ -875,7 +885,7 @@ void rv32_soc_write_mem(rv32_soc_td *rv32_soc, uint32_t address, uint32_t value,
   uint32_t address_for_write = 0;
   uint8_t *ptr_address = NULL;
 
-  printf("writing value %x to address %x\n", value, address);
+  DEBUG_PRINT("writing value %x to address %x\n", value, address);
   if(address < 0x100000)
   {
     address_for_write = address >> 2;
@@ -886,6 +896,11 @@ void rv32_soc_write_mem(rv32_soc_td *rv32_soc, uint32_t address, uint32_t value,
   {
     address_for_write = (address-0x100000) >> 2;
     ptr_address = (uint8_t *)&rv32_soc->rom[address_for_write];
+  }
+  else if(address == 0x300000)
+  {
+    printf("%c", (char) value);
+    return;
   }
 
   memcpy(ptr_address+align_offset, &value, nr_bytes);
@@ -949,6 +964,8 @@ int main(int argc, char *argv[])
 
   rv32_soc_td rv32_soc;
   rv32_soc_init(&rv32_soc, argv[1]);
+
+  printf("Now starting RV32I core, loaded program file will no be started...\n\n\n");
 
   while(1)
   {

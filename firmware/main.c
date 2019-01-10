@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <string.h>
 #include <stdint.h>
+#include <stddef.h>
+
 
 void *memcpy(void *restrict dest, const void *restrict src, size_t n)
 {
@@ -211,11 +211,28 @@ void *memset(void *dest, int c, size_t n)
 	return dest;
 }
 
+#define reg_uart_data (*(volatile uint32_t*)0x300000)
 
+void putchar(char c)
+{
+	if (c == '\n')
+		putchar('\r');
+	reg_uart_data = c;
+}
+
+void print(const char *p)
+{
+	while (*p)
+		putchar(*(p++));
+}
+
+/* This is just for testing purposes and debugging 
+	 assembly code
+ */
 void test_func(void)
 {
   int i = 42;
-  int test_array[100] = { [0 ... 99] = 0xDEAD };
+  uint32_t test_array[100] = { [0 ... 99] = 0xDEADBEEF };
 
   while(1)
   {
@@ -232,12 +249,16 @@ int main(void)
 
   test_func();
 
+	print("Hello World from a simple RV32I ISA emulator!\n");
+
   while(1)
   {
     i++;
 
     if(i==10) break;
   }
+
+	print("Bye!\n");
 
   return 0;
 }
