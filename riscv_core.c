@@ -19,6 +19,9 @@ static inline uint32_t extract32(uint32_t value, int start, int length)
         return (value >> start) & (~0U >> (32 - length));
 }
 
+/* portable signextension from: https://stackoverflow.com/a/31655073 */
+#define SIGNEX(v, sb) ((v) | (((v) & (1 << (sb))) ? ~((1 << (sb))-1) : 0))
+
 /* Defines */
 #define NR_RV32I_REGS 32
 #define XREG_ZERO 0
@@ -123,9 +126,7 @@ static void instr_JALR(void *rv32_core_data)
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
     uint32_t curr_pc = rv32_core->pc;
 
-    if((1<<11) & rv32_core->immediate) rv32_core->jump_offset=(rv32_core->immediate | 0xFFFFF000);
-
-    printf("imm: %x jump offs: %x x_rs1 %x\n",rv32_core->immediate, rv32_core->jump_offset, rv32_core->x[rv32_core->rs1]);
+    rv32_core->jump_offset = SIGNEX(rv32_core->immediate, 11);
 
     rv32_core->pc = (rv32_core->x[rv32_core->rs1] + rv32_core->jump_offset);
     rv32_core->pc &= ~(1<<0);
@@ -197,8 +198,7 @@ static void instr_ADDI(void *rv32_core_data)
 
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-    if((1<<11) & rv32_core->immediate) signed_immediate = (rv32_core->immediate | 0xFFFFF000);
-    else signed_immediate = rv32_core->immediate;
+    signed_immediate = SIGNEX(rv32_core->immediate, 11);
 
     signed_rs_val = rv32_core->x[rv32_core->rs1];
     rv32_core->x[rv32_core->rd] = (signed_immediate + signed_rs_val);
@@ -211,8 +211,7 @@ static void instr_SLTI(void *rv32_core_data)
 
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-    if((1<<11) & rv32_core->immediate) signed_immediate = (rv32_core->immediate | 0xFFFFF000);
-    else signed_immediate = rv32_core->immediate;
+    signed_immediate = SIGNEX(rv32_core->immediate, 11);
 
     signed_rs_val = rv32_core->x[rv32_core->rs1];
 
@@ -229,8 +228,7 @@ static void instr_SLTIU(void *rv32_core_data)
 
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-    if((1<<11) & rv32_core->immediate) unsigned_immediate = (rv32_core->immediate | 0xFFFFF000);
-    else unsigned_immediate = rv32_core->immediate;
+    unsigned_immediate = SIGNEX(rv32_core->immediate, 11);
 
     unsigned_rs_val = rv32_core->x[rv32_core->rs1];
 
@@ -246,8 +244,7 @@ static void instr_XORI(void *rv32_core_data)
 
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-    if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
-
+    rv32_core->immediate = SIGNEX(rv32_core->immediate, 11);
     signed_immediate = rv32_core->immediate;
 
     if(signed_immediate == -1)
@@ -259,18 +256,14 @@ static void instr_XORI(void *rv32_core_data)
 static void instr_ORI(void *rv32_core_data)
 {
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-
-    if((1<<11) & rv32_core->immediate) rv32_core->immediate=(rv32_core->immediate | 0xFFFFF000);
-
+    rv32_core->immediate = SIGNEX(rv32_core->immediate, 11);
     rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs1] | rv32_core->immediate;
 }
 
 static void instr_ANDI(void *rv32_core_data)
 {
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
-
-    if((1<<11) & rv32_core->immediate) rv32_core->immediate=(rv32_core->immediate | 0xFFFFF000);
-
+    rv32_core->immediate = SIGNEX(rv32_core->immediate, 11);
     rv32_core->x[rv32_core->rd] = rv32_core->x[rv32_core->rs1] & rv32_core->immediate;
 }
 
@@ -401,14 +394,13 @@ static void instr_LB(void *rv32_core_data)
 
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-    if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
+    rv32_core->immediate = SIGNEX(rv32_core->immediate, 11);
 
     signed_offset = rv32_core->immediate;
     address = rv32_core->x[rv32_core->rs1] + signed_offset;
     tmp_load_val = rv32_core->read_mem(rv32_core->priv, address) & 0x000000FF;
 
-    if((1<<7) & tmp_load_val) rv32_core->x[rv32_core->rd] = (tmp_load_val | 0xFFFFFF00);
-    else rv32_core->x[rv32_core->rd] = tmp_load_val;
+    rv32_core->x[rv32_core->rd] = SIGNEX(tmp_load_val, 7);
 }
 
 static void instr_LH(void *rv32_core_data)
@@ -419,14 +411,13 @@ static void instr_LH(void *rv32_core_data)
 
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-    if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
+    rv32_core->immediate = SIGNEX(rv32_core->immediate, 11);
 
     signed_offset = rv32_core->immediate;
     address = rv32_core->x[rv32_core->rs1] + signed_offset;
     tmp_load_val = rv32_core->read_mem(rv32_core->priv, address) & 0x0000FFFF;
 
-    if((1<<15) & tmp_load_val) rv32_core->x[rv32_core->rd] = (tmp_load_val | 0xFFFF0000);
-    else rv32_core->x[rv32_core->rd] = tmp_load_val;
+    rv32_core->x[rv32_core->rd] = SIGNEX(tmp_load_val, 15);
 }
 
 static void instr_LW(void *rv32_core_data)
@@ -436,7 +427,7 @@ static void instr_LW(void *rv32_core_data)
 
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-    if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
+    rv32_core->immediate = SIGNEX(rv32_core->immediate, 11);
 
     signed_offset = rv32_core->immediate;
     address = rv32_core->x[rv32_core->rs1] + signed_offset;
@@ -450,7 +441,7 @@ static void instr_LBU(void *rv32_core_data)
 
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-    if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
+    rv32_core->immediate = SIGNEX(rv32_core->immediate, 11);
 
     signed_offset = rv32_core->immediate;
     address = rv32_core->x[rv32_core->rs1] + signed_offset;
@@ -464,7 +455,7 @@ static void instr_LHU(void *rv32_core_data)
 
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-    if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
+    rv32_core->immediate = SIGNEX(rv32_core->immediate, 11);
 
     signed_offset = rv32_core->immediate;
     address = rv32_core->x[rv32_core->rs1] + signed_offset;
@@ -479,7 +470,7 @@ static void instr_SB(void *rv32_core_data)
 
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-    if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
+    rv32_core->immediate = SIGNEX(rv32_core->immediate, 11);
 
     signed_offset = rv32_core->immediate;
     address = rv32_core->x[rv32_core->rs1] + signed_offset;
@@ -495,7 +486,7 @@ static void instr_SH(void *rv32_core_data)
 
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-    if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
+    rv32_core->immediate = SIGNEX(rv32_core->immediate, 11);
 
     signed_offset = rv32_core->immediate;
     address = rv32_core->x[rv32_core->rs1] + signed_offset;
@@ -511,7 +502,7 @@ static void instr_SW(void *rv32_core_data)
 
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
 
-    if((1<<11) & rv32_core->immediate) rv32_core->immediate = (rv32_core->immediate | 0xFFFFF000);
+    rv32_core->immediate = SIGNEX(rv32_core->immediate, 11);
 
     signed_offset = rv32_core->immediate;
     address = rv32_core->x[rv32_core->rs1] + signed_offset;
@@ -587,7 +578,7 @@ static void B_type_preparation(rv32_core_td *rv32_core, int32_t *next_subcode)
                                                     (extract32(rv32_core->instruction, 25, 6) << 5) |
                                                     (extract32(rv32_core->instruction, 7, 1) << 11));
 
-    if((1<<11) & rv32_core->jump_offset) rv32_core->jump_offset=(rv32_core->jump_offset | 0xFFFFF000);
+    rv32_core->jump_offset = SIGNEX(rv32_core->jump_offset, 11);
 
     *next_subcode = rv32_core->func3;
 }
@@ -606,7 +597,7 @@ static void J_type_preparation(rv32_core_td *rv32_core, int32_t *next_subcode)
                                                     (extract32(rv32_core->instruction, 20, 1) << 11) |
                                                     (extract32(rv32_core->instruction, 12, 8) << 12) );
     /* sign extend the 20 bit number */
-    if((1<<19) & rv32_core->jump_offset) rv32_core->jump_offset=(rv32_core->jump_offset | 0xFFF00000);
+    rv32_core->jump_offset = SIGNEX(rv32_core->jump_offset, 19);
 
     *next_subcode = -1;
 }
