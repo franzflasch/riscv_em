@@ -4,7 +4,7 @@ project (riscv_em)
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
 
-add_executable(riscv_em riscv_em.c)
+add_executable(riscv_em riscv_core.c riscv_soc.c main.c)
 target_include_directories(riscv_em PUBLIC .)
 target_compile_options(riscv_em PRIVATE -Wall -Wextra -pedantic -Werror)
 

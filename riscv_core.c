@@ -3,13 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DEBUG
-
-#ifdef DEBUG
-#define DEBUG_PRINT(...) do{ printf( __VA_ARGS__ ); } while( 0 )
-#else
-#define DEBUG_PRINT(...) do{ } while ( 0 )
-#endif
+#include <riscv_config.h>
+#include <riscv_helper.h>
+#include <riscv_core.h>
 
 #ifdef RV32
 #define PRINTF_FMT "%016lx"
@@ -28,12 +24,9 @@ static inline uint32_t extract32(uint32_t value, int start, int length)
 #define XREG_ZERO 0
 #define XREG_RETURN_ADDRESS 0
 #define XREG_STACK_POINTER 2
+#define XREG_THREAD_POINTER 5
 
-#define RAM_SIZE_BYTES 0x10000
-#define NR_RAM_WORDS (0x10000/sizeof(uint32_t))
-
-#define STACK_POINTER_START_VAL 0x0 //(4*NR_RAM_WORDS)
-#define RAM_BASE_ADDR 0x80000000
+#define STACK_POINTER_START_VAL 0x0
 
 /* R-Type Instructions */
 #define INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND 0x33
@@ -106,35 +99,6 @@ static inline uint32_t extract32(uint32_t value, int start, int length)
 
 #define INSTR_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI 0x73
 
-typedef uint32_t (*read_mem_func)(void *priv, uint32_t address);
-typedef void (*write_mem_func)(void *priv, uint32_t address, uint32_t value, uint8_t nr_bytes);
-
-typedef struct rv32_core_struct
-{
-    /* Registers */
-    uint32_t x[NR_RV32I_REGS];
-    uint32_t pc;
-
-    uint32_t instruction;
-    uint8_t opcode;
-    uint8_t rd;
-    uint8_t rs1;
-    uint8_t rs2;
-    uint8_t func3;
-    uint8_t func7;
-    uint32_t immediate;
-    int32_t jump_offset;
-
-    /* points to the next instruction */
-    void (*execute_cb)(void *rv32_core);
-
-    /* externally hooked */
-    void *priv;
-    read_mem_func read_mem;
-    write_mem_func write_mem;
-
-} rv32_core_td;
-
 static void instr_LUI(void *rv32_core_data)
 {
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
@@ -157,13 +121,15 @@ static void instr_JAL(void *rv32_core_data)
 static void instr_JALR(void *rv32_core_data)
 {
     rv32_core_td *rv32_core = (rv32_core_td *)rv32_core_data;
+    uint32_t curr_pc = rv32_core->pc;
 
-    rv32_core->jump_offset = rv32_core->immediate;
-    if((1<<11) & rv32_core->jump_offset) rv32_core->jump_offset=(rv32_core->jump_offset | 0xFFFFF000);
+    if((1<<11) & rv32_core->immediate) rv32_core->jump_offset=(rv32_core->immediate | 0xFFFFF000);
 
-    rv32_core->x[rv32_core->rd] = rv32_core->pc;
+    printf("imm: %x jump offs: %x x_rs1 %x\n",rv32_core->immediate, rv32_core->jump_offset, rv32_core->x[rv32_core->rs1]);
+
     rv32_core->pc = (rv32_core->x[rv32_core->rs1] + rv32_core->jump_offset);
     rv32_core->pc &= ~(1<<0);
+    rv32_core->x[rv32_core->rd] = curr_pc;
 }
 
 static void instr_BEQ(void *rv32_core_data)
@@ -827,146 +793,17 @@ void rv32_core_reg_internal_after_exec(rv32_core_td *rv32_core)
 }
 
 void rv32_core_init(rv32_core_td *rv32_core,
-                                        void *priv,
-                                        read_mem_func read_mem,
-                                        write_mem_func write_mem
-                                     )
+                    void *priv,
+                    uint32_t (*read_mem)(void *priv, uint32_t address),
+                    void (*write_mem)(void *priv, uint32_t address, uint32_t value, uint8_t nr_bytes)
+                    )
 {
     memset(rv32_core, 0, sizeof(rv32_core_td));
     rv32_core->pc = RAM_BASE_ADDR;
+    rv32_core->x[XREG_THREAD_POINTER] = RAM_BASE_ADDR;
     rv32_core->x[XREG_STACK_POINTER] = STACK_POINTER_START_VAL;
 
     rv32_core->priv = priv;
     rv32_core->read_mem = read_mem;
     rv32_core->write_mem = write_mem;
-}
-
-typedef struct rv32_soc_struct
-{
-    rv32_core_td rv32_core;
-    uint32_t ram[NR_RAM_WORDS];
-
-} rv32_soc_td;
-
-uint32_t rv32_soc_read_mem(rv32_soc_td *rv32_soc, uint32_t address)
-{
-    uint8_t align_offset = address & 0x3;
-    uint32_t read_val = 0;
-    uint32_t read_val2 = 0;
-    uint32_t return_val = 0;
-
-    if((address >= RAM_BASE_ADDR) && (address < (RAM_BASE_ADDR+RAM_SIZE_BYTES)))
-    {
-        read_val = rv32_soc->ram[(address-RAM_BASE_ADDR) >> 2];
-        if(align_offset)
-            read_val2 = rv32_soc->ram[((address-RAM_BASE_ADDR) >> 2) + 1];
-    }
-
-    switch(align_offset)
-    {
-        case 1:
-            return_val = (read_val2 << 24) | (read_val >> 8);
-            break;
-        case 2:
-            return_val = (read_val2 << 16) | (read_val >> 16);
-            break;
-        case 3:
-            return_val = (read_val2 << 8) | (read_val >> 24);
-            break;
-        default:
-            return_val = read_val;
-            break;
-    }
-
-    return return_val;
-}
-
-void rv32_soc_write_mem(rv32_soc_td *rv32_soc, uint32_t address, uint32_t value, uint8_t nr_bytes)
-{
-    uint8_t align_offset = address & 0x3;
-    uint32_t address_for_write = 0;
-    uint8_t *ptr_address = NULL;
-
-    DEBUG_PRINT("writing value %x to address %x\n", value, address);
-    if((address >= RAM_BASE_ADDR) && (address < (RAM_BASE_ADDR+RAM_SIZE_BYTES)))
-    {
-        address_for_write = (address-RAM_BASE_ADDR) >> 2;
-        ptr_address = (uint8_t *)&rv32_soc->ram[address_for_write];
-    }
-    else if(address == 0x300000)
-    {
-        printf("%c", (char) value);
-        return;
-    }
-
-    memcpy(ptr_address+align_offset, &value, nr_bytes);
-
-    return;
-}
-
-void rv32_soc_init(rv32_soc_td *rv32_soc, char *fw_file_name)
-{
-    FILE * p_fw_file = NULL;
-    unsigned long lsize = 0;
-    size_t result = 0;
-
-    p_fw_file = fopen(fw_file_name, "rb");
-    if(p_fw_file == NULL)
-    {
-        printf("Could not open fw file!\n");
-        exit(-1);
-    }
-
-    fseek(p_fw_file, 0, SEEK_END);
-    lsize = ftell(p_fw_file);
-    rewind(p_fw_file);
-
-    if(lsize > sizeof(rv32_soc->ram))
-    {
-        printf("Not able to load fw file of size %lu, ram space is %lu\n", lsize, sizeof(rv32_soc->ram));
-        exit(-2);
-    }
-
-    memset(rv32_soc, 0, sizeof(rv32_soc_td));
-
-    rv32_core_init(&rv32_soc->rv32_core, rv32_soc,(read_mem_func)rv32_soc_read_mem,(write_mem_func)rv32_soc_write_mem);
-
-    result = fread(&rv32_soc->ram, sizeof(char), lsize, p_fw_file);
-    if(result != lsize)
-    {
-        printf("Error while reading file!\n");
-        exit(-3);
-    }
-
-    uint32_t i = 0;
-    printf("RV32 RAM contents\n");
-    for(i=0;i<lsize/sizeof(uint32_t);i++)
-    {
-        printf("%x\n", rv32_soc->ram[i]);
-    }
-
-    fclose(p_fw_file);
-
-    printf("RV32 SOC initialized!\n");
-}
-
-int main(int argc, char *argv[])
-{
-    if(argc < 2)
-    {
-        printf("please specify a fw file!\n");
-        exit(-1);
-    }
-
-    rv32_soc_td rv32_soc;
-    rv32_soc_init(&rv32_soc, argv[1]);
-
-    printf("Now starting RV32I core, loaded program file will no be started...\n\n\n");
-
-    while(1)
-    {
-        rv32_core_reg_dump_before_exec(&rv32_soc.rv32_core);
-        rv32_core_run(&rv32_soc.rv32_core);
-        // rv32_core_reg_internal_after_exec(&rv32_soc.rv32_core);
-    }
 }
