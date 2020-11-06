@@ -7,20 +7,20 @@
 #include <riscv_helper.h>
 #include <riscv_soc.h>
 
-uint32_t rv32_soc_read_mem(void *priv, uint32_t address)
+rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address)
 {
     uint8_t align_offset = address & 0x3;
-    uint32_t read_val = 0;
-    uint32_t read_val2 = 0;
-    uint32_t return_val = 0;
+    rv_uint_xlen read_val = 0;
+    rv_uint_xlen read_val2 = 0;
+    rv_uint_xlen return_val = 0;
 
-    rv32_soc_td *rv32_soc = priv;
+    rv_soc_td *rv_soc = priv;
 
     if((address >= RAM_BASE_ADDR) && (address < (RAM_BASE_ADDR+RAM_SIZE_BYTES)))
     {
-        read_val = rv32_soc->ram[(address-RAM_BASE_ADDR) >> 2];
+        read_val = rv_soc->ram[(address-RAM_BASE_ADDR) >> 2];
         if(align_offset)
-            read_val2 = rv32_soc->ram[((address-RAM_BASE_ADDR) >> 2) + 1];
+            read_val2 = rv_soc->ram[((address-RAM_BASE_ADDR) >> 2) + 1];
     }
 
     switch(align_offset)
@@ -42,19 +42,19 @@ uint32_t rv32_soc_read_mem(void *priv, uint32_t address)
     return return_val;
 }
 
-void rv32_soc_write_mem(void *priv, uint32_t address, uint32_t value, uint8_t nr_bytes)
+void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes)
 {
     uint8_t align_offset = address & 0x3;
-    uint32_t address_for_write = 0;
+    rv_uint_xlen address_for_write = 0;
     uint8_t *ptr_address = NULL;
 
-    rv32_soc_td *rv32_soc = priv;
+    rv_soc_td *rv_soc = priv;
 
     DEBUG_PRINT("writing value %x to address %x\n", value, address);
     if((address >= RAM_BASE_ADDR) && (address < (RAM_BASE_ADDR+RAM_SIZE_BYTES)))
     {
         address_for_write = (address-RAM_BASE_ADDR) >> 2;
-        ptr_address = (uint8_t *)&rv32_soc->ram[address_for_write];
+        ptr_address = (uint8_t *)&rv_soc->ram[address_for_write];
     }
     else if(address == 0x300000)
     {
@@ -67,17 +67,17 @@ void rv32_soc_write_mem(void *priv, uint32_t address, uint32_t value, uint8_t nr
     return;
 }
 
-void rv32_soc_dump_mem(rv32_soc_td *rv32_soc)
+void rv_soc_dump_mem(rv_soc_td *rv_soc)
 {
     uint32_t i = 0;
-    printf("RV32 RAM contents\n");
-    for(i=0;i<RAM_SIZE_BYTES/(sizeof(uint32_t));i++)
+    printf("rv RAM contents\n");
+    for(i=0;i<RAM_SIZE_BYTES/(sizeof(rv_uint_xlen));i++)
     {
-        printf("%x\n", rv32_soc->ram[i]);
+        printf("%x\n", rv_soc->ram[i]);
     }
 }
 
-void rv32_soc_init(rv32_soc_td *rv32_soc, char *fw_file_name)
+void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name)
 {
     FILE * p_fw_file = NULL;
     unsigned long lsize = 0;
@@ -94,20 +94,20 @@ void rv32_soc_init(rv32_soc_td *rv32_soc, char *fw_file_name)
     lsize = ftell(p_fw_file);
     rewind(p_fw_file);
 
-    if(lsize > sizeof(rv32_soc->ram))
+    if(lsize > sizeof(rv_soc->ram))
     {
-        printf("Not able to load fw file of size %lu, ram space is %lu\n", lsize, sizeof(rv32_soc->ram));
+        printf("Not able to load fw file of size %lu, ram space is %lu\n", lsize, sizeof(rv_soc->ram));
         exit(-2);
     }
 
-    memset(rv32_soc, 0, sizeof(rv32_soc_td));
+    memset(rv_soc, 0, sizeof(rv_soc_td));
 
-    rv32_core_init(&rv32_soc->rv32_core, rv32_soc, rv32_soc_read_mem, rv32_soc_write_mem);
+    rv_core_init(&rv_soc->rv_core, rv_soc, rv_soc_read_mem, rv_soc_write_mem);
 
     /* set some registers initial value to match qemu's */
-    rv32_soc->rv32_core.x[11] = 0x00001020;
+    rv_soc->rv_core.x[11] = 0x00001020;
 
-    result = fread(&rv32_soc->ram, sizeof(char), lsize, p_fw_file);
+    result = fread(&rv_soc->ram, sizeof(char), lsize, p_fw_file);
     if(result != lsize)
     {
         printf("Error while reading file!\n");
@@ -116,5 +116,5 @@ void rv32_soc_init(rv32_soc_td *rv32_soc, char *fw_file_name)
 
     fclose(p_fw_file);
 
-    printf("RV32 SOC initialized!\n");
+    printf("rv SOC initialized!\n");
 }

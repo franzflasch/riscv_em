@@ -32,20 +32,20 @@ int main(int argc, char *argv[])
     success_pc = strtol(argv[2], NULL, 16);
     num_cycles = strtol(argv[3], NULL, 10);
 
-    rv32_soc_td rv32_soc;
-    rv32_soc_init(&rv32_soc, argv[1]);
+    rv_soc_td rv_soc;
+    rv_soc_init(&rv_soc, argv[1]);
 
-    // rv32_soc_dump_mem(&rv32_soc);
+    // rv_soc_dump_mem(&rv_soc);
 
-    printf("Now starting RV32I core, loaded program file will now be started...\n\n\n");
+    printf("Now starting rvI core, loaded program file will now be started...\n\n\n");
 
     while(1)
     {
-        rv32_core_reg_dump_before_exec(&rv32_soc.rv32_core);
-        rv32_core_run(&rv32_soc.rv32_core);
-        // rv32_core_reg_internal_after_exec(&rv32_soc.rv32_core);
+        rv_core_reg_dump_before_exec(&rv_soc.rv_core);
+        rv_core_run(&rv_soc.rv_core);
+        // rv_core_reg_internal_after_exec(&rv_soc.rv_core);
 
-        if((rv32_soc.rv32_core.pc == (success_pc + 4)))
+        if((rv_soc.rv_core.pc == (success_pc + 4)))
             break;
 
         if((num_cycles != 0) && (curr_cycle >= num_cycles))

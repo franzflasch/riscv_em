@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 
 project (riscv_em)
 set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wextra -Wpedantic")
 
 add_executable(riscv_em riscv_core.c riscv_soc.c main.c)
 target_include_directories(riscv_em PUBLIC .)

@@ -1,13 +1,15 @@
 #ifndef RISCV_CORE_H
 #define RISCV_CORE_H
 
-#define NR_RV32I_REGS 32
+#include <riscv_types.h>
 
-typedef struct rv32_core_struct
+#define NR_RVI_REGS 32
+
+typedef struct rv_core_struct
 {
     /* Registers */
-    uint32_t x[NR_RV32I_REGS];
-    uint32_t pc;
+    rv_uint_xlen x[NR_RVI_REGS];
+    rv_uint_xlen pc;
 
     uint32_t instruction;
     uint8_t opcode;
@@ -16,29 +18,29 @@ typedef struct rv32_core_struct
     uint8_t rs2;
     uint8_t func3;
     uint8_t func7;
-    uint32_t immediate;
-    int32_t jump_offset;
+    rv_uint_xlen immediate;
+    rv_uint_xlen jump_offset;
 
     /* points to the next instruction */
-    void (*execute_cb)(void *rv32_core);
+    void (*execute_cb)(void *rv_core);
 
     /* externally hooked */
     void *priv;
-    uint32_t (*read_mem)(void *priv, uint32_t address);
-    void (*write_mem)(void *priv, uint32_t address, uint32_t value, uint8_t nr_bytes);
+    rv_uint_xlen (*read_mem)(void *priv, rv_uint_xlen address);
+    void (*write_mem)(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes);
 
-} rv32_core_td;
+} rv_core_td;
 
-uint32_t rv32_core_fetch(rv32_core_td *rv32_core);
-uint32_t rv32_core_decode(rv32_core_td *rv32_core);
-uint32_t rv32_core_execute(rv32_core_td *rv32_core);
-void rv32_core_run(rv32_core_td *rv32_core);
-void rv32_core_reg_dump_before_exec(rv32_core_td *rv32_core);
-void rv32_core_reg_internal_after_exec(rv32_core_td *rv32_core);
-void rv32_core_init(rv32_core_td *rv32_core,
+rv_uint_xlen rv_core_fetch(rv_core_td *rv_core);
+rv_uint_xlen rv_core_decode(rv_core_td *rv_core);
+rv_uint_xlen rv_core_execute(rv_core_td *rv_core);
+void rv_core_run(rv_core_td *rv_core);
+void rv_core_reg_dump_before_exec(rv_core_td *rv_core);
+void rv_core_reg_internal_after_exec(rv_core_td *rv_core);
+void rv_core_init(rv_core_td *rv_core,
                     void *priv,
-                    uint32_t (*read_mem)(void *priv, uint32_t address),
-                    void (*write_mem)(void *priv, uint32_t address, uint32_t value, uint8_t nr_bytes)
+                    rv_uint_xlen (*read_mem)(void *priv, rv_uint_xlen address),
+                    void (*write_mem)(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes)
                     );
 
 #endif /* RISCV_CORE_H */
