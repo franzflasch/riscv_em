@@ -9,4 +9,13 @@
 #define DEBUG_PRINT(...) do{ } while ( 0 )
 #endif
 
+#ifdef RV64
+#define XLEN 64
+#define PRINTF_FMT "%016lx"
+#else
+#define XLEN 32
+#define PRINTF_FMT "%08x"
+#endif
+
+
 #endif /* RISCV_HELPER_H */

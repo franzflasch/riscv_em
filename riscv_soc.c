@@ -50,7 +50,7 @@ void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint
 
     rv_soc_td *rv_soc = priv;
 
-    DEBUG_PRINT("writing value %x to address %x\n", value, address);
+    DEBUG_PRINT("writing value "PRINTF_FMT " to address "PRINTF_FMT"\n", value, address);
     if((address >= RAM_BASE_ADDR) && (address < (RAM_BASE_ADDR+RAM_SIZE_BYTES)))
     {
         address_for_write = (address-RAM_BASE_ADDR) >> 2;

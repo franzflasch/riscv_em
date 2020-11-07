@@ -3,6 +3,8 @@
 
 #define DEBUG
 
+#define RV64
+
 #define RAM_BASE_ADDR 0x80000000
 
 #define RAM_SIZE_BYTES 0x10000

@@ -7,12 +7,6 @@
 #include <riscv_helper.h>
 #include <riscv_core.h>
 
-#ifdef rv
-#define PRINTF_FMT "%016lx"
-#else
-#define PRINTF_FMT "%08x"
-#endif
-
 /* Helpers */
 static inline uint32_t extract32(uint32_t value, int start, int length)
 {
@@ -20,7 +14,11 @@ static inline uint32_t extract32(uint32_t value, int start, int length)
 }
 
 /* portable signextension from: https://stackoverflow.com/a/31655073 */
-#define SIGNEX(v, sb) ((v) | (((v) & (1 << (sb))) ? ~((1 << (sb))-1) : 0))
+#ifdef RV64
+    #define SIGNEX(v, sb) ((v) | (((v) & (1LL << (sb))) ? ~((1LL << (sb))-1LL) : 0))
+#else
+    #define SIGNEX(v, sb) ((v) | (((v) & (1 << (sb))) ? ~((1 << (sb))-1) : 0))
+#endif
 
 /* Defines */
 #define XREG_ZERO 0
@@ -64,6 +62,8 @@ static inline uint32_t extract32(uint32_t value, int start, int length)
     #define FUNC3_INSTR_ANDI    0x7
     #define FUNC3_INSTR_SLLI    0x1
     #define FUNC3_INSTR_SRLI_SRAI  0x5
+        #define FUNC7_INSTR_SRLI 0x0
+        #define FUNC7_INSTR_SRAI 0x20
 
 #define INSTR_LB_LH_LW_LBU_LHU 0x03
     #define FUNC3_INSTR_LB 0x0
@@ -100,6 +100,14 @@ static inline uint32_t extract32(uint32_t value, int start, int length)
     #define FUNC3_INSTR_FENCE_I 0x1
 
 #define INSTR_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI 0x73
+
+#define INSTR_ADDIW_SLLIW_SRLIW_SRAIW 0x1B
+    #define FUNC3_INSTR_SLLIW 0x1
+    #define FUNC3_INSTR_SRLIW_SRAIW 0x5
+    #define FUNC3_INSTR_ADDIW 0x0
+    #define FUNC7_INSTR_SLLIW 0x0
+    #define FUNC7_INSTR_SRLIW 0x0
+    #define FUNC7_INSTR_SRAIW 0x20
 
 static void instr_LUI(void *rv_core_data)
 {
@@ -288,17 +296,6 @@ static void instr_SRLI(void *rv_core_data)
 {
     rv_core_td *rv_core = (rv_core_td *)rv_core_data;
     rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] >> rv_core->immediate);
-}
-
-static void instr_SRLI_SRAI(void *rv_core_data)
-{
-    uint8_t arithmetic_shift = 0;
-    rv_core_td *rv_core = (rv_core_td *)rv_core_data;
-
-    arithmetic_shift = ((rv_core->instruction >> 25) & 0x7F);
-
-    if(arithmetic_shift & (1<<5)) instr_SRAI(rv_core);
-    else instr_SRLI(rv_core);
 }
 
 static void instr_ADD(void *rv_core_data)
@@ -509,9 +506,51 @@ static void instr_SW(void *rv_core_data)
     rv_core->write_mem(rv_core->priv, address, value_to_write, 4);
 }
 
+#ifdef RV64
+    static void shift_add_w_signed_prepare(void *rv_core_data, uint8_t shift)
+    {
+        int32_t signed_immediate = 0;
+        int32_t signed_rs_val = 0;
+        rv_core_td *rv_core = (rv_core_td *)rv_core_data;
+        signed_immediate = SIGNEX(rv_core->immediate, 11);
+        signed_rs_val = rv_core->x[rv_core->rs1];
+
+        if(shift)
+            rv_core->x[rv_core->rd] = (signed_rs_val >> rv_core->immediate);
+        else
+            rv_core->x[rv_core->rd] = (signed_rs_val + signed_immediate);
+    }
+
+    static void instr_SRAIW(void *rv_core_data)
+    {
+        shift_add_w_signed_prepare(rv_core_data, 1);
+    }
+
+    static void instr_ADDIW(void *rv_core_data)
+    {
+        shift_add_w_signed_prepare(rv_core_data, 0);
+    }
+
+    static void instr_SLLIW(void *rv_core_data)
+    {
+        rv_core_td *rv_core = (rv_core_td *)rv_core_data;
+        rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] << rv_core->immediate) & 0xFFFFFFFF;
+        rv_core->x[rv_core->rd] = SIGNEX(rv_core->x[rv_core->rd], 31);
+    }
+
+    static void instr_SRLIW(void *rv_core_data)
+    {
+        uint32_t unsigned_rs_val = 0;
+        rv_core_td *rv_core = (rv_core_td *)rv_core_data;
+        unsigned_rs_val = rv_core->x[rv_core->rs1];
+        rv_core->x[rv_core->rd] = (unsigned_rs_val >> rv_core->immediate);
+        rv_core->x[rv_core->rd] = SIGNEX(rv_core->x[rv_core->rd], 31);
+    }
+#endif
+
 static void die(rv_core_td *rv_core)
 {
-    printf("Unknown instruction %x %x\n", rv_core->instruction, rv_core->pc);
+    printf("Unknown instruction %08x "PRINTF_FMT"\n", rv_core->instruction, rv_core->pc);
     exit(-1);
 }
 
@@ -543,7 +582,7 @@ static void R_type_preparation_func3(rv_core_td *rv_core, int32_t *next_subcode)
     *next_subcode = rv_core->func3;
 }
 
-static void R_type_preparation_func7(rv_core_td *rv_core, int32_t *next_subcode)
+static void preparation_func7(rv_core_td *rv_core, int32_t *next_subcode)
 {
     rv_core->func7 = ((rv_core->instruction >> 25) & 0x7F);
     *next_subcode = rv_core->func7;
@@ -574,8 +613,8 @@ static void B_type_preparation(rv_core_td *rv_core, int32_t *next_subcode)
     rv_core->rs1 = ((rv_core->instruction >> 15) & 0x1F);
     rv_core->rs2 = ((rv_core->instruction >> 20) & 0x1F);
     rv_core->jump_offset=((extract32(rv_core->instruction, 8, 4) << 1) |
-                            (extract32(rv_core->instruction, 25, 6) << 5) |
-                            (extract32(rv_core->instruction, 7, 1) << 11));
+                          (extract32(rv_core->instruction, 25, 6) << 5) |
+                          (extract32(rv_core->instruction, 7, 1) << 11));
 
     rv_core->jump_offset = SIGNEX(rv_core->jump_offset, 11);
 
@@ -586,6 +625,7 @@ static void U_type_preparation(rv_core_td *rv_core, int32_t *next_subcode)
 {
     rv_core->rd = ((rv_core->instruction >> 7) & 0x1F);
     rv_core->immediate = ((rv_core->instruction >> 12) & 0xFFFFF);
+    rv_core->immediate = SIGNEX(rv_core->immediate, 19);
     *next_subcode = -1;
 }
 
@@ -632,6 +672,12 @@ static instruction_hook_td SB_SH_SW_func3_subcode_list[] = {
 };
 INIT_INSTRUCTION_LIST_DESC(SB_SH_SW_func3_subcode_list);
 
+static instruction_hook_td SRLI_SRAI_func7_subcode_list[] = {
+    { FUNC7_INSTR_SRLI, NULL, instr_SRLI, NULL},
+    { FUNC7_INSTR_SRAI, NULL, instr_SRAI, NULL},
+};
+INIT_INSTRUCTION_LIST_DESC(SRLI_SRAI_func7_subcode_list);
+
 static instruction_hook_td ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI_func3_subcode_list[] = {
     { FUNC3_INSTR_ADDI, NULL, instr_ADDI, NULL},
     { FUNC3_INSTR_SLTI, NULL, instr_SLTI, NULL},
@@ -640,7 +686,7 @@ static instruction_hook_td ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI_func3_su
     { FUNC3_INSTR_ORI, NULL, instr_ORI, NULL},
     { FUNC3_INSTR_ANDI, NULL, instr_ANDI, NULL},
     { FUNC3_INSTR_SLLI, NULL, instr_SLLI, NULL},
-    { FUNC3_INSTR_SRLI_SRAI, NULL, instr_SRLI_SRAI, NULL},
+    { FUNC3_INSTR_SRLI_SRAI, preparation_func7, NULL, &SRLI_SRAI_func7_subcode_list_desc},
 };
 INIT_INSTRUCTION_LIST_DESC(ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI_func3_subcode_list);
 
@@ -657,18 +703,38 @@ static instruction_hook_td SRL_SRA_func7_subcode_list[] = {
 INIT_INSTRUCTION_LIST_DESC(SRL_SRA_func7_subcode_list);
 
 static instruction_hook_td ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list[] = {
-    { FUNC3_INSTR_ADD_SUB, R_type_preparation_func7, NULL, &ADD_SUB_func7_subcode_list_desc},
+    { FUNC3_INSTR_ADD_SUB, preparation_func7, NULL, &ADD_SUB_func7_subcode_list_desc},
     { FUNC3_INSTR_SLL, NULL, instr_SLL, NULL},
     { FUNC3_INSTR_SLT, NULL, instr_SLT, NULL},
     { FUNC3_INSTR_SLTU, NULL, instr_SLTU, NULL},
     { FUNC3_INSTR_XOR, NULL, instr_XOR, NULL},
-    { FUNC3_INSTR_SRL_SRA, R_type_preparation_func7, NULL, &SRL_SRA_func7_subcode_list_desc},
+    { FUNC3_INSTR_SRL_SRA, preparation_func7, NULL, &SRL_SRA_func7_subcode_list_desc},
     { FUNC3_INSTR_OR, NULL, instr_OR, NULL},
     { FUNC3_INSTR_AND, NULL, instr_AND, NULL},
 };
 INIT_INSTRUCTION_LIST_DESC(ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list);
 
-static instruction_hook_td rvI_opcode_list[] = {
+#ifdef RV64
+    static instruction_hook_td SLLIW_func7_subcode_list[] = {
+        { FUNC7_INSTR_SLLIW, NULL, instr_SLLIW, NULL},
+    };
+    INIT_INSTRUCTION_LIST_DESC(SLLIW_func7_subcode_list);
+
+    static instruction_hook_td SRLIW_SRAIW_func7_subcode_list[] = {
+        { FUNC7_INSTR_SRLIW, NULL, instr_SRLIW, NULL},
+        { FUNC7_INSTR_SRAIW, NULL, instr_SRAIW, NULL},
+    };
+    INIT_INSTRUCTION_LIST_DESC(SRLIW_SRAIW_func7_subcode_list);
+
+    static instruction_hook_td SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list[] = {
+        { FUNC3_INSTR_SLLIW, preparation_func7, NULL, &SLLIW_func7_subcode_list_desc},
+        { FUNC3_INSTR_SRLIW_SRAIW, preparation_func7, NULL, &SRLIW_SRAIW_func7_subcode_list_desc},
+        { FUNC3_INSTR_ADDIW, NULL, instr_ADDIW, NULL},
+    };
+    INIT_INSTRUCTION_LIST_DESC(SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list);
+#endif
+
+static instruction_hook_td RV_opcode_list[] = {
     { INSTR_LUI, U_type_preparation, instr_LUI, NULL},
     { INSTR_AUIPC, U_type_preparation, instr_AUIPC, NULL},
     { INSTR_JAL, J_type_preparation, instr_JAL, NULL},
@@ -680,8 +746,12 @@ static instruction_hook_td rvI_opcode_list[] = {
     { INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND, R_type_preparation_func3, NULL, &ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list_desc},
     { INSTR_FENCE_FENCE_I, NULL, NULL, NULL}, /* Not implemented */
     { INSTR_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI, NULL, NULL, NULL}, /* Not implemented */
+
+    #ifdef RV64
+    { INSTR_ADDIW_SLLIW_SRLIW_SRAIW, I_type_preparation, NULL, &SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list_desc}, /* Not implemented */
+    #endif
 };
-INIT_INSTRUCTION_LIST_DESC(rvI_opcode_list);
+INIT_INSTRUCTION_LIST_DESC(RV_opcode_list);
 
 static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *opcode_list_desc, uint32_t opcode)
 {
@@ -734,7 +804,7 @@ rv_uint_xlen rv_core_decode(rv_core_td *rv_core)
     rv_core->immediate = 0;
     rv_core->jump_offset = 0;
 
-    rv_call_from_opcode_list(rv_core, &rvI_opcode_list_desc, rv_core->opcode);
+    rv_call_from_opcode_list(rv_core, &RV_opcode_list_desc, rv_core->opcode);
 
     return 0;
 }
@@ -776,9 +846,9 @@ void rv_core_reg_internal_after_exec(rv_core_td *rv_core)
 
     DEBUG_PRINT("internal regs after execution:\n");
     DEBUG_PRINT("instruction: %x\n", rv_core->instruction);
-    DEBUG_PRINT("rd: %x rs1: %x rs2: %x imm: %x\n", rv_core->rd, rv_core->rs1, rv_core->rs2, rv_core->immediate);
-    DEBUG_PRINT("func3: %x func7: %x jump_offset %x\n", rv_core->func3, rv_core->func7, rv_core->jump_offset);
-    DEBUG_PRINT("next pc: %x\n", rv_core->pc);
+    DEBUG_PRINT("rd: %x rs1: %x rs2: %x imm: "PRINTF_FMT"\n", rv_core->rd, rv_core->rs1, rv_core->rs2, rv_core->immediate);
+    DEBUG_PRINT("func3: %x func7: %x jump_offset "PRINTF_FMT"\n", rv_core->func3, rv_core->func7, rv_core->jump_offset);
+    DEBUG_PRINT("next pc: "PRINTF_FMT"\n", rv_core->pc);
     DEBUG_PRINT("\n");
 }
 
