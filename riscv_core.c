@@ -23,7 +23,6 @@ static inline uint32_t extract32(uint32_t value, int start, int length)
 #endif
 
 /* Defines */
-#define XREG_ZERO 0
 #define XREG_RETURN_ADDRESS 0
 #define XREG_STACK_POINTER 2
 #define XREG_THREAD_POINTER 5
@@ -123,12 +122,10 @@ static void instr_ADDI(void *rv_core_data)
 {
     rv_int_xlen signed_immediate = 0;
     rv_int_xlen signed_rs_val = 0;
-
     rv_core_td *rv_core = (rv_core_td *)rv_core_data;
-
     signed_immediate = SIGNEX(rv_core->immediate, 11);
-
     signed_rs_val = rv_core->x[rv_core->rs1];
+
     rv_core->x[rv_core->rd] = (signed_immediate + signed_rs_val);
 }
 
@@ -136,11 +133,8 @@ static void instr_SLTI(void *rv_core_data)
 {
     rv_int_xlen signed_immediate = 0;
     rv_int_xlen signed_rs_val = 0;
-
     rv_core_td *rv_core = (rv_core_td *)rv_core_data;
-
     signed_immediate = SIGNEX(rv_core->immediate, 11);
-
     signed_rs_val = rv_core->x[rv_core->rs1];
 
     if(signed_rs_val < signed_immediate)
@@ -153,11 +147,8 @@ static void instr_SLTIU(void *rv_core_data)
 {
     rv_uint_xlen unsigned_immediate = 0;
     rv_uint_xlen unsigned_rs_val = 0;
-
     rv_core_td *rv_core = (rv_core_td *)rv_core_data;
-
     unsigned_immediate = SIGNEX(rv_core->immediate, 11);
-
     unsigned_rs_val = rv_core->x[rv_core->rs1];
 
     if(unsigned_rs_val < unsigned_immediate)
@@ -169,9 +160,7 @@ static void instr_SLTIU(void *rv_core_data)
 static void instr_XORI(void *rv_core_data)
 {
     rv_int_xlen signed_immediate = 0;
-
     rv_core_td *rv_core = (rv_core_td *)rv_core_data;
-
     rv_core->immediate = SIGNEX(rv_core->immediate, 11);
     signed_immediate = rv_core->immediate;
 
@@ -204,7 +193,6 @@ static void instr_SLLI(void *rv_core_data)
 static void instr_SRAI(void *rv_core_data)
 {
     rv_int_xlen rs_val = 0;
-
     rv_core_td *rv_core = (rv_core_td *)rv_core_data;
 
     /* a right shift on signed ints seem to be always arithmetic */
@@ -241,9 +229,7 @@ static void instr_SLT(void *rv_core_data)
 {
     rv_int_xlen signed_rs = 0;
     rv_int_xlen signed_rs2 = 0;
-
     rv_core_td *rv_core = (rv_core_td *)rv_core_data;
-
     signed_rs = rv_core->x[rv_core->rs1];
     signed_rs2 = rv_core->x[rv_core->rs2];
 
@@ -296,10 +282,9 @@ static void instr_AND(void *rv_core_data)
 static void instr_SRA(void *rv_core_data)
 {
     rv_int_xlen signed_rs = 0;
-
     rv_core_td *rv_core = (rv_core_td *)rv_core_data;
-
     signed_rs = rv_core->x[rv_core->rs1];
+
     rv_core->x[rv_core->rd] = signed_rs >> (rv_core->x[rv_core->rs2] & 0x1F);
 }
 
@@ -669,7 +654,7 @@ static instruction_hook_td RV_opcode_list[] = {
     { INSTR_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI, NULL, NULL, NULL}, /* Not implemented */
 
     #ifdef RV64
-    { INSTR_ADDIW_SLLIW_SRLIW_SRAIW, I_type_preparation, NULL, &SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list_desc}, /* Not implemented */
+        { INSTR_ADDIW_SLLIW_SRLIW_SRAIW, I_type_preparation, NULL, &SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list_desc}, /* Not implemented */
     #endif
 };
 INIT_INSTRUCTION_LIST_DESC(RV_opcode_list);
