@@ -452,6 +452,47 @@ static void instr_SW(void *rv_core_data)
         rv_core->x[rv_core->rd] = (unsigned_rs_val >> rv_core->immediate);
         rv_core->x[rv_core->rd] = SIGNEX(rv_core->x[rv_core->rd], 31);
     }
+
+
+    static void instr_SRLW(void *rv_core_data)
+    {
+        rv_core_td *rv_core = (rv_core_td *)rv_core_data;
+        uint32_t rs1_val = rv_core->x[rv_core->rs1];
+        uint32_t rs2_val = (rv_core->x[rv_core->rs2] & 0x1F);
+        rv_core->x[rv_core->rd] = rs1_val >> rs2_val;
+    }
+
+    static void instr_SRAW(void *rv_core_data)
+    {
+        rv_core_td *rv_core = (rv_core_td *)rv_core_data;
+        int32_t rs1_val_signed = rv_core->x[rv_core->rs1];
+        uint32_t rs2_val = (rv_core->x[rv_core->rs2] & 0x1F);
+        rv_core->x[rv_core->rd] = rs1_val_signed >> rs2_val;
+    }
+
+    static void instr_SLLW(void *rv_core_data)
+    {
+        rv_core_td *rv_core = (rv_core_td *)rv_core_data;
+        uint32_t rs1_val = rv_core->x[rv_core->rs1];
+        uint32_t rs2_val = (rv_core->x[rv_core->rs2] & 0x1F);
+        rv_core->x[rv_core->rd] = rs1_val << rs2_val;
+    }
+
+    static void instr_ADDW(void *rv_core_data)
+    {
+        rv_core_td *rv_core = (rv_core_td *)rv_core_data;
+        uint32_t rs1_val = rv_core->x[rv_core->rs1];
+        uint32_t rs2_val = rv_core->x[rv_core->rs2];
+        rv_core->x[rv_core->rd] = rs1_val + rs2_val;
+    }
+
+    static void instr_SUBW(void *rv_core_data)
+    {
+        rv_core_td *rv_core = (rv_core_td *)rv_core_data;
+        uint32_t rs1_val = rv_core->x[rv_core->rs1];
+        uint32_t rs2_val = rv_core->x[rv_core->rs2];
+        rv_core->x[rv_core->rd] = rs1_val - rs2_val;
+    }
 #endif
 
 static void die(rv_core_td *rv_core)
@@ -479,7 +520,7 @@ typedef struct instruction_desc_struct
     static instruction_desc_td  instruction_list##_desc = \
     { sizeof(instruction_list)/sizeof(instruction_list[0]), instruction_list }
 
-static void R_type_preparation_func3(rv_core_td *rv_core, int32_t *next_subcode)
+static void R_type_preparation(rv_core_td *rv_core, int32_t *next_subcode)
 {
     rv_core->rd = ((rv_core->instruction >> 7) & 0x1F);
     rv_core->func3 = ((rv_core->instruction >> 12) & 0x7);
@@ -638,6 +679,30 @@ INIT_INSTRUCTION_LIST_DESC(ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode
         { FUNC3_INSTR_ADDIW, NULL, instr_ADDIW, NULL},
     };
     INIT_INSTRUCTION_LIST_DESC(SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list);
+
+    static instruction_hook_td SRLW_SRAW_func7_subcode_list[] = {
+        { FUNC7_SRLW, NULL, instr_SRLW, NULL},
+        { FUNC7_SRAW, NULL, instr_SRAW, NULL},
+    };
+    INIT_INSTRUCTION_LIST_DESC(SRLW_SRAW_func7_subcode_list);
+
+    static instruction_hook_td SLLW_func7_subcode_list[] = {
+        { FUNC7_SLLW, NULL, instr_SLLW, NULL},
+    };
+    INIT_INSTRUCTION_LIST_DESC(SLLW_func7_subcode_list);
+
+    static instruction_hook_td ADDW_SUBW_func7_subcode_list[] = {
+        { FUNC7_ADDW, NULL, instr_ADDW, NULL},
+        { FUNC7_SUBW, NULL, instr_SUBW, NULL},
+    };
+    INIT_INSTRUCTION_LIST_DESC(ADDW_SUBW_func7_subcode_list);
+
+    static instruction_hook_td ADDW_SUBW_SLLW_SRLW_SRAW_func3_subcode_list[] = {
+        { FUNC3_ADDW_SUBW, preparation_func7, NULL, &ADDW_SUBW_func7_subcode_list_desc},
+        { FUNC3_SLLW, preparation_func7, NULL, &SLLW_func7_subcode_list_desc},
+        { FUNC3_SRLW_SRAW, preparation_func7, instr_ADDIW, &SRLW_SRAW_func7_subcode_list_desc},
+    };
+    INIT_INSTRUCTION_LIST_DESC(ADDW_SUBW_SLLW_SRLW_SRAW_func3_subcode_list);
 #endif
 
 static instruction_hook_td RV_opcode_list[] = {
@@ -649,12 +714,13 @@ static instruction_hook_td RV_opcode_list[] = {
     { INSTR_LB_LH_LW_LBU_LHU, I_type_preparation, NULL, &LB_LH_LW_LBU_LHU_func3_subcode_list_desc},
     { INSTR_SB_SH_SW, S_type_preparation, NULL, &SB_SH_SW_func3_subcode_list_desc},
     { INSTR_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI, I_type_preparation, NULL, &ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI_func3_subcode_list_desc},
-    { INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND, R_type_preparation_func3, NULL, &ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list_desc},
+    { INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND, R_type_preparation, NULL, &ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list_desc},
     { INSTR_FENCE_FENCE_I, NULL, NULL, NULL}, /* Not implemented */
     { INSTR_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI, NULL, NULL, NULL}, /* Not implemented */
 
     #ifdef RV64
-        { INSTR_ADDIW_SLLIW_SRLIW_SRAIW, I_type_preparation, NULL, &SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list_desc}, /* Not implemented */
+        { INSTR_ADDIW_SLLIW_SRLIW_SRAIW, I_type_preparation, NULL, &SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list_desc},
+        { INSTR_ADDW_SUBW_SLLW_SRLW_SRAW, R_type_preparation, NULL, &ADDW_SUBW_SLLW_SRLW_SRAW_func3_subcode_list_desc},
     #endif
 };
 INIT_INSTRUCTION_LIST_DESC(RV_opcode_list);
