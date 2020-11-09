@@ -222,7 +222,12 @@ static void instr_SUB(void *rv_core_data)
 static void instr_SLL(void *rv_core_data)
 {
     rv_core_td *rv_core = (rv_core_td *)rv_core_data;
-    rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] << (rv_core->x[rv_core->rs2] & 0x1F);
+
+    #ifdef RV64
+        rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] << (rv_core->x[rv_core->rs2] & 0x3F);
+    #else
+        rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] << (rv_core->x[rv_core->rs2]);
+    #endif
 }
 
 static void instr_SLT(void *rv_core_data)
@@ -264,7 +269,11 @@ static void instr_XOR(void *rv_core_data)
 static void instr_SRL(void *rv_core_data)
 {
     rv_core_td *rv_core = (rv_core_td *)rv_core_data;
-    rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] >> (rv_core->x[rv_core->rs2] & 0x1F);
+    #ifdef RV64
+        rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] >> (rv_core->x[rv_core->rs2] & 0x3F);
+    #else
+        rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] >> (rv_core->x[rv_core->rs2]);
+    #endif
 }
 
 static void instr_OR(void *rv_core_data)
@@ -285,7 +294,11 @@ static void instr_SRA(void *rv_core_data)
     rv_core_td *rv_core = (rv_core_td *)rv_core_data;
     signed_rs = rv_core->x[rv_core->rs1];
 
-    rv_core->x[rv_core->rd] = signed_rs >> (rv_core->x[rv_core->rs2] & 0x1F);
+    #ifdef RV64
+        rv_core->x[rv_core->rd] = signed_rs >> (rv_core->x[rv_core->rs2] & 0x3F);
+    #else
+        rv_core->x[rv_core->rd] = signed_rs >> (rv_core->x[rv_core->rs2]);
+    #endif
 }
 
 static void instr_LB(void *rv_core_data)
@@ -459,7 +472,7 @@ static void instr_SW(void *rv_core_data)
         rv_core_td *rv_core = (rv_core_td *)rv_core_data;
         uint32_t rs1_val = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = (rv_core->x[rv_core->rs2] & 0x1F);
-        rv_core->x[rv_core->rd] = rs1_val >> rs2_val;
+        rv_core->x[rv_core->rd] = SIGNEX(rs1_val >> rs2_val, 31);
     }
 
     static void instr_SRAW(void *rv_core_data)
@@ -467,7 +480,7 @@ static void instr_SW(void *rv_core_data)
         rv_core_td *rv_core = (rv_core_td *)rv_core_data;
         int32_t rs1_val_signed = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = (rv_core->x[rv_core->rs2] & 0x1F);
-        rv_core->x[rv_core->rd] = rs1_val_signed >> rs2_val;
+        rv_core->x[rv_core->rd] = SIGNEX(rs1_val_signed >> rs2_val, 31);
     }
 
     static void instr_SLLW(void *rv_core_data)
@@ -475,7 +488,7 @@ static void instr_SW(void *rv_core_data)
         rv_core_td *rv_core = (rv_core_td *)rv_core_data;
         uint32_t rs1_val = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = (rv_core->x[rv_core->rs2] & 0x1F);
-        rv_core->x[rv_core->rd] = rs1_val << rs2_val;
+        rv_core->x[rv_core->rd] = SIGNEX(rs1_val << rs2_val, 31);
     }
 
     static void instr_ADDW(void *rv_core_data)
@@ -483,7 +496,7 @@ static void instr_SW(void *rv_core_data)
         rv_core_td *rv_core = (rv_core_td *)rv_core_data;
         uint32_t rs1_val = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
-        rv_core->x[rv_core->rd] = rs1_val + rs2_val;
+        rv_core->x[rv_core->rd] = SIGNEX(rs1_val + rs2_val, 31);
     }
 
     static void instr_SUBW(void *rv_core_data)
@@ -491,7 +504,7 @@ static void instr_SW(void *rv_core_data)
         rv_core_td *rv_core = (rv_core_td *)rv_core_data;
         uint32_t rs1_val = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
-        rv_core->x[rv_core->rd] = rs1_val - rs2_val;
+        rv_core->x[rv_core->rd] = SIGNEX(rs1_val - rs2_val, 31);
     }
 #endif
 
@@ -643,21 +656,51 @@ static instruction_hook_td ADD_SUB_func7_subcode_list[] = {
 };
 INIT_INSTRUCTION_LIST_DESC(ADD_SUB_func7_subcode_list);
 
+static instruction_hook_td SLL_func7_subcode_list[] = {
+    { FUNC7_INSTR_SLL, NULL, instr_SLL, NULL},
+};
+INIT_INSTRUCTION_LIST_DESC(SLL_func7_subcode_list);
+
+static instruction_hook_td SLT_func7_subcode_list[] = {
+    { FUNC7_INSTR_SLT, NULL, instr_SLT, NULL},
+};
+INIT_INSTRUCTION_LIST_DESC(SLT_func7_subcode_list);
+
+static instruction_hook_td SLTU_func7_subcode_list[] = {
+    { FUNC7_INSTR_SLTU, NULL, instr_SLTU, NULL},
+};
+INIT_INSTRUCTION_LIST_DESC(SLTU_func7_subcode_list);
+
+static instruction_hook_td XOR_func7_subcode_list[] = {
+    { FUNC7_INSTR_SLTU, NULL, instr_XOR, NULL},
+};
+INIT_INSTRUCTION_LIST_DESC(XOR_func7_subcode_list);
+
 static instruction_hook_td SRL_SRA_func7_subcode_list[] = {
     { FUNC7_INSTR_SRL, NULL, instr_SRL, NULL},
     { FUNC7_INSTR_SRA, NULL, instr_SRA, NULL},
 };
 INIT_INSTRUCTION_LIST_DESC(SRL_SRA_func7_subcode_list);
 
+static instruction_hook_td OR_func7_subcode_list[] = {
+    { FUNC7_INSTR_OR, NULL, instr_OR, NULL},
+};
+INIT_INSTRUCTION_LIST_DESC(OR_func7_subcode_list);
+
+static instruction_hook_td AND_func7_subcode_list[] = {
+    { FUNC7_INSTR_AND, NULL, instr_AND, NULL},
+};
+INIT_INSTRUCTION_LIST_DESC(AND_func7_subcode_list);
+
 static instruction_hook_td ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list[] = {
     { FUNC3_INSTR_ADD_SUB, preparation_func7, NULL, &ADD_SUB_func7_subcode_list_desc},
-    { FUNC3_INSTR_SLL, NULL, instr_SLL, NULL},
-    { FUNC3_INSTR_SLT, NULL, instr_SLT, NULL},
-    { FUNC3_INSTR_SLTU, NULL, instr_SLTU, NULL},
-    { FUNC3_INSTR_XOR, NULL, instr_XOR, NULL},
+    { FUNC3_INSTR_SLL, preparation_func7, NULL, &SLL_func7_subcode_list_desc},
+    { FUNC3_INSTR_SLT, preparation_func7, NULL, &SLT_func7_subcode_list_desc},
+    { FUNC3_INSTR_SLTU, preparation_func7, NULL, &SLTU_func7_subcode_list_desc},
+    { FUNC3_INSTR_XOR, preparation_func7, NULL, &XOR_func7_subcode_list_desc},
     { FUNC3_INSTR_SRL_SRA, preparation_func7, NULL, &SRL_SRA_func7_subcode_list_desc},
-    { FUNC3_INSTR_OR, NULL, instr_OR, NULL},
-    { FUNC3_INSTR_AND, NULL, instr_AND, NULL},
+    { FUNC3_INSTR_OR, preparation_func7, NULL, &OR_func7_subcode_list_desc},
+    { FUNC3_INSTR_AND, preparation_func7, NULL, &AND_func7_subcode_list_desc},
 };
 INIT_INSTRUCTION_LIST_DESC(ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list);
 
