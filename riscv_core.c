@@ -187,7 +187,11 @@ static void instr_ANDI(void *rv_core_data)
 static void instr_SLLI(void *rv_core_data)
 {
     rv_core_td *rv_core = (rv_core_td *)rv_core_data;
-    rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] << rv_core->immediate);
+    #ifdef RV64
+        rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] << (rv_core->immediate & 0x3F));
+    #else
+        rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] << (rv_core->immediate & 0x1F));
+    #endif
 }
 
 static void instr_SRAI(void *rv_core_data)
@@ -197,14 +201,22 @@ static void instr_SRAI(void *rv_core_data)
 
     /* a right shift on signed ints seem to be always arithmetic */
     rs_val = rv_core->x[rv_core->rs1];
-    rs_val = rs_val >> rv_core->immediate;
+    #ifdef RV64
+        rs_val = rs_val >> (rv_core->immediate & 0x3F);
+    #else
+        rs_val = rs_val >> (rv_core->immediate & 0x1F);
+    #endif
     rv_core->x[rv_core->rd] = rs_val;
 }
 
 static void instr_SRLI(void *rv_core_data)
 {
     rv_core_td *rv_core = (rv_core_td *)rv_core_data;
-    rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] >> rv_core->immediate);
+    #ifdef RV64
+        rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] >> (rv_core->immediate & 0x3F));
+    #else
+        rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] >> (rv_core->immediate & 0x1F));
+    #endif
 }
 
 static void instr_ADD(void *rv_core_data)
@@ -435,7 +447,7 @@ static void instr_SW(void *rv_core_data)
         signed_rs_val = rv_core->x[rv_core->rs1];
 
         if(shift)
-            rv_core->x[rv_core->rd] = (signed_rs_val >> rv_core->immediate);
+            rv_core->x[rv_core->rd] = (signed_rs_val >> (rv_core->immediate & 0x1F));
         else
             rv_core->x[rv_core->rd] = (signed_rs_val + signed_immediate);
     }
@@ -453,7 +465,7 @@ static void instr_SW(void *rv_core_data)
     static void instr_SLLIW(void *rv_core_data)
     {
         rv_core_td *rv_core = (rv_core_td *)rv_core_data;
-        rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] << rv_core->immediate) & 0xFFFFFFFF;
+        rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] << (rv_core->immediate & 0x1F)) & 0xFFFFFFFF;
         rv_core->x[rv_core->rd] = SIGNEX(rv_core->x[rv_core->rd], 31);
     }
 
@@ -462,7 +474,7 @@ static void instr_SW(void *rv_core_data)
         uint32_t unsigned_rs_val = 0;
         rv_core_td *rv_core = (rv_core_td *)rv_core_data;
         unsigned_rs_val = rv_core->x[rv_core->rs1];
-        rv_core->x[rv_core->rd] = (unsigned_rs_val >> rv_core->immediate);
+        rv_core->x[rv_core->rd] = (unsigned_rs_val >> (rv_core->immediate & 0x1F));
         rv_core->x[rv_core->rd] = SIGNEX(rv_core->x[rv_core->rd], 31);
     }
 
