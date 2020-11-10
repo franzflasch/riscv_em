@@ -38,12 +38,14 @@
         #define FUNC7_INSTR_SRLI 0x0
         #define FUNC7_INSTR_SRAI 0x20
 
-#define INSTR_LB_LH_LW_LBU_LHU 0x03
+#define INSTR_LB_LH_LW_LBU_LHU_LWU_LD 0x03
     #define FUNC3_INSTR_LB 0x0
     #define FUNC3_INSTR_LH 0x1
     #define FUNC3_INSTR_LW 0x2
     #define FUNC3_INSTR_LBU 0x4
     #define FUNC3_INSTR_LHU 0x5
+    #define FUNC3_INSTR_LWU 0x6
+    #define FUNC3_INSTR_LD 0x3
 
 /* S-Type Instructions */
 #define INSTR_SB_SH_SW 0x23

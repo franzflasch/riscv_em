@@ -7,11 +7,13 @@
 #include <riscv_helper.h>
 #include <riscv_soc.h>
 
+#define UART_TX_REG_ADDR 0x300000
+
 rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address)
 {
     uint8_t align_offset = address & 0x3;
-    rv_uint_xlen read_val = 0;
-    rv_uint_xlen read_val2 = 0;
+    uint32_t read_val = 0;
+    uint32_t read_val2 = 0;
     rv_uint_xlen return_val = 0;
 
     rv_soc_td *rv_soc = priv;
@@ -19,25 +21,28 @@ rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address)
     if((address >= RAM_BASE_ADDR) && (address < (RAM_BASE_ADDR+RAM_SIZE_BYTES)))
     {
         read_val = rv_soc->ram[(address-RAM_BASE_ADDR) >> 2];
-        if(align_offset)
-            read_val2 = rv_soc->ram[((address-RAM_BASE_ADDR) >> 2) + 1];
+        read_val2 = rv_soc->ram[((address-RAM_BASE_ADDR) >> 2) + 1];
+        // if(align_offset)
+        //     read_val2 = rv_soc->ram[((address-RAM_BASE_ADDR) >> 2) + 1];
     }
 
     switch(align_offset)
     {
         case 1:
-            return_val = (read_val2 << 24) | (read_val >> 8);
+            return_val = read_val >> 8;
             break;
         case 2:
-            return_val = (read_val2 << 16) | (read_val >> 16);
+            return_val = read_val >> 16;
             break;
         case 3:
-            return_val = (read_val2 << 8) | (read_val >> 24);
+            return_val = read_val >> 24;
             break;
         default:
             return_val = read_val;
             break;
     }
+
+    return_val |= ((uint64_t)read_val2 << 32);
 
     return return_val;
 }
@@ -56,7 +61,7 @@ void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint
         address_for_write = (address-RAM_BASE_ADDR) >> 2;
         ptr_address = (uint8_t *)&rv_soc->ram[address_for_write];
     }
-    else if(address == 0x300000)
+    else if(address == UART_TX_REG_ADDR)
     {
         printf("%c", (char) value);
         return;
