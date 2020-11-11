@@ -393,36 +393,6 @@ static void instr_LHU(void *rv_core_data)
     rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address) & 0x0000FFFF;
 }
 
-#ifdef RV64
-    static void instr_LWU(void *rv_core_data)
-    {
-        rv_uint_xlen unsigned_offset = 0;
-        rv_uint_xlen address = 0;
-
-        rv_core_td *rv_core = (rv_core_td *)rv_core_data;
-
-        rv_core->immediate = SIGNEX(rv_core->immediate, 11);
-
-        unsigned_offset = rv_core->immediate;
-        address = rv_core->x[rv_core->rs1] + unsigned_offset;
-        rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address) & 0xFFFFFFFF;
-    }
-
-    static void instr_LD(void *rv_core_data)
-    {
-        rv_int_xlen signed_offset = 0;
-        rv_uint_xlen address = 0;
-
-        rv_core_td *rv_core = (rv_core_td *)rv_core_data;
-
-        rv_core->immediate = SIGNEX(rv_core->immediate, 11);
-
-        signed_offset = rv_core->immediate;
-        address = rv_core->x[rv_core->rs1] + signed_offset;
-        rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address);
-    }
-#endif
-
 static void instr_SB(void *rv_core_data)
 {
     rv_int_xlen signed_offset = 0;
@@ -471,7 +441,52 @@ static void instr_SW(void *rv_core_data)
     rv_core->write_mem(rv_core->priv, address, value_to_write, 4);
 }
 
+
 #ifdef RV64
+    static void instr_LWU(void *rv_core_data)
+    {
+        rv_uint_xlen unsigned_offset = 0;
+        rv_uint_xlen address = 0;
+
+        rv_core_td *rv_core = (rv_core_td *)rv_core_data;
+
+        rv_core->immediate = SIGNEX(rv_core->immediate, 11);
+
+        unsigned_offset = rv_core->immediate;
+        address = rv_core->x[rv_core->rs1] + unsigned_offset;
+        rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address) & 0xFFFFFFFF;
+    }
+
+    static void instr_LD(void *rv_core_data)
+    {
+        rv_int_xlen signed_offset = 0;
+        rv_uint_xlen address = 0;
+
+        rv_core_td *rv_core = (rv_core_td *)rv_core_data;
+
+        rv_core->immediate = SIGNEX(rv_core->immediate, 11);
+
+        signed_offset = rv_core->immediate;
+        address = rv_core->x[rv_core->rs1] + signed_offset;
+        rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address);
+    }
+
+    static void instr_SD(void *rv_core_data)
+    {
+        rv_int_xlen signed_offset = 0;
+        rv_uint_xlen address = 0;
+        rv_uint_xlen value_to_write = 0;
+
+        rv_core_td *rv_core = (rv_core_td *)rv_core_data;
+
+        rv_core->immediate = SIGNEX(rv_core->immediate, 11);
+
+        signed_offset = rv_core->immediate;
+        address = rv_core->x[rv_core->rs1] + signed_offset;
+        value_to_write = (rv_uint_xlen)rv_core->x[rv_core->rs2];
+        rv_core->write_mem(rv_core->priv, address, value_to_write, 8);
+    }
+
     static void shift_add_w_signed_prepare(void *rv_core_data, uint8_t shift)
     {
         int32_t signed_immediate = 0;
@@ -676,12 +691,15 @@ static instruction_hook_td LB_LH_LW_LBU_LHU_LWU_LD_func3_subcode_list[] = {
 };
 INIT_INSTRUCTION_LIST_DESC(LB_LH_LW_LBU_LHU_LWU_LD_func3_subcode_list);
 
-static instruction_hook_td SB_SH_SW_func3_subcode_list[] = {
+static instruction_hook_td SB_SH_SW_SD_func3_subcode_list[] = {
     { FUNC3_INSTR_SB, NULL, instr_SB, NULL},
     { FUNC3_INSTR_SH, NULL, instr_SH, NULL},
     { FUNC3_INSTR_SW, NULL, instr_SW, NULL},
+    #ifdef RV64
+        { FUNC3_INSTR_SD, NULL, instr_SD, NULL},
+    #endif
 };
-INIT_INSTRUCTION_LIST_DESC(SB_SH_SW_func3_subcode_list);
+INIT_INSTRUCTION_LIST_DESC(SB_SH_SW_SD_func3_subcode_list);
 
 static instruction_hook_td SRLI_SRAI_func7_subcode_list[] = {
     { FUNC7_INSTR_SRLI, NULL, instr_SRLI, NULL},
@@ -806,7 +824,7 @@ static instruction_hook_td RV_opcode_list[] = {
     { INSTR_JALR, I_type_preparation, NULL, &JALR_func3_subcode_list_desc},
     { INSTR_BEQ_BNE_BLT_BGE_BLTU_BGEU, B_type_preparation, NULL, &BEQ_BNE_BLT_BGE_BLTU_BGEU_func3_subcode_list_desc},
     { INSTR_LB_LH_LW_LBU_LHU_LWU_LD, I_type_preparation, NULL, &LB_LH_LW_LBU_LHU_LWU_LD_func3_subcode_list_desc},
-    { INSTR_SB_SH_SW, S_type_preparation, NULL, &SB_SH_SW_func3_subcode_list_desc},
+    { INSTR_SB_SH_SW_SD, S_type_preparation, NULL, &SB_SH_SW_SD_func3_subcode_list_desc},
     { INSTR_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI, I_type_preparation, NULL, &ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI_func3_subcode_list_desc},
     { INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND, R_type_preparation, NULL, &ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list_desc},
     { INSTR_FENCE_FENCE_I, NULL, NULL, NULL}, /* Not implemented */

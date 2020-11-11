@@ -48,10 +48,11 @@
     #define FUNC3_INSTR_LD 0x3
 
 /* S-Type Instructions */
-#define INSTR_SB_SH_SW 0x23
+#define INSTR_SB_SH_SW_SD 0x23
     #define FUNC3_INSTR_SB 0x0
     #define FUNC3_INSTR_SH 0x1
     #define FUNC3_INSTR_SW 0x2
+    #define FUNC3_INSTR_SD 0x3
 
 /* B-Type Instructions */
 #define INSTR_BEQ_BNE_BLT_BGE_BLTU_BGEU 0x63
