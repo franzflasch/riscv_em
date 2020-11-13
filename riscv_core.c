@@ -219,8 +219,10 @@ static void instr_SLTU(rv_core_td *rv_core)
     }
     else
     {
-        if(rv_core->x[rv_core->rs1] < rv_core->x[rv_core->rs2]) rv_core->x[rv_core->rd] = 1;
-        else rv_core->x[rv_core->rd] = 0;
+        if(rv_core->x[rv_core->rs1] < rv_core->x[rv_core->rs2]) 
+            rv_core->x[rv_core->rd] = 1;
+        else
+            rv_core->x[rv_core->rd] = 0;
     }
 }
 
@@ -263,7 +265,7 @@ static void instr_LB(rv_core_td *rv_core)
 {
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint8_t tmp_load_val = rv_core->read_mem(rv_core->priv, address) & 0x000000FF;
+    uint8_t tmp_load_val = rv_core->read_mem(rv_core->priv, address);
     rv_core->x[rv_core->rd] = SIGNEX(tmp_load_val, 7);
 }
 
@@ -271,7 +273,7 @@ static void instr_LH(rv_core_td *rv_core)
 {
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint16_t tmp_load_val = rv_core->read_mem(rv_core->priv, address) & 0x0000FFFF;
+    uint16_t tmp_load_val = rv_core->read_mem(rv_core->priv, address);
     rv_core->x[rv_core->rd] = SIGNEX(tmp_load_val, 15);
 }
 
@@ -279,9 +281,9 @@ static void instr_LW(rv_core_td *rv_core)
 {
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-
     #ifdef RV64
-        rv_core->x[rv_core->rd] = SIGNEX(rv_core->read_mem(rv_core->priv, address)  & 0xFFFFFFFF , 31);
+        uint32_t tmp_load_val = rv_core->read_mem(rv_core->priv, address);
+        rv_core->x[rv_core->rd] = SIGNEX(tmp_load_val, 31);
     #else
         rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address);
     #endif
@@ -291,14 +293,16 @@ static void instr_LBU(rv_core_td *rv_core)
 {
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address) & 0x000000FF;
+    uint8_t tmp_load_val = rv_core->read_mem(rv_core->priv, address);
+    rv_core->x[rv_core->rd] = tmp_load_val;
 }
 
 static void instr_LHU(rv_core_td *rv_core)
 {
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address) & 0x0000FFFF;
+    uint16_t tmp_load_val = rv_core->read_mem(rv_core->priv, address);
+    rv_core->x[rv_core->rd] = tmp_load_val;
 }
 
 static void instr_SB(rv_core_td *rv_core)
@@ -331,7 +335,8 @@ static void instr_SW(rv_core_td *rv_core)
     {
         rv_uint_xlen unsigned_offset = SIGNEX(rv_core->immediate, 11);
         rv_uint_xlen address = rv_core->x[rv_core->rs1] + unsigned_offset;
-        rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address) & 0xFFFFFFFF;
+        uint32_t tmp_load_val = rv_core->read_mem(rv_core->priv, address);
+        rv_core->x[rv_core->rd] = tmp_load_val;
     }
 
     static void instr_LD(rv_core_td *rv_core)

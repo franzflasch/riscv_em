@@ -22,8 +22,6 @@ rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address)
     {
         read_val = rv_soc->ram[(address-RAM_BASE_ADDR) >> 2];
         read_val2 = rv_soc->ram[((address-RAM_BASE_ADDR) >> 2) + 1];
-        // if(align_offset)
-        //     read_val2 = rv_soc->ram[((address-RAM_BASE_ADDR) >> 2) + 1];
     }
 
     switch(align_offset)
