@@ -41,11 +41,11 @@ int main(int argc, char *argv[])
 
     while(1)
     {
-        rv_core_reg_dump_before_exec(&rv_soc.rv_core);
-        rv_core_run(&rv_soc.rv_core);
+        rv_core_reg_dump_before_exec(&rv_soc.rv_core0);
+        rv_core_run(&rv_soc.rv_core0);
         // rv_core_reg_internal_after_exec(&rv_soc.rv_core);
 
-        if((rv_soc.rv_core.pc == (success_pc + 4)))
+        if((rv_soc.rv_core0.pc == (success_pc + 4)))
             break;
 
         if((num_cycles != 0) && (curr_cycle >= num_cycles))

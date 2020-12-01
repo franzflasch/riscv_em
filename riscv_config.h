@@ -4,6 +4,7 @@
 #define DEBUG
 
 // #define RV64
+#define CSR_SUPPORT
 
 #define RAM_BASE_ADDR 0x80000000
 

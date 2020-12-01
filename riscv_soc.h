@@ -6,7 +6,8 @@
 
 typedef struct rv_soc_struct
 {
-    rv_core_td rv_core;
+    /* For now we have 1 single core */
+    rv_core_td rv_core0;
     uint32_t ram[NR_RAM_WORDS];
 
 } rv_soc_td;

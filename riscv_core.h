@@ -2,6 +2,7 @@
 #define RISCV_CORE_H
 
 #include <riscv_types.h>
+#include <riscv_csr.h>
 
 #define NR_RVI_REGS 32
 
@@ -31,6 +32,8 @@ typedef struct rv_core_struct
     rv_uint_xlen (*read_mem)(void *priv, rv_uint_xlen address);
     void (*write_mem)(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes);
 
+    csr_reg_desc_td *csr_table;
+
 } rv_core_td;
 
 rv_uint_xlen rv_core_fetch(rv_core_td *rv_core);
@@ -40,10 +43,11 @@ void rv_core_run(rv_core_td *rv_core);
 void rv_core_reg_dump_before_exec(rv_core_td *rv_core);
 void rv_core_reg_internal_after_exec(rv_core_td *rv_core);
 void rv_core_init(rv_core_td *rv_core,
-                    void *priv,
-                    rv_uint_xlen (*read_mem)(void *priv, rv_uint_xlen address),
-                    void (*write_mem)(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes)
-                    );
+                  void *priv,
+                  rv_uint_xlen (*read_mem)(void *priv, rv_uint_xlen address),
+                  void (*write_mem)(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes),
+                  csr_reg_desc_td *csr_table
+                  );
 
 typedef struct instruction_hook_struct
 {

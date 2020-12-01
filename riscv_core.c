@@ -329,7 +329,6 @@ static void instr_SW(rv_core_td *rv_core)
     rv_core->write_mem(rv_core->priv, address, value_to_write, 4);
 }
 
-
 #ifdef RV64
     static void instr_LWU(rv_core_td *rv_core)
     {
@@ -413,6 +412,14 @@ static void instr_SW(rv_core_td *rv_core)
         uint32_t rs1_val = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
         rv_core->x[rv_core->rd] = SIGNEX(rs1_val - rs2_val, 31);
+    }
+#endif
+
+#ifdef CSR_SUPPORT
+    static void instr_CSRRW(rv_core_td *rv_core)
+    {
+        rv_uint_xlen test = 0;
+        read_csr_reg(rv_core->csr_table, 0x301, &test);
     }
 #endif
 
@@ -642,6 +649,13 @@ INIT_INSTRUCTION_LIST_DESC(ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode
     INIT_INSTRUCTION_LIST_DESC(ADDW_SUBW_SLLW_SRLW_SRAW_func3_subcode_list);
 #endif
 
+#ifdef CSR_SUPPORT
+    static instruction_hook_td ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI_func3_subcode_list[] = {
+        [FUNC3_INSTR_CSRRW] = {NULL, instr_CSRRW, NULL},
+    };
+    INIT_INSTRUCTION_LIST_DESC(ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI_func3_subcode_list);
+#endif
+
 static instruction_hook_td RV_opcode_list[] = {
     [INSTR_LUI] = {U_type_preparation, instr_LUI, NULL},
     [INSTR_AUIPC] = {U_type_preparation, instr_AUIPC, NULL},
@@ -653,7 +667,10 @@ static instruction_hook_td RV_opcode_list[] = {
     [INSTR_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI] = {I_type_preparation, NULL, &ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI_func3_subcode_list_desc},
     [INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND] = {R_type_preparation, NULL, &ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list_desc},
     [INSTR_FENCE_FENCE_I] = {NULL, NULL, NULL}, /* Not implemented */
-    [INSTR_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI] = {NULL, NULL, NULL}, /* Not implemented */
+
+    #ifdef CSR_SUPPORT
+        [INSTR_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI] = {I_type_preparation, NULL, &ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI_func3_subcode_list_desc},
+    #endif
 
     #ifdef RV64
         [INSTR_ADDIW_SLLIW_SRLIW_SRAIW] = {I_type_preparation, NULL, &SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list_desc},
@@ -756,10 +773,11 @@ void rv_core_reg_internal_after_exec(rv_core_td *rv_core)
 }
 
 void rv_core_init(rv_core_td *rv_core,
-                    void *priv,
-                    rv_uint_xlen (*read_mem)(void *priv, rv_uint_xlen address),
-                    void (*write_mem)(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes)
-                    )
+                  void *priv,
+                  rv_uint_xlen (*read_mem)(void *priv, rv_uint_xlen address),
+                  void (*write_mem)(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes),
+                  csr_reg_desc_td *csr_table
+                  )
 {
     memset(rv_core, 0, sizeof(rv_core_td));
     rv_core->pc = RAM_BASE_ADDR;
@@ -769,4 +787,6 @@ void rv_core_init(rv_core_td *rv_core,
     rv_core->priv = priv;
     rv_core->read_mem = read_mem;
     rv_core->write_mem = write_mem;
+
+    rv_core->csr_table = csr_table;
 }

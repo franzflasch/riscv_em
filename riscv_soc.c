@@ -105,10 +105,31 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name)
 
     memset(rv_soc, 0, sizeof(rv_soc_td));
 
-    rv_core_init(&rv_soc->rv_core, rv_soc, rv_soc_read_mem, rv_soc_write_mem);
+    /* initialize one core with a csr table */
+    #ifdef CSR_SUPPORT
+        static csr_reg_td csr_regs_core0[] = {
+            /* Machine Information Registers */
+            { CSR_ADDR_MVENDORID, CSR_ACCESS_MREAD, 0 },
+            { CSR_ADDR_MARCHID, CSR_ACCESS_MREAD, 0 },
+            { CSR_ADDR_MIMPID, CSR_ACCESS_MREAD, 0 },
+            { CSR_ADDR_MHARTID, CSR_ACCESS_MREAD, 0 },
+            /* Machine Trap Setup */
+            { CSR_ADDR_MSTATUS, CSR_ACCESS_MWRITE | CSR_ACCESS_MREAD, 0 },
+            { CSR_ADDR_MISA, CSR_ACCESS_MWRITE | CSR_ACCESS_MREAD, 0 },
+            { CSR_ADDR_MEDELEG, CSR_ACCESS_MWRITE | CSR_ACCESS_MREAD, 0 },
+            { CSR_ADDR_MIDELEG, CSR_ACCESS_MWRITE | CSR_ACCESS_MREAD, 0 },
+            { CSR_ADDR_MIE, CSR_ACCESS_MWRITE | CSR_ACCESS_MREAD, 0 },
+            { CSR_ADDR_MTVEC, CSR_ACCESS_MWRITE | CSR_ACCESS_MREAD, 0 },
+        };
+        INIT_CSR_REG_DESC(csr_regs_core0);
+        rv_core_init(&rv_soc->rv_core0, rv_soc, rv_soc_read_mem, rv_soc_write_mem, &csr_regs_core0_desc);
+    #else
+        rv_core_init(&rv_soc->rv_core0, rv_soc, rv_soc_read_mem, rv_soc_write_mem, NULL);
+    #endif
+    
 
     /* set some registers initial value to match qemu's */
-    rv_soc->rv_core.x[11] = 0x00001020;
+    rv_soc->rv_core0.x[11] = 0x00001020;
 
     result = fread(&rv_soc->ram, sizeof(char), lsize, p_fw_file);
     if(result != lsize)
