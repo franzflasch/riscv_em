@@ -9,6 +9,13 @@
 
 #include <riscv_instr.h>
 
+/* Defines */
+#define XREG_RETURN_ADDRESS 0
+#define XREG_STACK_POINTER 2
+#define XREG_THREAD_POINTER 5
+
+#define STACK_POINTER_START_VAL 0x0
+
 /* Helpers */
 static inline uint32_t extract32(uint32_t value, int start, int length)
 {
@@ -21,13 +28,6 @@ static inline uint32_t extract32(uint32_t value, int start, int length)
 #else
     #define SIGNEX(v, sb) ((v) | (((v) & (1 << (sb))) ? ~((1 << (sb))-1) : 0))
 #endif
-
-/* Defines */
-#define XREG_RETURN_ADDRESS 0
-#define XREG_STACK_POINTER 2
-#define XREG_THREAD_POINTER 5
-
-#define STACK_POINTER_START_VAL 0x0
 
 static void instr_LUI(rv_core_td *rv_core)
 {
@@ -488,204 +488,198 @@ static void J_type_preparation(rv_core_td *rv_core, int32_t *next_subcode)
 }
 
 static instruction_hook_td JALR_func3_subcode_list[] = {
-    { FUNC3_INSTR_JALR, NULL, instr_JALR, NULL}
+    [FUNC3_INSTR_JALR] = {NULL, instr_JALR, NULL},
 };
 INIT_INSTRUCTION_LIST_DESC(JALR_func3_subcode_list);
 
 static instruction_hook_td BEQ_BNE_BLT_BGE_BLTU_BGEU_func3_subcode_list[] = {
-    { FUNC3_INSTR_BEQ, NULL, instr_BEQ, NULL},
-    { FUNC3_INSTR_BNE, NULL, instr_BNE, NULL},
-    { FUNC3_INSTR_BLT, NULL, instr_BLT, NULL},
-    { FUNC3_INSTR_BGE, NULL, instr_BGE, NULL},
-    { FUNC3_INSTR_BLTU, NULL, instr_BLTU, NULL},
-    { FUNC3_INSTR_BGEU, NULL, instr_BGEU, NULL},
+    [FUNC3_INSTR_BEQ] = {NULL, instr_BEQ, NULL},
+    [FUNC3_INSTR_BNE] = {NULL, instr_BNE, NULL},
+    [FUNC3_INSTR_BLT] = {NULL, instr_BLT, NULL},
+    [FUNC3_INSTR_BGE] = {NULL, instr_BGE, NULL},
+    [FUNC3_INSTR_BLTU] = {NULL, instr_BLTU, NULL},
+    [FUNC3_INSTR_BGEU] = {NULL, instr_BGEU, NULL},
 };
 INIT_INSTRUCTION_LIST_DESC(BEQ_BNE_BLT_BGE_BLTU_BGEU_func3_subcode_list);
 
 static instruction_hook_td LB_LH_LW_LBU_LHU_LWU_LD_func3_subcode_list[] = {
-    { FUNC3_INSTR_LB, NULL, instr_LB, NULL},
-    { FUNC3_INSTR_LH, NULL, instr_LH, NULL},
-    { FUNC3_INSTR_LW, NULL, instr_LW, NULL},
-    { FUNC3_INSTR_LBU, NULL, instr_LBU, NULL},
-    { FUNC3_INSTR_LHU, NULL, instr_LHU, NULL},
+    [FUNC3_INSTR_LB] = {NULL, instr_LB, NULL},
+    [FUNC3_INSTR_LH] = {NULL, instr_LH, NULL},
+    [FUNC3_INSTR_LW] = {NULL, instr_LW, NULL},
+    [FUNC3_INSTR_LBU] = {NULL, instr_LBU, NULL},
+    [FUNC3_INSTR_LHU] = {NULL, instr_LHU, NULL},
 
     #ifdef RV64
-        { FUNC3_INSTR_LWU, NULL, instr_LWU, NULL},
-        { FUNC3_INSTR_LD, NULL, instr_LD, NULL},
+        [FUNC3_INSTR_LWU] = {NULL, instr_LWU, NULL},
+        [FUNC3_INSTR_LD] = {NULL, instr_LD, NULL},
     #endif
 };
 INIT_INSTRUCTION_LIST_DESC(LB_LH_LW_LBU_LHU_LWU_LD_func3_subcode_list);
 
 static instruction_hook_td SB_SH_SW_SD_func3_subcode_list[] = {
-    { FUNC3_INSTR_SB, NULL, instr_SB, NULL},
-    { FUNC3_INSTR_SH, NULL, instr_SH, NULL},
-    { FUNC3_INSTR_SW, NULL, instr_SW, NULL},
+    [FUNC3_INSTR_SB] = {NULL, instr_SB, NULL},
+    [FUNC3_INSTR_SH] = {NULL, instr_SH, NULL},
+    [FUNC3_INSTR_SW] = {NULL, instr_SW, NULL},
     #ifdef RV64
-        { FUNC3_INSTR_SD, NULL, instr_SD, NULL},
+        [FUNC3_INSTR_SD] = {NULL, instr_SD, NULL},
     #endif
 };
 INIT_INSTRUCTION_LIST_DESC(SB_SH_SW_SD_func3_subcode_list);
 
 static instruction_hook_td SRLI_SRAI_func7_subcode_list[] = {
-    { FUNC7_INSTR_SRLI, NULL, instr_SRLI, NULL},
-    { FUNC7_INSTR_SRAI, NULL, instr_SRAI, NULL},
+    [FUNC7_INSTR_SRLI] = {NULL, instr_SRLI, NULL},
+    [FUNC7_INSTR_SRAI] = {NULL, instr_SRAI, NULL},
 };
 INIT_INSTRUCTION_LIST_DESC(SRLI_SRAI_func7_subcode_list);
 
 static instruction_hook_td ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI_func3_subcode_list[] = {
-    { FUNC3_INSTR_ADDI, NULL, instr_ADDI, NULL},
-    { FUNC3_INSTR_SLTI, NULL, instr_SLTI, NULL},
-    { FUNC3_INSTR_SLTIU, NULL, instr_SLTIU, NULL},
-    { FUNC3_INSTR_XORI, NULL, instr_XORI, NULL},
-    { FUNC3_INSTR_ORI, NULL, instr_ORI, NULL},
-    { FUNC3_INSTR_ANDI, NULL, instr_ANDI, NULL},
-    { FUNC3_INSTR_SLLI, NULL, instr_SLLI, NULL},
-    { FUNC3_INSTR_SRLI_SRAI, preparation_func7, NULL, &SRLI_SRAI_func7_subcode_list_desc},
+    [FUNC3_INSTR_ADDI] = {NULL, instr_ADDI, NULL},
+    [FUNC3_INSTR_SLTI] = {NULL, instr_SLTI, NULL},
+    [FUNC3_INSTR_SLTIU] = {NULL, instr_SLTIU, NULL},
+    [FUNC3_INSTR_XORI] = {NULL, instr_XORI, NULL},
+    [FUNC3_INSTR_ORI] = {NULL, instr_ORI, NULL},
+    [FUNC3_INSTR_ANDI] = {NULL, instr_ANDI, NULL},
+    [FUNC3_INSTR_SLLI] = {NULL, instr_SLLI, NULL},
+    [FUNC3_INSTR_SRLI_SRAI] = {preparation_func7, NULL, &SRLI_SRAI_func7_subcode_list_desc},
 };
 INIT_INSTRUCTION_LIST_DESC(ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI_func3_subcode_list);
 
 static instruction_hook_td ADD_SUB_func7_subcode_list[] = {
-    { FUNC7_INSTR_ADD, NULL, instr_ADD, NULL},
-    { FUNC7_INSTR_SUB, NULL, instr_SUB, NULL},
+    [FUNC7_INSTR_ADD] = {NULL, instr_ADD, NULL},
+    [FUNC7_INSTR_SUB] = {NULL, instr_SUB, NULL},
 };
 INIT_INSTRUCTION_LIST_DESC(ADD_SUB_func7_subcode_list);
 
 static instruction_hook_td SLL_func7_subcode_list[] = {
-    { FUNC7_INSTR_SLL, NULL, instr_SLL, NULL},
+    [FUNC7_INSTR_SLL] = {NULL, instr_SLL, NULL},
 };
 INIT_INSTRUCTION_LIST_DESC(SLL_func7_subcode_list);
 
 static instruction_hook_td SLT_func7_subcode_list[] = {
-    { FUNC7_INSTR_SLT, NULL, instr_SLT, NULL},
+    [FUNC7_INSTR_SLT] = {NULL, instr_SLT, NULL},
 };
 INIT_INSTRUCTION_LIST_DESC(SLT_func7_subcode_list);
 
 static instruction_hook_td SLTU_func7_subcode_list[] = {
-    { FUNC7_INSTR_SLTU, NULL, instr_SLTU, NULL},
+    [FUNC7_INSTR_SLTU] = {NULL, instr_SLTU, NULL},
 };
 INIT_INSTRUCTION_LIST_DESC(SLTU_func7_subcode_list);
 
 static instruction_hook_td XOR_func7_subcode_list[] = {
-    { FUNC7_INSTR_SLTU, NULL, instr_XOR, NULL},
+    [FUNC7_INSTR_SLTU] = {NULL, instr_XOR, NULL},
 };
 INIT_INSTRUCTION_LIST_DESC(XOR_func7_subcode_list);
 
 static instruction_hook_td SRL_SRA_func7_subcode_list[] = {
-    { FUNC7_INSTR_SRL, NULL, instr_SRL, NULL},
-    { FUNC7_INSTR_SRA, NULL, instr_SRA, NULL},
+    [FUNC7_INSTR_SRL] = {NULL, instr_SRL, NULL},
+    [FUNC7_INSTR_SRA] = {NULL, instr_SRA, NULL},
 };
 INIT_INSTRUCTION_LIST_DESC(SRL_SRA_func7_subcode_list);
 
 static instruction_hook_td OR_func7_subcode_list[] = {
-    { FUNC7_INSTR_OR, NULL, instr_OR, NULL},
+    [FUNC7_INSTR_OR] = {NULL, instr_OR, NULL},
 };
 INIT_INSTRUCTION_LIST_DESC(OR_func7_subcode_list);
 
 static instruction_hook_td AND_func7_subcode_list[] = {
-    { FUNC7_INSTR_AND, NULL, instr_AND, NULL},
+    [FUNC7_INSTR_AND] = {NULL, instr_AND, NULL},
 };
 INIT_INSTRUCTION_LIST_DESC(AND_func7_subcode_list);
 
 static instruction_hook_td ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list[] = {
-    { FUNC3_INSTR_ADD_SUB, preparation_func7, NULL, &ADD_SUB_func7_subcode_list_desc},
-    { FUNC3_INSTR_SLL, preparation_func7, NULL, &SLL_func7_subcode_list_desc},
-    { FUNC3_INSTR_SLT, preparation_func7, NULL, &SLT_func7_subcode_list_desc},
-    { FUNC3_INSTR_SLTU, preparation_func7, NULL, &SLTU_func7_subcode_list_desc},
-    { FUNC3_INSTR_XOR, preparation_func7, NULL, &XOR_func7_subcode_list_desc},
-    { FUNC3_INSTR_SRL_SRA, preparation_func7, NULL, &SRL_SRA_func7_subcode_list_desc},
-    { FUNC3_INSTR_OR, preparation_func7, NULL, &OR_func7_subcode_list_desc},
-    { FUNC3_INSTR_AND, preparation_func7, NULL, &AND_func7_subcode_list_desc},
+    [FUNC3_INSTR_ADD_SUB] = {preparation_func7, NULL, &ADD_SUB_func7_subcode_list_desc},
+    [FUNC3_INSTR_SLL] = {preparation_func7, NULL, &SLL_func7_subcode_list_desc},
+    [FUNC3_INSTR_SLT] = {preparation_func7, NULL, &SLT_func7_subcode_list_desc},
+    [FUNC3_INSTR_SLTU] = {preparation_func7, NULL, &SLTU_func7_subcode_list_desc},
+    [FUNC3_INSTR_XOR] = {preparation_func7, NULL, &XOR_func7_subcode_list_desc},
+    [FUNC3_INSTR_SRL_SRA] = {preparation_func7, NULL, &SRL_SRA_func7_subcode_list_desc},
+    [FUNC3_INSTR_OR] = {preparation_func7, NULL, &OR_func7_subcode_list_desc},
+    [FUNC3_INSTR_AND] = {preparation_func7, NULL, &AND_func7_subcode_list_desc},
 };
 INIT_INSTRUCTION_LIST_DESC(ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list);
 
 #ifdef RV64
     static instruction_hook_td SLLIW_func7_subcode_list[] = {
-        { FUNC7_INSTR_SLLIW, NULL, instr_SLLIW, NULL},
+        [FUNC7_INSTR_SLLIW] = {NULL, instr_SLLIW, NULL},
     };
     INIT_INSTRUCTION_LIST_DESC(SLLIW_func7_subcode_list);
 
     static instruction_hook_td SRLIW_SRAIW_func7_subcode_list[] = {
-        { FUNC7_INSTR_SRLIW, NULL, instr_SRLIW, NULL},
-        { FUNC7_INSTR_SRAIW, NULL, instr_SRAIW, NULL},
+        [FUNC7_INSTR_SRLIW] = {NULL, instr_SRLIW, NULL},
+        [FUNC7_INSTR_SRAIW] = {NULL, instr_SRAIW, NULL},
     };
     INIT_INSTRUCTION_LIST_DESC(SRLIW_SRAIW_func7_subcode_list);
 
     static instruction_hook_td SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list[] = {
-        { FUNC3_INSTR_SLLIW, preparation_func7, NULL, &SLLIW_func7_subcode_list_desc},
-        { FUNC3_INSTR_SRLIW_SRAIW, preparation_func7, NULL, &SRLIW_SRAIW_func7_subcode_list_desc},
-        { FUNC3_INSTR_ADDIW, NULL, instr_ADDIW, NULL},
+        [FUNC3_INSTR_SLLIW] = {preparation_func7, NULL, &SLLIW_func7_subcode_list_desc},
+        [FUNC3_INSTR_SRLIW_SRAIW] = {preparation_func7, NULL, &SRLIW_SRAIW_func7_subcode_list_desc},
+        [FUNC3_INSTR_ADDIW] = {NULL, instr_ADDIW, NULL},
     };
     INIT_INSTRUCTION_LIST_DESC(SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list);
 
     static instruction_hook_td SRLW_SRAW_func7_subcode_list[] = {
-        { FUNC7_SRLW, NULL, instr_SRLW, NULL},
-        { FUNC7_SRAW, NULL, instr_SRAW, NULL},
+        [FUNC7_SRLW] = {NULL, instr_SRLW, NULL},
+        [FUNC7_SRAW] = {NULL, instr_SRAW, NULL},
     };
     INIT_INSTRUCTION_LIST_DESC(SRLW_SRAW_func7_subcode_list);
 
     static instruction_hook_td SLLW_func7_subcode_list[] = {
-        { FUNC7_SLLW, NULL, instr_SLLW, NULL},
+        [FUNC7_SLLW] = {NULL, instr_SLLW, NULL},
     };
     INIT_INSTRUCTION_LIST_DESC(SLLW_func7_subcode_list);
 
     static instruction_hook_td ADDW_SUBW_func7_subcode_list[] = {
-        { FUNC7_ADDW, NULL, instr_ADDW, NULL},
-        { FUNC7_SUBW, NULL, instr_SUBW, NULL},
+        [FUNC7_ADDW] = {NULL, instr_ADDW, NULL},
+        [FUNC7_SUBW] = {NULL, instr_SUBW, NULL},
     };
     INIT_INSTRUCTION_LIST_DESC(ADDW_SUBW_func7_subcode_list);
 
     static instruction_hook_td ADDW_SUBW_SLLW_SRLW_SRAW_func3_subcode_list[] = {
-        { FUNC3_ADDW_SUBW, preparation_func7, NULL, &ADDW_SUBW_func7_subcode_list_desc},
-        { FUNC3_SLLW, preparation_func7, NULL, &SLLW_func7_subcode_list_desc},
-        { FUNC3_SRLW_SRAW, preparation_func7, instr_ADDIW, &SRLW_SRAW_func7_subcode_list_desc},
+        [FUNC3_ADDW_SUBW] = {preparation_func7, NULL, &ADDW_SUBW_func7_subcode_list_desc},
+        [FUNC3_SLLW] = {preparation_func7, NULL, &SLLW_func7_subcode_list_desc},
+        [FUNC3_SRLW_SRAW] = {preparation_func7, instr_ADDIW, &SRLW_SRAW_func7_subcode_list_desc},
     };
     INIT_INSTRUCTION_LIST_DESC(ADDW_SUBW_SLLW_SRLW_SRAW_func3_subcode_list);
 #endif
 
 static instruction_hook_td RV_opcode_list[] = {
-    { INSTR_LUI, U_type_preparation, instr_LUI, NULL},
-    { INSTR_AUIPC, U_type_preparation, instr_AUIPC, NULL},
-    { INSTR_JAL, J_type_preparation, instr_JAL, NULL},
-    { INSTR_JALR, I_type_preparation, NULL, &JALR_func3_subcode_list_desc},
-    { INSTR_BEQ_BNE_BLT_BGE_BLTU_BGEU, B_type_preparation, NULL, &BEQ_BNE_BLT_BGE_BLTU_BGEU_func3_subcode_list_desc},
-    { INSTR_LB_LH_LW_LBU_LHU_LWU_LD, I_type_preparation, NULL, &LB_LH_LW_LBU_LHU_LWU_LD_func3_subcode_list_desc},
-    { INSTR_SB_SH_SW_SD, S_type_preparation, NULL, &SB_SH_SW_SD_func3_subcode_list_desc},
-    { INSTR_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI, I_type_preparation, NULL, &ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI_func3_subcode_list_desc},
-    { INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND, R_type_preparation, NULL, &ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list_desc},
-    { INSTR_FENCE_FENCE_I, NULL, NULL, NULL}, /* Not implemented */
-    { INSTR_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI, NULL, NULL, NULL}, /* Not implemented */
+    [INSTR_LUI] = {U_type_preparation, instr_LUI, NULL},
+    [INSTR_AUIPC] = {U_type_preparation, instr_AUIPC, NULL},
+    [INSTR_JAL] = {J_type_preparation, instr_JAL, NULL},
+    [INSTR_JALR] = {I_type_preparation, NULL, &JALR_func3_subcode_list_desc},
+    [INSTR_BEQ_BNE_BLT_BGE_BLTU_BGEU] = {B_type_preparation, NULL, &BEQ_BNE_BLT_BGE_BLTU_BGEU_func3_subcode_list_desc},
+    [INSTR_LB_LH_LW_LBU_LHU_LWU_LD] = {I_type_preparation, NULL, &LB_LH_LW_LBU_LHU_LWU_LD_func3_subcode_list_desc},
+    [INSTR_SB_SH_SW_SD] = {S_type_preparation, NULL, &SB_SH_SW_SD_func3_subcode_list_desc},
+    [INSTR_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI] = {I_type_preparation, NULL, &ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI_func3_subcode_list_desc},
+    [INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND] = {R_type_preparation, NULL, &ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list_desc},
+    [INSTR_FENCE_FENCE_I] = {NULL, NULL, NULL}, /* Not implemented */
+    [INSTR_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI] = {NULL, NULL, NULL}, /* Not implemented */
 
     #ifdef RV64
-        { INSTR_ADDIW_SLLIW_SRLIW_SRAIW, I_type_preparation, NULL, &SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list_desc},
-        { INSTR_ADDW_SUBW_SLLW_SRLW_SRAW, R_type_preparation, NULL, &ADDW_SUBW_SLLW_SRLW_SRAW_func3_subcode_list_desc},
+        [INSTR_ADDIW_SLLIW_SRLIW_SRAIW] = {I_type_preparation, NULL, &SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list_desc},
+        [INSTR_ADDW_SUBW_SLLW_SRLW_SRAW] = {R_type_preparation, NULL, &ADDW_SUBW_SLLW_SRLW_SRAW_func3_subcode_list_desc},
     #endif
 };
 INIT_INSTRUCTION_LIST_DESC(RV_opcode_list);
 
 static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *opcode_list_desc, uint32_t opcode)
 {
-    unsigned int opcode_index = 0;
     int32_t next_subcode = -1;
 
     unsigned int list_size = opcode_list_desc->instruction_hook_list_size;
     instruction_hook_td *opcode_list = opcode_list_desc->instruction_hook_list;
 
-    for(opcode_index=0;opcode_index<list_size;opcode_index++)
-    {
-        if(opcode_list[opcode_index].opcode == opcode)
-            break;
-    }
+    if(opcode >= list_size) 
+        die(rv_core);
 
-    if(opcode_index == list_size) die(rv_core);
+    if(opcode_list[opcode].preparation_cb != NULL)
+        opcode_list[opcode].preparation_cb(rv_core, &next_subcode);
 
-    if(opcode_list[opcode_index].preparation_cb != NULL)
-        opcode_list[opcode_index].preparation_cb(rv_core, &next_subcode);
+    if(opcode_list[opcode].execution_cb != NULL)
+        rv_core->execute_cb = opcode_list[opcode].execution_cb;
 
-    if(opcode_list[opcode_index].execution_cb != NULL)
-        rv_core->execute_cb = opcode_list[opcode_index].execution_cb;
-
-    if((next_subcode != -1) && (opcode_list[opcode_index].next != NULL))
-        rv_call_from_opcode_list(rv_core, opcode_list[opcode_index].next, next_subcode);
+    if((next_subcode != -1) && (opcode_list[opcode].next != NULL))
+        rv_call_from_opcode_list(rv_core, opcode_list[opcode].next, next_subcode);
 }
 
 

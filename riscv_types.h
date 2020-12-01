@@ -1,6 +1,8 @@
 #ifndef RISCV_TYPES_H
 #define RISCV_TYPES_H
 
+#include <stdint.h>
+
 #include <riscv_config.h>
 
 #ifdef RV64

@@ -47,7 +47,6 @@ void rv_core_init(rv_core_td *rv_core,
 
 typedef struct instruction_hook_struct
 {
-    uint32_t opcode;
     void (*preparation_cb)(rv_core_td *rv_core, int32_t *next_subcode);
     void (*execution_cb)(rv_core_td *rv_core_data);
     struct instruction_desc_struct *next;

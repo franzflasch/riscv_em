@@ -3,7 +3,7 @@
 
 #define DEBUG
 
-#define RV64
+// #define RV64
 
 #define RAM_BASE_ADDR 0x80000000
 
