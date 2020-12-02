@@ -7,9 +7,10 @@
 #define NR_RVI_REGS 32
 
 typedef struct rv_core_struct rv_core_td;
-
 typedef struct rv_core_struct
 {
+    privilege_level curr_priv_mode;
+
     /* Registers */
     rv_uint_xlen x[NR_RVI_REGS];
     rv_uint_xlen pc;

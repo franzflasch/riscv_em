@@ -13,5 +13,13 @@ typedef uint32_t rv_uint_xlen;
 typedef int32_t rv_int_xlen;
 #endif
 
+typedef enum  
+{
+    user_mode = 0,
+    supervisor_mode = 1,
+    reserved_mode = 2, /* Hypervisor ?? */
+    machine_mode = 3,
+
+} privilege_level;
 
 #endif /* RISCV_TYPES_H */

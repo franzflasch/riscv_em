@@ -109,17 +109,23 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name)
     #ifdef CSR_SUPPORT
         static csr_reg_td csr_regs_core0[] = {
             /* Machine Information Registers */
-            { CSR_ADDR_MVENDORID, CSR_ACCESS_MREAD, 0 },
-            { CSR_ADDR_MARCHID, CSR_ACCESS_MREAD, 0 },
-            { CSR_ADDR_MIMPID, CSR_ACCESS_MREAD, 0 },
-            { CSR_ADDR_MHARTID, CSR_ACCESS_MREAD, 0 },
+            { CSR_ADDR_MVENDORID, CSR_ACCESS_RO(machine_mode), 0 },
+            { CSR_ADDR_MARCHID, CSR_ACCESS_RO(machine_mode), 0 },
+            { CSR_ADDR_MIMPID, CSR_ACCESS_RO(machine_mode), 0 },
+            { CSR_ADDR_MHARTID, CSR_ACCESS_RO(machine_mode), 0 },
             /* Machine Trap Setup */
-            { CSR_ADDR_MSTATUS, CSR_ACCESS_MWRITE | CSR_ACCESS_MREAD, 0 },
-            { CSR_ADDR_MISA, CSR_ACCESS_MWRITE | CSR_ACCESS_MREAD, 0 },
-            { CSR_ADDR_MEDELEG, CSR_ACCESS_MWRITE | CSR_ACCESS_MREAD, 0 },
-            { CSR_ADDR_MIDELEG, CSR_ACCESS_MWRITE | CSR_ACCESS_MREAD, 0 },
-            { CSR_ADDR_MIE, CSR_ACCESS_MWRITE | CSR_ACCESS_MREAD, 0 },
-            { CSR_ADDR_MTVEC, CSR_ACCESS_MWRITE | CSR_ACCESS_MREAD, 0 },
+            { CSR_ADDR_MSTATUS, CSR_ACCESS_RW(machine_mode), 0 },
+            { CSR_ADDR_MISA, CSR_ACCESS_RW(machine_mode), 0 },
+            { CSR_ADDR_MEDELEG, CSR_ACCESS_RW(machine_mode), 0 },
+            { CSR_ADDR_MIDELEG, CSR_ACCESS_RW(machine_mode), 0 },
+            { CSR_ADDR_MIE, CSR_ACCESS_RW(machine_mode), 0 },
+            { CSR_ADDR_MTVEC, CSR_ACCESS_RW(machine_mode), 0 },
+            /* Machine Trap Handling */
+            { CSR_ADDR_MSCRATCH, CSR_ACCESS_RW(machine_mode), 0 },
+            { CSR_ADDR_MEPC, CSR_ACCESS_RW(machine_mode), 0 },
+            { CSR_ADDR_MCAUSE, CSR_ACCESS_RW(machine_mode), 0 },
+            { CSR_ADDR_MTVAL, CSR_ACCESS_RW(machine_mode), 0 },
+            { CSR_ADDR_MIP, CSR_ACCESS_RW(machine_mode), 0 },
         };
         INIT_CSR_REG_DESC(csr_regs_core0);
         rv_core_init(&rv_soc->rv_core0, rv_soc, rv_soc_read_mem, rv_soc_write_mem, &csr_regs_core0_desc);

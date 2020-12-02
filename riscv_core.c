@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include <riscv_config.h>
 #include <riscv_helper.h>
@@ -20,6 +21,13 @@
 static inline uint32_t extract32(uint32_t value, int start, int length)
 {
     return (value >> start) & (~0U >> (32 - length));
+}
+
+void die_msg(const char* format, ...) { 
+  va_list args;
+  va_start (args, format);
+  printf(format, args);
+  va_end (args);
 }
 
 /* portable signextension from: https://stackoverflow.com/a/31655073 */
@@ -418,16 +426,76 @@ static void instr_SW(rv_core_td *rv_core)
 #ifdef CSR_SUPPORT
     static void instr_CSRRW(rv_core_td *rv_core)
     {
-        rv_uint_xlen test = 0;
-        read_csr_reg(rv_core->csr_table, 0x301, &test);
+        rv_uint_xlen csr_val = 0;
+        if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
+            die_msg("Error reading CSR\n");
+
+        rv_core->x[rv_core->rd] = csr_val;
+
+        if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, rv_core->x[rv_core->rs1]))
+            die_msg("Error writing CSR\n");
+    }
+
+    static void instr_CSRRS(rv_core_td *rv_core)
+    {
+        rv_uint_xlen csr_val = 0;
+        if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
+            die_msg("Error reading CSR\n");
+
+        rv_core->x[rv_core->rd] = csr_val;
+
+        if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val | rv_core->x[rv_core->rs1]))
+            die_msg("Error writing CSR\n");
+    }
+
+    static void instr_CSRRC(rv_core_td *rv_core)
+    {
+        rv_uint_xlen csr_val = 0;
+        if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
+            die_msg("Error reading CSR\n");
+
+        rv_core->x[rv_core->rd] = csr_val;
+
+        if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val & ~rv_core->x[rv_core->rs1]))
+            die_msg("Error writing CSR\n");
+    }
+
+    static void instr_CSRRWI(rv_core_td *rv_core)
+    {
+        rv_uint_xlen csr_val = 0;
+        if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
+            die_msg("Error reading CSR\n");
+
+        rv_core->x[rv_core->rd] = csr_val;
+
+        if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, rv_core->rs1))
+            die_msg("Error writing CSR\n");
+    }
+
+    static void instr_CSRRSI(rv_core_td *rv_core)
+    {
+        rv_uint_xlen csr_val = 0;
+        if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
+            die_msg("Error reading CSR\n");
+
+        rv_core->x[rv_core->rd] = csr_val;
+
+        if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val | rv_core->rs1))
+            die_msg("Error writing CSR\n");
+    }
+
+    static void instr_CSRRCI(rv_core_td *rv_core)
+    {
+        rv_uint_xlen csr_val = 0;
+        if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
+            die_msg("Error reading CSR\n");
+
+        rv_core->x[rv_core->rd] = csr_val;
+
+        if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val & ~rv_core->rs1))
+            die_msg("Error writing CSR\n");
     }
 #endif
-
-static void die(rv_core_td *rv_core)
-{
-    printf("Unknown instruction %08x "PRINTF_FMT"\n", rv_core->instruction, rv_core->pc);
-    exit(-1);
-}
 
 static void preparation_func7(rv_core_td *rv_core, int32_t *next_subcode)
 {
@@ -652,6 +720,11 @@ INIT_INSTRUCTION_LIST_DESC(ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode
 #ifdef CSR_SUPPORT
     static instruction_hook_td ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI_func3_subcode_list[] = {
         [FUNC3_INSTR_CSRRW] = {NULL, instr_CSRRW, NULL},
+        [FUNC3_INSTR_CSRRS] = {NULL, instr_CSRRS, NULL},
+        [FUNC3_INSTR_CSRRC] = {NULL, instr_CSRRC, NULL},
+        [FUNC3_INSTR_CSRRWI] = {NULL, instr_CSRRWI, NULL},
+        [FUNC3_INSTR_CSRRSI] = {NULL, instr_CSRRSI, NULL},
+        [FUNC3_INSTR_CSRRCI] = {NULL, instr_CSRRCI, NULL},
     };
     INIT_INSTRUCTION_LIST_DESC(ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI_func3_subcode_list);
 #endif
@@ -687,7 +760,7 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
     instruction_hook_td *opcode_list = opcode_list_desc->instruction_hook_list;
 
     if(opcode >= list_size) 
-        die(rv_core);
+        die_msg("Unknown instruction %08x "PRINTF_FMT"\n", rv_core->instruction, rv_core->pc);
 
     if(opcode_list[opcode].preparation_cb != NULL)
         opcode_list[opcode].preparation_cb(rv_core, &next_subcode);
@@ -780,6 +853,8 @@ void rv_core_init(rv_core_td *rv_core,
                   )
 {
     memset(rv_core, 0, sizeof(rv_core_td));
+
+    rv_core->curr_priv_mode = machine_mode;
     rv_core->pc = RAM_BASE_ADDR;
     rv_core->x[XREG_THREAD_POINTER] = RAM_BASE_ADDR;
     rv_core->x[XREG_STACK_POINTER] = STACK_POINTER_START_VAL;
