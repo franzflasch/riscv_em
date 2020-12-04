@@ -31,7 +31,7 @@ rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address)
     }
     else
     {
-        printf("Invalid Adress, read not executed!: "PRINTF_FMT"\n", address);
+        DEBUG_PRINT("Invalid Adress, read not executed!: "PRINTF_FMT"\n", address);
         return 0;
     }
 
@@ -71,7 +71,7 @@ void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint
     }
     else if(address == UART_TX_REG_ADDR)
     {
-        printf("%c", (char) value);
+        DEBUG_PRINT("%c", (char) value);
         return;
     }
     else if((address >= CLINT_BASE_ADDR) && (address <= CLINT_BASE_ADDR_END))
@@ -83,7 +83,7 @@ void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint
     }
     else
     {
-        printf("Invalid address! "PRINTF_FMT"\n", address);
+        DEBUG_PRINT("Invalid address! "PRINTF_FMT"\n", address);
         return;
     }
 
@@ -149,5 +149,5 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name)
     // rv_soc_dump_mem(rv_soc);
     // while(1);
 
-    printf("rv SOC initialized!\n");
+    DEBUG_PRINT("rv SOC initialized!\n");
 }
