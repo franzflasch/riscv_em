@@ -14,6 +14,7 @@ typedef struct rv_core_struct
     /* Registers */
     rv_uint_xlen x[NR_RVI_REGS];
     rv_uint_xlen pc;
+    rv_uint_xlen next_pc;
 
     uint32_t instruction;
     uint8_t opcode;
@@ -22,6 +23,7 @@ typedef struct rv_core_struct
     uint8_t rs2;
     uint8_t func3;
     uint8_t func7;
+    uint16_t func12;
     rv_uint_xlen immediate;
     rv_uint_xlen jump_offset;
 
@@ -41,7 +43,7 @@ rv_uint_xlen rv_core_fetch(rv_core_td *rv_core);
 rv_uint_xlen rv_core_decode(rv_core_td *rv_core);
 rv_uint_xlen rv_core_execute(rv_core_td *rv_core);
 void rv_core_run(rv_core_td *rv_core);
-void rv_core_reg_dump_before_exec(rv_core_td *rv_core);
+void rv_core_reg_dump(rv_core_td *rv_core);
 void rv_core_reg_internal_after_exec(rv_core_td *rv_core);
 void rv_core_init(rv_core_td *rv_core,
                   void *priv,

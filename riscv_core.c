@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 
 #include <riscv_config.h>
 #include <riscv_helper.h>
@@ -23,13 +22,6 @@ static inline uint32_t extract32(uint32_t value, int start, int length)
     return (value >> start) & (~0U >> (32 - length));
 }
 
-void die_msg(const char* format, ...) { 
-  va_list args;
-  va_start (args, format);
-  printf(format, args);
-  va_end (args);
-}
-
 /* portable signextension from: https://stackoverflow.com/a/31655073 */
 #ifdef RV64
     #define SIGNEX(v, sb) ((v) | (((v) & (1LL << (sb))) ? ~((1LL << (sb))-1LL) : 0))
@@ -44,34 +36,34 @@ static void instr_LUI(rv_core_td *rv_core)
 
 static void instr_AUIPC(rv_core_td *rv_core)
 {
-    rv_core->x[rv_core->rd] = (rv_core->pc-4) + (rv_core->immediate << 12);
+    rv_core->x[rv_core->rd] = (rv_core->pc) + (rv_core->immediate << 12);
 }
 
 static void instr_JAL(rv_core_td *rv_core)
 {
-    rv_core->x[rv_core->rd] = rv_core->pc;
-    rv_core->pc = (rv_core->pc-4) + rv_core->jump_offset;
+    rv_core->x[rv_core->rd] = rv_core->pc + 4;
+    rv_core->next_pc = rv_core->pc + rv_core->jump_offset;
 }
 
 static void instr_JALR(rv_core_td *rv_core)
 {
-    rv_uint_xlen curr_pc = rv_core->pc;
+    rv_uint_xlen curr_pc = rv_core->pc + 4;
     rv_core->jump_offset = SIGNEX(rv_core->immediate, 11);
-    rv_core->pc = (rv_core->x[rv_core->rs1] + rv_core->jump_offset);
-    rv_core->pc &= ~(1<<0);
+    rv_core->next_pc = (rv_core->x[rv_core->rs1] + rv_core->jump_offset);
+    rv_core->next_pc &= ~(1<<0);
     rv_core->x[rv_core->rd] = curr_pc;
 }
 
 static void instr_BEQ(rv_core_td *rv_core)
 {
     if(rv_core->x[rv_core->rs1] == rv_core->x[rv_core->rs2])
-        rv_core->pc = (rv_core->pc-4) + rv_core->jump_offset;
+        rv_core->next_pc = rv_core->pc + rv_core->jump_offset;
 }
 
 static void instr_BNE(rv_core_td *rv_core)
 {
     if(rv_core->x[rv_core->rs1] != rv_core->x[rv_core->rs2])
-        rv_core->pc = (rv_core->pc-4) + rv_core->jump_offset;
+        rv_core->next_pc = rv_core->pc + rv_core->jump_offset;
 }
 
 static void instr_BLT(rv_core_td *rv_core)
@@ -80,7 +72,7 @@ static void instr_BLT(rv_core_td *rv_core)
     rv_int_xlen signed_rs2 = rv_core->x[rv_core->rs2];
 
     if(signed_rs < signed_rs2)
-        rv_core->pc = (rv_core->pc-4) + rv_core->jump_offset;
+        rv_core->next_pc = rv_core->pc + rv_core->jump_offset;
 }
 
 static void instr_BGE(rv_core_td *rv_core)
@@ -89,19 +81,19 @@ static void instr_BGE(rv_core_td *rv_core)
     rv_int_xlen signed_rs2 = rv_core->x[rv_core->rs2];
 
     if(signed_rs >= signed_rs2)
-        rv_core->pc = (rv_core->pc-4) + rv_core->jump_offset;
+        rv_core->next_pc = rv_core->pc + rv_core->jump_offset;
 }
 
 static void instr_BLTU(rv_core_td *rv_core)
 {
     if(rv_core->x[rv_core->rs1] < rv_core->x[rv_core->rs2])
-        rv_core->pc = (rv_core->pc-4) + rv_core->jump_offset;
+        rv_core->next_pc = rv_core->pc + rv_core->jump_offset;
 }
 
 static void instr_BGEU(rv_core_td *rv_core)
 {
     if(rv_core->x[rv_core->rs1] >= rv_core->x[rv_core->rs2])
-        rv_core->pc = (rv_core->pc-4) + rv_core->jump_offset;
+        rv_core->next_pc = rv_core->pc + rv_core->jump_offset;
 }
 
 static void instr_ADDI(rv_core_td *rv_core)
@@ -495,7 +487,56 @@ static void instr_SW(rv_core_td *rv_core)
         if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val & ~rv_core->rs1))
             die_msg("Error writing CSR\n");
     }
+
+    static void instr_ECALL(rv_core_td *rv_core)
+    {
+        rv_uint_xlen mtvec_val = 0;
+        if(write_csr_reg_internal(rv_core->csr_table, CSR_ADDR_MCAUSE, CSR_MCAUSE_ECALL_M))
+            die_msg("Error writing CSR\n");
+
+        if(write_csr_reg_internal(rv_core->csr_table, CSR_ADDR_MEPC, rv_core->pc))
+            die_msg("Error writing CSR\n");
+
+        if(read_csr_reg_internal(rv_core->csr_table, CSR_ADDR_MTVEC, &mtvec_val))
+            die_msg("Error reading CSR\n");
+
+        rv_core->next_pc = mtvec_val;
+    }
+
+    static void instr_EBREAK(rv_core_td *rv_core)
+    {
+        /* not implemented */
+        (void)rv_core;
+    }
+
+    static void instr_MRET(rv_core_td *rv_core)
+    {
+        rv_uint_xlen mepc_val;
+
+        if(read_csr_reg_internal(rv_core->csr_table, CSR_ADDR_MEPC, &mepc_val))
+            die_msg("Error reading CSR\n");
+        
+        rv_core->next_pc = mepc_val;
+    }
+
+    static void instr_SRET(rv_core_td *rv_core)
+    {
+        /* not implemented */
+        (void)rv_core;
+    }
+
+    static void instr_URET(rv_core_td *rv_core)
+    {
+        /* not implemented */
+        (void)rv_core;
+    }
 #endif
+
+static void preparation_func12(rv_core_td *rv_core, int32_t *next_subcode)
+{
+    rv_core->func12 = ((rv_core->instruction >> 20) & 0x0FFF);
+    *next_subcode = rv_core->func12;
+}
 
 static void preparation_func7(rv_core_td *rv_core, int32_t *next_subcode)
 {
@@ -718,6 +759,15 @@ INIT_INSTRUCTION_LIST_DESC(ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode
 #endif
 
 #ifdef CSR_SUPPORT
+    static instruction_hook_td ECALL_EBREAK_MRET_SRET_URET_func12_subcode_list[] = {
+        [FUNC12_ECALL] = {NULL, instr_ECALL, NULL},
+        [FUNC12_EBREAK] = {NULL, instr_EBREAK, NULL},
+        [FUNC12_INSTR_MRET] = {NULL, instr_MRET, NULL},
+        [FUNC12_INSTR_SRET] = {NULL, instr_SRET, NULL},
+        [FUNC12_INSTR_URET] = {NULL, instr_URET, NULL},
+    };
+    INIT_INSTRUCTION_LIST_DESC(ECALL_EBREAK_MRET_SRET_URET_func12_subcode_list);
+
     static instruction_hook_td ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI_func3_subcode_list[] = {
         [FUNC3_INSTR_CSRRW] = {NULL, instr_CSRRW, NULL},
         [FUNC3_INSTR_CSRRS] = {NULL, instr_CSRRS, NULL},
@@ -725,6 +775,7 @@ INIT_INSTRUCTION_LIST_DESC(ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode
         [FUNC3_INSTR_CSRRWI] = {NULL, instr_CSRRWI, NULL},
         [FUNC3_INSTR_CSRRSI] = {NULL, instr_CSRRSI, NULL},
         [FUNC3_INSTR_CSRRCI] = {NULL, instr_CSRRCI, NULL},
+        [FUNC3_INSTR_ECALL_EBREAK_MRET_SRET_URET] = {preparation_func12, NULL, &ECALL_EBREAK_MRET_SRET_URET_func12_subcode_list_desc}
     };
     INIT_INSTRUCTION_LIST_DESC(ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI_func3_subcode_list);
 #endif
@@ -742,7 +793,7 @@ static instruction_hook_td RV_opcode_list[] = {
     [INSTR_FENCE_FENCE_I] = {NULL, NULL, NULL}, /* Not implemented */
 
     #ifdef CSR_SUPPORT
-        [INSTR_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI] = {I_type_preparation, NULL, &ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI_func3_subcode_list_desc},
+        [INSTR_ECALL_EBREAK_MRET_SRET_URET_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI] = {I_type_preparation, NULL, &ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI_func3_subcode_list_desc},
     #endif
 
     #ifdef RV64
@@ -780,9 +831,6 @@ rv_uint_xlen rv_core_fetch(rv_core_td *rv_core)
 
     rv_core->instruction = rv_core->read_mem(rv_core->priv, addr);
 
-    /* increase program counter here */
-    rv_core->pc += 4;
-
     return 0;
 }
 
@@ -814,12 +862,20 @@ rv_uint_xlen rv_core_execute(rv_core_td *rv_core)
 
 void rv_core_run(rv_core_td *rv_core)
 {
+    rv_core->next_pc = 0;
+
     rv_core_fetch(rv_core);
     rv_core_decode(rv_core);
     rv_core_execute(rv_core);
+
+    /* increase program counter here */
+    if(rv_core->next_pc)
+        rv_core->pc = rv_core->next_pc;
+    else
+        rv_core->pc += 4;
 }
 
-void rv_core_reg_dump_before_exec(rv_core_td *rv_core)
+void rv_core_reg_dump(rv_core_td *rv_core)
 {
     (void) rv_core;
 

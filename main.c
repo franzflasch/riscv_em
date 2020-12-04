@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 
     while(1)
     {
-        rv_core_reg_dump_before_exec(&rv_soc.rv_core0);
+        rv_core_reg_dump(&rv_soc.rv_core0);
         rv_core_run(&rv_soc.rv_core0);
         // rv_core_reg_internal_after_exec(&rv_soc.rv_core);
 

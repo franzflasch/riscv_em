@@ -3,6 +3,19 @@
 
 #include <riscv_types.h>
 
+#define CSR_MASK_ZERO 0
+#ifdef RV64
+    #define CSR_MASK_WR_ALL 0xFFFFFFFFFFFFFFFF
+    #define CSR_MSTATUS_WR_MASK 0x8000000F007FF9BB
+    #define CSR_MTVEC_WR_MASK 0xFFFFFFFFFFFFFFFC
+    #define CSR_MIP_MIE_WR_MASK 0x0000000000000BBB
+#else
+    #define CSR_MASK_WR_ALL 0xFFFFFFFF
+    #define CSR_MSTATUS_WR_MASK 0x807FF9BB
+    #define CSR_MTVEC_WR_MASK 0xFFFFFFFC
+    #define CSR_MIP_MIE_WR_MASK 0x00000BBB
+#endif
+
 #define CSR_ACCESS_OK 0
 #define CSR_ACCESS_ERR 1
 
@@ -33,10 +46,14 @@
 #define CSR_ADDR_MTVAL        0x343
 #define CSR_ADDR_MIP          0x344
 
+
+#define CSR_MCAUSE_ECALL_M 0xb
+
 typedef struct csr_reg_struct {
     uint16_t address;
     uint16_t access_flags;
     rv_uint_xlen value;
+    rv_uint_xlen write_mask;
 
 } csr_reg_td;
 
@@ -48,6 +65,9 @@ typedef struct csr_reg_desc_struct {
 #define INIT_CSR_REG_DESC(csr_reg_table) \
     static csr_reg_desc_td  csr_reg_table##_desc = \
     { sizeof(csr_reg_table)/sizeof(csr_reg_table[0]), csr_reg_table }
+
+int read_csr_reg_internal(csr_reg_desc_td *reg_table, uint16_t address, rv_uint_xlen *out_val);
+int write_csr_reg_internal(csr_reg_desc_td *reg_table, uint16_t address, rv_uint_xlen val);
 
 int read_csr_reg(csr_reg_desc_td *reg_table, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val);
 int write_csr_reg(csr_reg_desc_td *reg_table, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val);

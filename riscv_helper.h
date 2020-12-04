@@ -2,6 +2,7 @@
 #define RISCV_HELPER_H
 
 #include <riscv_config.h>
+#include <stdarg.h>
 
 #ifdef DEBUG
 #define DEBUG_PRINT(...) do{ printf( __VA_ARGS__ ); } while( 0 )
@@ -17,5 +18,6 @@
 #define PRINTF_FMT "%08x"
 #endif
 
+#define die_msg(...) { printf(__VA_ARGS__); exit(-1); }
 
 #endif /* RISCV_HELPER_H */
