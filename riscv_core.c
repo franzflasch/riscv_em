@@ -17,11 +17,6 @@
 #define STACK_POINTER_START_VAL 0x0
 
 /* Helpers */
-static inline uint32_t extract32(uint32_t value, int start, int length)
-{
-    return (value >> start) & (~0U >> (32 - length));
-}
-
 /* portable signextension from: https://stackoverflow.com/a/31655073 */
 #ifdef RV64
     #define SIGNEX(v, sb) ((v) | (((v) & (1LL << (sb))) ? ~((1LL << (sb))-1LL) : 0))
@@ -29,6 +24,29 @@ static inline uint32_t extract32(uint32_t value, int start, int length)
     #define SIGNEX(v, sb) ((v) | (((v) & (1 << (sb))) ? ~((1 << (sb))-1) : 0))
 #endif
 
+#define ADDR_MISALIGNED(addr) (addr & 0x3)
+
+static inline uint32_t extract32(uint32_t value, int start, int length)
+{
+    return (value >> start) & (~0U >> (32 - length));
+}
+
+static inline void prepare_mcause_exception(rv_core_td *rv_core, rv_uint_xlen mcause)
+{
+        rv_uint_xlen mtvec_val = 0;
+        if(write_csr_reg_internal(rv_core->csr_table, CSR_ADDR_MCAUSE, mcause))
+            die_msg("Error writing CSR %x\n", CSR_ADDR_MCAUSE);
+
+        if(write_csr_reg_internal(rv_core->csr_table, CSR_ADDR_MEPC, rv_core->pc))
+            die_msg("Error writing CSR %x\n", CSR_ADDR_MEPC);
+
+        if(read_csr_reg_internal(rv_core->csr_table, CSR_ADDR_MTVEC, &mtvec_val))
+            die_msg("Error reading CSR %x\n", CSR_ADDR_MTVEC);
+
+        rv_core->next_pc = mtvec_val;
+}
+
+/* RISCV Instructions */
 static void instr_LUI(rv_core_td *rv_core)
 {
     rv_core->x[rv_core->rd] = (rv_core->immediate << 12);
@@ -42,6 +60,13 @@ static void instr_AUIPC(rv_core_td *rv_core)
 static void instr_JAL(rv_core_td *rv_core)
 {
     rv_core->x[rv_core->rd] = rv_core->pc + 4;
+
+    if(ADDR_MISALIGNED(rv_core->jump_offset))
+    {
+        prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+        return;
+    }
+
     rv_core->next_pc = rv_core->pc + rv_core->jump_offset;
 }
 
@@ -49,6 +74,13 @@ static void instr_JALR(rv_core_td *rv_core)
 {
     rv_uint_xlen curr_pc = rv_core->pc + 4;
     rv_core->jump_offset = SIGNEX(rv_core->immediate, 11);
+
+    if(ADDR_MISALIGNED(rv_core->jump_offset))
+    {
+        prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+        return;
+    }
+
     rv_core->next_pc = (rv_core->x[rv_core->rs1] + rv_core->jump_offset);
     rv_core->next_pc &= ~(1<<0);
     rv_core->x[rv_core->rd] = curr_pc;
@@ -57,13 +89,29 @@ static void instr_JALR(rv_core_td *rv_core)
 static void instr_BEQ(rv_core_td *rv_core)
 {
     if(rv_core->x[rv_core->rs1] == rv_core->x[rv_core->rs2])
+    {
+        if(ADDR_MISALIGNED(rv_core->jump_offset))
+        {
+            prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            return;
+        }
+
         rv_core->next_pc = rv_core->pc + rv_core->jump_offset;
+    }
 }
 
 static void instr_BNE(rv_core_td *rv_core)
 {
     if(rv_core->x[rv_core->rs1] != rv_core->x[rv_core->rs2])
+    {
+        if(ADDR_MISALIGNED(rv_core->jump_offset))
+        {
+            prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            return;
+        }
+
         rv_core->next_pc = rv_core->pc + rv_core->jump_offset;
+    }
 }
 
 static void instr_BLT(rv_core_td *rv_core)
@@ -72,7 +120,15 @@ static void instr_BLT(rv_core_td *rv_core)
     rv_int_xlen signed_rs2 = rv_core->x[rv_core->rs2];
 
     if(signed_rs < signed_rs2)
+    {
+        if(ADDR_MISALIGNED(rv_core->jump_offset))
+        {
+            prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            return;
+        }
+
         rv_core->next_pc = rv_core->pc + rv_core->jump_offset;
+    }
 }
 
 static void instr_BGE(rv_core_td *rv_core)
@@ -81,19 +137,43 @@ static void instr_BGE(rv_core_td *rv_core)
     rv_int_xlen signed_rs2 = rv_core->x[rv_core->rs2];
 
     if(signed_rs >= signed_rs2)
+    {
+        if(ADDR_MISALIGNED(rv_core->jump_offset))
+        {
+            prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            return;
+        }
+
         rv_core->next_pc = rv_core->pc + rv_core->jump_offset;
+    }
 }
 
 static void instr_BLTU(rv_core_td *rv_core)
 {
     if(rv_core->x[rv_core->rs1] < rv_core->x[rv_core->rs2])
+    {
+        if(ADDR_MISALIGNED(rv_core->jump_offset))
+        {
+            prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            return;
+        }
+
         rv_core->next_pc = rv_core->pc + rv_core->jump_offset;
+    }
 }
 
 static void instr_BGEU(rv_core_td *rv_core)
 {
     if(rv_core->x[rv_core->rs1] >= rv_core->x[rv_core->rs2])
+    {
+        if(ADDR_MISALIGNED(rv_core->jump_offset))
+        {
+            prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            return;
+        }
+
         rv_core->next_pc = rv_core->pc + rv_core->jump_offset;
+    }
 }
 
 static void instr_ADDI(rv_core_td *rv_core)
@@ -490,17 +570,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_ECALL(rv_core_td *rv_core)
     {
-        rv_uint_xlen mtvec_val = 0;
-        if(write_csr_reg_internal(rv_core->csr_table, CSR_ADDR_MCAUSE, CSR_MCAUSE_ECALL_M))
-            die_msg("Error writing CSR\n");
-
-        if(write_csr_reg_internal(rv_core->csr_table, CSR_ADDR_MEPC, rv_core->pc))
-            die_msg("Error writing CSR\n");
-
-        if(read_csr_reg_internal(rv_core->csr_table, CSR_ADDR_MTVEC, &mtvec_val))
-            die_msg("Error reading CSR\n");
-
-        rv_core->next_pc = mtvec_val;
+        prepare_mcause_exception(rv_core, CSR_MCAUSE_ECALL_M);
     }
 
     static void instr_EBREAK(rv_core_td *rv_core)
@@ -596,8 +666,8 @@ static void J_type_preparation(rv_core_td *rv_core, int32_t *next_subcode)
 {
     rv_core->rd = ((rv_core->instruction >> 7) & 0x1F);
     rv_core->jump_offset=((extract32(rv_core->instruction, 21, 10) << 1) |
-                            (extract32(rv_core->instruction, 20, 1) << 11) |
-                            (extract32(rv_core->instruction, 12, 8) << 12) );
+                          (extract32(rv_core->instruction, 20, 1) << 11) |
+                          (extract32(rv_core->instruction, 12, 8) << 12) );
     /* sign extend the 20 bit number */
     rv_core->jump_offset = SIGNEX(rv_core->jump_offset, 19);
     *next_subcode = -1;
@@ -734,26 +804,26 @@ INIT_INSTRUCTION_LIST_DESC(ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode
     INIT_INSTRUCTION_LIST_DESC(SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list);
 
     static instruction_hook_td SRLW_SRAW_func7_subcode_list[] = {
-        [FUNC7_SRLW] = {NULL, instr_SRLW, NULL},
-        [FUNC7_SRAW] = {NULL, instr_SRAW, NULL},
+        [FUNC7_INSTR_SRLW] = {NULL, instr_SRLW, NULL},
+        [FUNC7_INSTR_SRAW] = {NULL, instr_SRAW, NULL},
     };
     INIT_INSTRUCTION_LIST_DESC(SRLW_SRAW_func7_subcode_list);
 
     static instruction_hook_td SLLW_func7_subcode_list[] = {
-        [FUNC7_SLLW] = {NULL, instr_SLLW, NULL},
+        [FUNC7_INSTR_SLLW] = {NULL, instr_SLLW, NULL},
     };
     INIT_INSTRUCTION_LIST_DESC(SLLW_func7_subcode_list);
 
     static instruction_hook_td ADDW_SUBW_func7_subcode_list[] = {
-        [FUNC7_ADDW] = {NULL, instr_ADDW, NULL},
-        [FUNC7_SUBW] = {NULL, instr_SUBW, NULL},
+        [FUNC7_INSTR_ADDW] = {NULL, instr_ADDW, NULL},
+        [FUNC7_INSTR_SUBW] = {NULL, instr_SUBW, NULL},
     };
     INIT_INSTRUCTION_LIST_DESC(ADDW_SUBW_func7_subcode_list);
 
     static instruction_hook_td ADDW_SUBW_SLLW_SRLW_SRAW_func3_subcode_list[] = {
-        [FUNC3_ADDW_SUBW] = {preparation_func7, NULL, &ADDW_SUBW_func7_subcode_list_desc},
-        [FUNC3_SLLW] = {preparation_func7, NULL, &SLLW_func7_subcode_list_desc},
-        [FUNC3_SRLW_SRAW] = {preparation_func7, instr_ADDIW, &SRLW_SRAW_func7_subcode_list_desc},
+        [FUNC3_INSTR_ADDW_SUBW] = {preparation_func7, NULL, &ADDW_SUBW_func7_subcode_list_desc},
+        [FUNC3_INSTR_SLLW] = {preparation_func7, NULL, &SLLW_func7_subcode_list_desc},
+        [FUNC3_INSTR_SRLW_SRAW] = {preparation_func7, instr_ADDIW, &SRLW_SRAW_func7_subcode_list_desc},
     };
     INIT_INSTRUCTION_LIST_DESC(ADDW_SUBW_SLLW_SRLW_SRAW_func3_subcode_list);
 #endif
@@ -830,6 +900,9 @@ rv_uint_xlen rv_core_fetch(rv_core_td *rv_core)
     rv_uint_xlen addr = rv_core->pc;
 
     rv_core->instruction = rv_core->read_mem(rv_core->priv, addr);
+
+    // printf("INSTR: %x\n", rv_core->instruction);
+    // getchar();
 
     return 0;
 }

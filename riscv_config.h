@@ -3,12 +3,15 @@
 
 #define DEBUG
 
-// #define RV64
+#define RV64
 #define CSR_SUPPORT
 
 #define RAM_BASE_ADDR 0x80000000
-
 #define RAM_SIZE_BYTES 0x10000
-#define NR_RAM_WORDS (0x10000/sizeof(uint32_t))
+
+#define CLINT_BASE_ADDR 0x2000000
+#define CLINT_BASE_ADDR_END 0x0200FFFF
+
+#define UART_TX_REG_ADDR 0x300000
 
 #endif /* RISCV_CONFIG_H */

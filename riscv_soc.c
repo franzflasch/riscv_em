@@ -7,25 +7,27 @@
 #include <riscv_helper.h>
 #include <riscv_soc.h>
 
-#define UART_TX_REG_ADDR 0x300000
-
 rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address)
 {
     uint8_t align_offset = address & 0x3;
-    uint32_t read_val = 0;
-#ifdef RV64
-    uint32_t read_val2 = 0;
-#endif
     rv_uint_xlen return_val = 0;
-
     rv_soc_td *rv_soc = priv;
+
+    rv_uint_xlen read_val = 0;
 
     if((address >= RAM_BASE_ADDR) && (address < (RAM_BASE_ADDR+RAM_SIZE_BYTES)))
     {
         read_val = rv_soc->ram[(address-RAM_BASE_ADDR) >> 2];
-#ifdef RV64
-        read_val2 = rv_soc->ram[((address-RAM_BASE_ADDR) >> 2) + 1];
-#endif
+        #ifdef RV64
+            read_val |= ((uint64_t)rv_soc->ram[((address-RAM_BASE_ADDR) >> 2) + 1] << 32);
+        #endif
+    }
+    else if((address >= CLINT_BASE_ADDR) && (address <= CLINT_BASE_ADDR_END))
+    {
+        if(read_clint_reg(&rv_soc->rv_core0.clint, address, &read_val))
+        {
+            die_msg("Error reading clint reg "PRINTF_FMT"\n", address);
+        }
     }
     else
     {
@@ -49,12 +51,7 @@ rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address)
             break;
     }
 
-#ifdef RV64
-    return_val |= ((uint64_t)read_val2 << 32);
     return return_val;
-#else
-    return return_val;
-#endif
 }
 
 void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes)
@@ -70,19 +67,25 @@ void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint
     {
         address_for_write = (address-RAM_BASE_ADDR) >> 2;
         ptr_address = (uint8_t *)&rv_soc->ram[address_for_write];
+        memcpy(ptr_address+align_offset, &value, nr_bytes);
     }
     else if(address == UART_TX_REG_ADDR)
     {
         printf("%c", (char) value);
         return;
     }
+    else if((address >= CLINT_BASE_ADDR) && (address <= CLINT_BASE_ADDR_END))
+    {
+        if(write_clint_reg(&rv_soc->rv_core0.clint, address, value))
+        {
+            die_msg("Error writing clint reg "PRINTF_FMT"\n", address);
+        }
+    }
     else
     {
-        printf("Invalid Adress, write not executed!: "PRINTF_FMT"\n", address);
+        printf("Invalid address! "PRINTF_FMT"\n", address);
         return;
     }
-
-    memcpy(ptr_address+align_offset, &value, nr_bytes);
 
     return;
 }
@@ -124,27 +127,7 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name)
 
     /* initialize one core with a csr table */
     #ifdef CSR_SUPPORT
-        static csr_reg_td csr_regs_core0[] = {
-            /* Machine Information Registers */
-            { CSR_ADDR_MVENDORID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO },
-            { CSR_ADDR_MARCHID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO },
-            { CSR_ADDR_MIMPID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO },
-            { CSR_ADDR_MHARTID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO },
-            /* Machine Trap Setup */
-            { CSR_ADDR_MSTATUS, CSR_ACCESS_RW(machine_mode), 0, CSR_MSTATUS_WR_MASK },
-            { CSR_ADDR_MISA, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO },
-            { CSR_ADDR_MEDELEG, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO },
-            { CSR_ADDR_MIDELEG, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO },
-            { CSR_ADDR_MIE, CSR_ACCESS_RW(machine_mode), 0, CSR_MIP_MIE_WR_MASK },
-            { CSR_ADDR_MTVEC, CSR_ACCESS_RW(machine_mode), 0, CSR_MTVEC_WR_MASK },
-            /* Machine Trap Handling */
-            { CSR_ADDR_MSCRATCH, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL },
-            { CSR_ADDR_MEPC, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL },
-            { CSR_ADDR_MCAUSE, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL },
-            { CSR_ADDR_MTVAL, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL },
-            { CSR_ADDR_MIP, CSR_ACCESS_RW(machine_mode), 0, CSR_MIP_MIE_WR_MASK },
-        };
-        INIT_CSR_REG_DESC(csr_regs_core0);
+        RV_CORE_INSTANTIATE_CSR_REGS_FOR_CORE(csr_regs_core0);
         rv_core_init(&rv_soc->rv_core0, rv_soc, rv_soc_read_mem, rv_soc_write_mem, &csr_regs_core0_desc);
     #else
         rv_core_init(&rv_soc->rv_core0, rv_soc, rv_soc_read_mem, rv_soc_write_mem, NULL);
@@ -162,6 +145,9 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name)
     }
 
     fclose(p_fw_file);
+
+    // rv_soc_dump_mem(rv_soc);
+    // while(1);
 
     printf("rv SOC initialized!\n");
 }

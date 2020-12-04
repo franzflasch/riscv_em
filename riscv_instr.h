@@ -98,13 +98,13 @@
     #define FUNC3_INSTR_ADDIW 0x0
 
 #define INSTR_ADDW_SUBW_SLLW_SRLW_SRAW 0x3B
-    #define FUNC3_ADDW_SUBW 0x0
-        #define FUNC7_ADDW 0x0
-        #define FUNC7_SUBW 0x20
-    #define FUNC3_SLLW 0x1
-        #define FUNC7_SLLW 0x0
-    #define FUNC3_SRLW_SRAW 0x5
-        #define FUNC7_SRLW 0x0
-        #define FUNC7_SRAW 0x20
+    #define FUNC3_INSTR_ADDW_SUBW 0x0
+        #define FUNC7_INSTR_ADDW 0x0
+        #define FUNC7_INSTR_SUBW 0x20
+    #define FUNC3_INSTR_SLLW 0x1
+        #define FUNC7_INSTR_SLLW 0x0
+    #define FUNC3_INSTR_SRLW_SRAW 0x5
+        #define FUNC7_INSTR_SRLW 0x0
+        #define FUNC7_INSTR_SRAW 0x20
 
 #endif /* RISCV_INSTR_H */

@@ -47,6 +47,7 @@
 #define CSR_ADDR_MIP          0x344
 
 
+#define CSR_MCAUSE_INSTR_ADDR_MISALIGNED 0x0
 #define CSR_MCAUSE_ECALL_M 0xb
 
 typedef struct csr_reg_struct {

@@ -4,6 +4,8 @@
 #include <riscv_config.h>
 #include <riscv_core.h>
 
+#define NR_RAM_WORDS (0x10000/sizeof(uint32_t))
+
 typedef struct rv_soc_struct
 {
     /* For now we have 1 single core */
