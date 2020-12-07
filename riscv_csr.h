@@ -46,9 +46,14 @@
 #define CSR_ADDR_MTVAL        0x343
 #define CSR_ADDR_MIP          0x344
 
-
 #define CSR_MCAUSE_INSTR_ADDR_MISALIGNED 0x0
+#define CSR_MCAUSE_INSTR_ACCESS_FAULT 0x1
+#define CSR_MCAUSE_MSI 0x3
 #define CSR_MCAUSE_ECALL_M 0xb
+
+#define CSR_MSTATUS_MIE_BIT 3
+
+#define CSR_MIE_MIP_MSI_BIT 3
 
 typedef struct csr_reg_struct {
     uint16_t address;
@@ -66,6 +71,8 @@ typedef struct csr_reg_desc_struct {
 #define INIT_CSR_REG_DESC(csr_reg_table) \
     static csr_reg_desc_td  csr_reg_table##_desc = \
     { sizeof(csr_reg_table)/sizeof(csr_reg_table[0]), csr_reg_table }
+
+rv_uint_xlen *get_reg_reference(csr_reg_desc_td *reg_table, uint16_t address);
 
 int read_csr_reg_internal(csr_reg_desc_td *reg_table, uint16_t address, rv_uint_xlen *out_val);
 int write_csr_reg_internal(csr_reg_desc_td *reg_table, uint16_t address, rv_uint_xlen val);

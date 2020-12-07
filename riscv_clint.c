@@ -8,7 +8,7 @@ int read_clint_reg(clint_td *clint, rv_uint_xlen address, rv_uint_xlen *outval)
 {
     int ret_val = CLINT_ACCESS_ERR;
     rv_uint_xlen tmp_addr = (address & 0xFFFF);
-    
+
     switch(tmp_addr)
     {
         case(CLINT_MSIP_OFFS):
@@ -30,7 +30,7 @@ int write_clint_reg(clint_td *clint, rv_uint_xlen address, rv_uint_xlen val)
 {
     int ret_val = CLINT_ACCESS_ERR;
     rv_uint_xlen tmp_addr = (address & 0xFFFF);
-    
+
     switch(tmp_addr)
     {
         case(CLINT_MSIP_OFFS):

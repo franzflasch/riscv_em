@@ -37,6 +37,8 @@
     #define FUNC3_INSTR_SRLI_SRAI  0x5
         #define FUNC7_INSTR_SRLI 0x0
         #define FUNC7_INSTR_SRAI 0x20
+        #define FUNC6_INSTR_SRLI 0x0
+        #define FUNC6_INSTR_SRAI 0x10
 
 #define INSTR_LB_LH_LW_LBU_LHU_LWU_LD 0x03
     #define FUNC3_INSTR_LB 0x0

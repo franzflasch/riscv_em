@@ -10,7 +10,6 @@
 #include <riscv_instr.h>
 
 /* Defines */
-#define XREG_RETURN_ADDRESS 0
 #define XREG_STACK_POINTER 2
 #define XREG_THREAD_POINTER 5
 
@@ -33,17 +32,9 @@ static inline uint32_t extract32(uint32_t value, int start, int length)
 
 static inline void prepare_mcause_exception(rv_core_td *rv_core, rv_uint_xlen mcause)
 {
-        rv_uint_xlen mtvec_val = 0;
-        if(write_csr_reg_internal(rv_core->csr_table, CSR_ADDR_MCAUSE, mcause))
-            die_msg("Error writing CSR %x\n", CSR_ADDR_MCAUSE);
-
-        if(write_csr_reg_internal(rv_core->csr_table, CSR_ADDR_MEPC, rv_core->pc))
-            die_msg("Error writing CSR %x\n", CSR_ADDR_MEPC);
-
-        if(read_csr_reg_internal(rv_core->csr_table, CSR_ADDR_MTVEC, &mtvec_val))
-            die_msg("Error reading CSR %x\n", CSR_ADDR_MTVEC);
-
-        rv_core->next_pc = mtvec_val;
+    *rv_core->mcause = mcause;
+    *rv_core->mepc = rv_core->pc;
+    rv_core->next_pc = *rv_core->mtvec;
 }
 
 /* RISCV Instructions */
@@ -212,7 +203,7 @@ static void instr_XORI(rv_core_td *rv_core)
     signed_immediate = rv_core->immediate;
 
     if(signed_immediate == -1)
-        rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] ^ 1;
+        rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] ^ -1;
     else
         rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] ^ rv_core->immediate;
 }
@@ -343,45 +334,50 @@ static void instr_SRA(rv_core_td *rv_core)
 
 static void instr_LB(rv_core_td *rv_core)
 {
+    int err = RV_CORE_E_ERR;
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint8_t tmp_load_val = rv_core->read_mem(rv_core->priv, address);
+    uint8_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
     rv_core->x[rv_core->rd] = SIGNEX(tmp_load_val, 7);
 }
 
 static void instr_LH(rv_core_td *rv_core)
 {
+    int err = RV_CORE_E_ERR;
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint16_t tmp_load_val = rv_core->read_mem(rv_core->priv, address);
+    uint16_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
     rv_core->x[rv_core->rd] = SIGNEX(tmp_load_val, 15);
 }
 
 static void instr_LW(rv_core_td *rv_core)
 {
+    int err = RV_CORE_E_ERR;
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     #ifdef RV64
-        uint32_t tmp_load_val = rv_core->read_mem(rv_core->priv, address);
+        uint32_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
         rv_core->x[rv_core->rd] = SIGNEX(tmp_load_val, 31);
     #else
-        rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address);
+        rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address, &err);
     #endif
 }
 
 static void instr_LBU(rv_core_td *rv_core)
 {
+    int err = RV_CORE_E_ERR;
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint8_t tmp_load_val = rv_core->read_mem(rv_core->priv, address);
+    uint8_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
     rv_core->x[rv_core->rd] = tmp_load_val;
 }
 
 static void instr_LHU(rv_core_td *rv_core)
 {
+    int err = RV_CORE_E_ERR;
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint16_t tmp_load_val = rv_core->read_mem(rv_core->priv, address);
+    uint16_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
     rv_core->x[rv_core->rd] = tmp_load_val;
 }
 
@@ -412,17 +408,19 @@ static void instr_SW(rv_core_td *rv_core)
 #ifdef RV64
     static void instr_LWU(rv_core_td *rv_core)
     {
+        int err = RV_CORE_E_ERR;
         rv_uint_xlen unsigned_offset = SIGNEX(rv_core->immediate, 11);
         rv_uint_xlen address = rv_core->x[rv_core->rs1] + unsigned_offset;
-        uint32_t tmp_load_val = rv_core->read_mem(rv_core->priv, address);
+        uint32_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
         rv_core->x[rv_core->rd] = tmp_load_val;
     }
 
     static void instr_LD(rv_core_td *rv_core)
     {
+        int err = RV_CORE_E_ERR;
         rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
         rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-        rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address);
+        rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address, &err);
     }
 
     static void instr_SD(rv_core_td *rv_core)
@@ -580,13 +578,9 @@ static void instr_SW(rv_core_td *rv_core)
     }
 
     static void instr_MRET(rv_core_td *rv_core)
-    {
-        rv_uint_xlen mepc_val;
-
-        if(read_csr_reg_internal(rv_core->csr_table, CSR_ADDR_MEPC, &mepc_val))
-            die_msg("Error reading CSR\n");
-        
-        rv_core->next_pc = mepc_val;
+    {        
+        rv_core->next_pc = *rv_core->mepc;
+        rv_core->in_irq = 0;
     }
 
     static void instr_SRET(rv_core_td *rv_core)
@@ -613,6 +607,14 @@ static void preparation_func7(rv_core_td *rv_core, int32_t *next_subcode)
     rv_core->func7 = ((rv_core->instruction >> 25) & 0x7F);
     *next_subcode = rv_core->func7;
 }
+
+#ifdef RV64
+static void preparation_func6(rv_core_td *rv_core, int32_t *next_subcode)
+{
+    rv_core->func6 = ((rv_core->instruction >> 26) & 0x3F);
+    *next_subcode = rv_core->func6;
+}
+#endif
 
 static void R_type_preparation(rv_core_td *rv_core, int32_t *next_subcode)
 {
@@ -712,11 +714,19 @@ static instruction_hook_td SB_SH_SW_SD_func3_subcode_list[] = {
 };
 INIT_INSTRUCTION_LIST_DESC(SB_SH_SW_SD_func3_subcode_list);
 
-static instruction_hook_td SRLI_SRAI_func7_subcode_list[] = {
-    [FUNC7_INSTR_SRLI] = {NULL, instr_SRLI, NULL},
-    [FUNC7_INSTR_SRAI] = {NULL, instr_SRAI, NULL},
-};
-INIT_INSTRUCTION_LIST_DESC(SRLI_SRAI_func7_subcode_list);
+#ifdef RV64
+    static instruction_hook_td SRLI_SRAI_func6_subcode_list[] = {
+        [FUNC6_INSTR_SRLI] = {NULL, instr_SRLI, NULL},
+        [FUNC6_INSTR_SRAI] = {NULL, instr_SRAI, NULL},
+    };
+    INIT_INSTRUCTION_LIST_DESC(SRLI_SRAI_func6_subcode_list);
+#else
+    static instruction_hook_td SRLI_SRAI_func7_subcode_list[] = {
+        [FUNC7_INSTR_SRLI] = {NULL, instr_SRLI, NULL},
+        [FUNC7_INSTR_SRAI] = {NULL, instr_SRAI, NULL},
+    };
+    INIT_INSTRUCTION_LIST_DESC(SRLI_SRAI_func7_subcode_list);
+#endif
 
 static instruction_hook_td ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI_func3_subcode_list[] = {
     [FUNC3_INSTR_ADDI] = {NULL, instr_ADDI, NULL},
@@ -726,7 +736,11 @@ static instruction_hook_td ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI_func3_su
     [FUNC3_INSTR_ORI] = {NULL, instr_ORI, NULL},
     [FUNC3_INSTR_ANDI] = {NULL, instr_ANDI, NULL},
     [FUNC3_INSTR_SLLI] = {NULL, instr_SLLI, NULL},
-    [FUNC3_INSTR_SRLI_SRAI] = {preparation_func7, NULL, &SRLI_SRAI_func7_subcode_list_desc},
+    #ifdef RV64
+        [FUNC3_INSTR_SRLI_SRAI] = {preparation_func6, NULL, &SRLI_SRAI_func6_subcode_list_desc},
+    #else
+        [FUNC3_INSTR_SRLI_SRAI] = {preparation_func7, NULL, &SRLI_SRAI_func7_subcode_list_desc},
+    #endif
 };
 INIT_INSTRUCTION_LIST_DESC(ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI_func3_subcode_list);
 
@@ -877,6 +891,11 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
 {
     int32_t next_subcode = -1;
 
+    // if(rv_core->pc == 0x800008ac)
+    // {
+    //     printf("DBG %x %x\n", rv_core->func3, rv_core->func7);
+    // }
+
     unsigned int list_size = opcode_list_desc->instruction_hook_list_size;
     instruction_hook_td *opcode_list = opcode_list_desc->instruction_hook_list;
 
@@ -897,14 +916,15 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
 /******************* Public functions *******************************/
 rv_uint_xlen rv_core_fetch(rv_core_td *rv_core)
 {
+    int err = RV_CORE_E_ERR;
     rv_uint_xlen addr = rv_core->pc;
 
-    rv_core->instruction = rv_core->read_mem(rv_core->priv, addr);
+    rv_core->instruction = rv_core->read_mem(rv_core->priv, addr, &err);
 
     // printf("INSTR: %x\n", rv_core->instruction);
     // getchar();
 
-    return 0;
+    return err;
 }
 
 rv_uint_xlen rv_core_decode(rv_core_td *rv_core)
@@ -933,19 +953,70 @@ rv_uint_xlen rv_core_execute(rv_core_td *rv_core)
     return 0;
 }
 
+#ifdef CSR_SUPPORT
+    static void rv_core_update_interrupts(rv_core_td *rv_core)
+    {
+        /* map msip register to the CSR */
+        assign_xlen_bit(rv_core->mip, CSR_MIE_MIP_MSI_BIT, (rv_core->clint.regs[clint_msip] & 1));
+    }
+
+    /* Interrupts are prioritized as follows, in decreasing order of priority:
+       Machine external interrupts (with configurable external priority)
+       Machine software interrupts
+       Machine timer interrupts
+    */
+
+    static uint8_t rv_core_check_for_interrupts(rv_core_td *rv_core)
+    {
+        /* check if interrupts are globally enabled */
+        if(CHECK_BIT(*rv_core->mstatus, CSR_MSTATUS_MIE_BIT))
+        {
+            /* check if MSI interrupt is enabled */
+            if(CHECK_BIT(*rv_core->mie, CSR_MIE_MIP_MSI_BIT))
+            {
+                /* check if interrupt pending */
+                if(CHECK_BIT(*rv_core->mip, CSR_MIE_MIP_MSI_BIT))
+                {
+                    *rv_core->mcause = (1UL<<(XLEN-1)) | CSR_MCAUSE_MSI;
+                    return 1;
+                }
+            }
+        }
+
+        return 0;
+    }
+#endif
+
 void rv_core_run(rv_core_td *rv_core)
 {
     rv_core->next_pc = 0;
 
-    rv_core_fetch(rv_core);
-    rv_core_decode(rv_core);
-    rv_core_execute(rv_core);
+    if(rv_core_fetch(rv_core))
+    {
+        prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ACCESS_FAULT);
+    }
+    else
+    {
+        rv_core_decode(rv_core);
+        rv_core_execute(rv_core);
+    }
 
     /* increase program counter here */
     if(rv_core->next_pc)
         rv_core->pc = rv_core->next_pc;
     else
         rv_core->pc += 4;
+
+    #ifdef CSR_SUPPORT
+        /* interrupt handling */
+        rv_core_update_interrupts(rv_core);
+        if((!rv_core->in_irq) && rv_core_check_for_interrupts(rv_core))
+        {
+            *rv_core->mepc = rv_core->pc;
+            rv_core->pc = *rv_core->mtvec;
+            rv_core->in_irq = 1;
+        }
+    #endif
 }
 
 void rv_core_reg_dump(rv_core_td *rv_core)
@@ -976,7 +1047,7 @@ void rv_core_reg_internal_after_exec(rv_core_td *rv_core)
 
 void rv_core_init(rv_core_td *rv_core,
                   void *priv,
-                  rv_uint_xlen (*read_mem)(void *priv, rv_uint_xlen address),
+                  rv_uint_xlen (*read_mem)(void *priv, rv_uint_xlen address, int *err),
                   void (*write_mem)(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes),
                   csr_reg_desc_td *csr_table
                   )
@@ -993,4 +1064,12 @@ void rv_core_init(rv_core_td *rv_core,
     rv_core->write_mem = write_mem;
 
     rv_core->csr_table = csr_table;
+
+    /* set fast access pointers */
+    rv_core->mstatus = get_reg_reference(csr_table, CSR_ADDR_MSTATUS);
+    rv_core->mcause = get_reg_reference(csr_table, CSR_ADDR_MCAUSE);
+    rv_core->mepc = get_reg_reference(csr_table, CSR_ADDR_MEPC);
+    rv_core->mtvec = get_reg_reference(csr_table, CSR_ADDR_MTVEC);
+    rv_core->mie = get_reg_reference(csr_table, CSR_ADDR_MIE);
+    rv_core->mip = get_reg_reference(csr_table, CSR_ADDR_MIP);
 }

@@ -7,6 +7,9 @@
 
 #define NR_RVI_REGS 32
 
+#define RV_CORE_E_OK 0
+#define RV_CORE_E_ERR 1
+
 #define RV_CORE_INSTANTIATE_CSR_REGS_FOR_CORE(name) \
     static csr_reg_td name[] = { \
         /* Machine Information Registers */ \
@@ -47,19 +50,30 @@ typedef struct rv_core_struct
     uint8_t rs2;
     uint8_t func3;
     uint8_t func7;
+    uint8_t func6;
     uint16_t func12;
     rv_uint_xlen immediate;
     rv_uint_xlen jump_offset;
+
+    uint8_t in_irq;
 
     /* points to the next instruction */
     void (*execute_cb)(rv_core_td *rv_core);
 
     /* externally hooked */
     void *priv;
-    rv_uint_xlen (*read_mem)(void *priv, rv_uint_xlen address);
+    rv_uint_xlen (*read_mem)(void *priv, rv_uint_xlen address, int *err);
     void (*write_mem)(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes);
 
     csr_reg_desc_td *csr_table;
+    /* for fast access */
+    rv_uint_xlen *mstatus;
+    rv_uint_xlen *mcause;
+    rv_uint_xlen *mepc;
+    rv_uint_xlen *mtvec;
+    rv_uint_xlen *mie;
+    rv_uint_xlen *mip;
+
     clint_td clint;
 
 } rv_core_td;
@@ -72,7 +86,7 @@ void rv_core_reg_dump(rv_core_td *rv_core);
 void rv_core_reg_internal_after_exec(rv_core_td *rv_core);
 void rv_core_init(rv_core_td *rv_core,
                   void *priv,
-                  rv_uint_xlen (*read_mem)(void *priv, rv_uint_xlen address),
+                  rv_uint_xlen (*read_mem)(void *priv, rv_uint_xlen address, int *err),
                   void (*write_mem)(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes),
                   csr_reg_desc_td *csr_table
                   );

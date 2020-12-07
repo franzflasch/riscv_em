@@ -2,12 +2,29 @@
 
 #include <stdio.h>
 
+rv_uint_xlen *get_reg_reference(csr_reg_desc_td *reg_table, uint16_t address)
+{
+    uint16_t i = 0;
+    rv_uint_xlen *ret_val = NULL;
+
+    for(i=0;i<reg_table->reg_size;i++)
+    {
+        if(reg_table->regs[i].address == address)
+        {
+            ret_val = &reg_table->regs[i].value;
+            break;
+        }
+    }
+
+    return ret_val;
+}
+
 /* this is only used for internal emulator use to be able to override any value regardless of access flags and write mask */
 int read_csr_reg_internal(csr_reg_desc_td *reg_table, uint16_t address, rv_uint_xlen *out_val)
 {
     uint16_t i = 0;
     int ret_val = CSR_ACCESS_ERR;
-    
+
     for(i=0;i<reg_table->reg_size;i++)
     {
         if(reg_table->regs[i].address == address)
@@ -26,7 +43,7 @@ int write_csr_reg_internal(csr_reg_desc_td *reg_table, uint16_t address, rv_uint
 {
     uint16_t i = 0;
     int ret_val = CSR_ACCESS_ERR;
-    
+
     for(i=0;i<reg_table->reg_size;i++)
     {
         if(reg_table->regs[i].address == address)
@@ -44,7 +61,7 @@ int read_csr_reg(csr_reg_desc_td *reg_table, privilege_level curr_priv_mode, uin
 {
     uint16_t i = 0;
     int ret_val = CSR_ACCESS_ERR;
-    
+
     for(i=0;i<reg_table->reg_size;i++)
     {
         if(reg_table->regs[i].address == address)
@@ -65,7 +82,7 @@ int write_csr_reg(csr_reg_desc_td *reg_table, privilege_level curr_priv_mode, ui
 {
     uint16_t i = 0;
     int ret_val = CSR_ACCESS_ERR;
-    
+
     for(i=0;i<reg_table->reg_size;i++)
     {
         if(reg_table->regs[i].address == address)

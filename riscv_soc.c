@@ -7,7 +7,7 @@
 #include <riscv_helper.h>
 #include <riscv_soc.h>
 
-rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address)
+rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address, int *err)
 {
     uint8_t align_offset = address & 0x3;
     rv_uint_xlen return_val = 0;
@@ -32,6 +32,7 @@ rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address)
     else
     {
         DEBUG_PRINT("Invalid Adress, read not executed!: "PRINTF_FMT"\n", address);
+        *err = RV_CORE_E_ERR;
         return 0;
     }
 
@@ -51,6 +52,7 @@ rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address)
             break;
     }
 
+    *err = RV_CORE_E_OK;
     return return_val;
 }
 
@@ -71,7 +73,7 @@ void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint
     }
     else if(address == UART_TX_REG_ADDR)
     {
-        DEBUG_PRINT("%c", (char) value);
+        printf("%c", (char) value);
         return;
     }
     else if((address >= CLINT_BASE_ADDR) && (address <= CLINT_BASE_ADDR_END))
