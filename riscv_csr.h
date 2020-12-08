@@ -52,6 +52,10 @@
 #define CSR_MCAUSE_ECALL_M 0xb
 
 #define CSR_MSTATUS_MIE_BIT 3
+#define CSR_MSTATUS_MIE_MASK 0x1
+#define CSR_MSTATUS_MPIE_BIT 7
+#define CSR_MSTATUS_MPP_BIT 11 /* and 12 */
+#define CSR_MSTATUS_MPP_MASK 0x3
 
 #define CSR_MIE_MIP_MSI_BIT 3
 

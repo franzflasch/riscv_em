@@ -73,7 +73,7 @@ void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint
     }
     else if(address == UART_TX_REG_ADDR)
     {
-        printf("%c", (char) value);
+        putchar((char) value);
         return;
     }
     else if((address >= CLINT_BASE_ADDR) && (address <= CLINT_BASE_ADDR_END))

@@ -56,6 +56,9 @@ typedef struct rv_core_struct
     rv_uint_xlen jump_offset;
 
     uint8_t in_irq;
+    uint8_t is_sync_trap;
+    uint8_t sync_trap_pending;
+    rv_uint_xlen sync_trap_cause;
 
     /* points to the next instruction */
     void (*execute_cb)(rv_core_td *rv_core);
@@ -78,9 +81,6 @@ typedef struct rv_core_struct
 
 } rv_core_td;
 
-rv_uint_xlen rv_core_fetch(rv_core_td *rv_core);
-rv_uint_xlen rv_core_decode(rv_core_td *rv_core);
-rv_uint_xlen rv_core_execute(rv_core_td *rv_core);
 void rv_core_run(rv_core_td *rv_core);
 void rv_core_reg_dump(rv_core_td *rv_core);
 void rv_core_reg_internal_after_exec(rv_core_td *rv_core);

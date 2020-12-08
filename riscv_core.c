@@ -30,11 +30,13 @@ static inline uint32_t extract32(uint32_t value, int start, int length)
     return (value >> start) & (~0U >> (32 - length));
 }
 
-static inline void prepare_mcause_exception(rv_core_td *rv_core, rv_uint_xlen mcause)
+static inline void prepare_sync_trap(rv_core_td *rv_core, rv_uint_xlen cause)
 {
-    *rv_core->mcause = mcause;
-    *rv_core->mepc = rv_core->pc;
-    rv_core->next_pc = *rv_core->mtvec;
+    if(!rv_core->sync_trap_pending)
+    {
+        rv_core->sync_trap_pending = 1;
+        rv_core->sync_trap_cause = cause;
+    }
 }
 
 /* RISCV Instructions */
@@ -54,7 +56,7 @@ static void instr_JAL(rv_core_td *rv_core)
 
     if(ADDR_MISALIGNED(rv_core->jump_offset))
     {
-        prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+        prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
         return;
     }
 
@@ -68,7 +70,7 @@ static void instr_JALR(rv_core_td *rv_core)
 
     if(ADDR_MISALIGNED(rv_core->jump_offset))
     {
-        prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+        prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
         return;
     }
 
@@ -83,7 +85,7 @@ static void instr_BEQ(rv_core_td *rv_core)
     {
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
-            prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
             return;
         }
 
@@ -97,7 +99,7 @@ static void instr_BNE(rv_core_td *rv_core)
     {
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
-            prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
             return;
         }
 
@@ -114,7 +116,7 @@ static void instr_BLT(rv_core_td *rv_core)
     {
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
-            prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
             return;
         }
 
@@ -131,7 +133,7 @@ static void instr_BGE(rv_core_td *rv_core)
     {
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
-            prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
             return;
         }
 
@@ -145,7 +147,7 @@ static void instr_BLTU(rv_core_td *rv_core)
     {
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
-            prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
             return;
         }
 
@@ -159,7 +161,7 @@ static void instr_BGEU(rv_core_td *rv_core)
     {
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
-            prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
             return;
         }
 
@@ -498,77 +500,77 @@ static void instr_SW(rv_core_td *rv_core)
     {
         rv_uint_xlen csr_val = 0;
         if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
-            die_msg("Error reading CSR\n");
+            die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
 
         rv_core->x[rv_core->rd] = csr_val;
 
         if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, rv_core->x[rv_core->rs1]))
-            die_msg("Error writing CSR\n");
+            DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
     }
 
     static void instr_CSRRS(rv_core_td *rv_core)
     {
         rv_uint_xlen csr_val = 0;
         if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
-            die_msg("Error reading CSR\n");
+            die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
 
         rv_core->x[rv_core->rd] = csr_val;
 
         if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val | rv_core->x[rv_core->rs1]))
-            die_msg("Error writing CSR\n");
+            DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
     }
 
     static void instr_CSRRC(rv_core_td *rv_core)
     {
         rv_uint_xlen csr_val = 0;
         if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
-            die_msg("Error reading CSR\n");
+            die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
 
         rv_core->x[rv_core->rd] = csr_val;
 
         if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val & ~rv_core->x[rv_core->rs1]))
-            die_msg("Error writing CSR\n");
+            DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
     }
 
     static void instr_CSRRWI(rv_core_td *rv_core)
     {
         rv_uint_xlen csr_val = 0;
         if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
-            die_msg("Error reading CSR\n");
+            die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
 
         rv_core->x[rv_core->rd] = csr_val;
 
         if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, rv_core->rs1))
-            die_msg("Error writing CSR\n");
+            DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
     }
 
     static void instr_CSRRSI(rv_core_td *rv_core)
     {
         rv_uint_xlen csr_val = 0;
         if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
-            die_msg("Error reading CSR\n");
+            DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
 
         rv_core->x[rv_core->rd] = csr_val;
 
         if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val | rv_core->rs1))
-            die_msg("Error writing CSR\n");
+            DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
     }
 
     static void instr_CSRRCI(rv_core_td *rv_core)
     {
         rv_uint_xlen csr_val = 0;
         if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
-            die_msg("Error reading CSR\n");
+            die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
 
         rv_core->x[rv_core->rd] = csr_val;
 
         if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val & ~rv_core->rs1))
-            die_msg("Error writing CSR\n");
+            DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
     }
 
     static void instr_ECALL(rv_core_td *rv_core)
     {
-        prepare_mcause_exception(rv_core, CSR_MCAUSE_ECALL_M);
+        prepare_sync_trap(rv_core, CSR_MCAUSE_ECALL_M);
     }
 
     static void instr_EBREAK(rv_core_td *rv_core)
@@ -581,6 +583,15 @@ static void instr_SW(rv_core_td *rv_core)
     {        
         rv_core->next_pc = *rv_core->mepc;
         rv_core->in_irq = 0;
+
+        if(rv_core->is_sync_trap)
+        {
+            rv_core->is_sync_trap = 0;
+            rv_core->sync_trap_pending = 0;
+        }
+
+        rv_core->curr_priv_mode = (*rv_core->mstatus & (CSR_MSTATUS_MPP_MASK << CSR_MSTATUS_MPP_BIT)) >> CSR_MSTATUS_MPP_BIT;
+        assign_xlen_bit(rv_core->mstatus, CSR_MSTATUS_MIE_BIT, (1 << CSR_MSTATUS_MPIE_BIT) >> CSR_MSTATUS_MPIE_BIT);
     }
 
     static void instr_SRET(rv_core_td *rv_core)
@@ -594,13 +605,13 @@ static void instr_SW(rv_core_td *rv_core)
         /* not implemented */
         (void)rv_core;
     }
-#endif
 
-static void preparation_func12(rv_core_td *rv_core, int32_t *next_subcode)
-{
-    rv_core->func12 = ((rv_core->instruction >> 20) & 0x0FFF);
-    *next_subcode = rv_core->func12;
-}
+    static void preparation_func12(rv_core_td *rv_core, int32_t *next_subcode)
+    {
+        rv_core->func12 = ((rv_core->instruction >> 20) & 0x0FFF);
+        *next_subcode = rv_core->func12;
+    }
+#endif
 
 static void preparation_func7(rv_core_td *rv_core, int32_t *next_subcode)
 {
@@ -912,9 +923,64 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
         rv_call_from_opcode_list(rv_core, opcode_list[opcode].next, next_subcode);
 }
 
+#ifdef CSR_SUPPORT
+    static inline void rv_core_update_interrupts(rv_core_td *rv_core)
+    {
+        /* map msip register to the CSR */
+        assign_xlen_bit(rv_core->mip, CSR_MIE_MIP_MSI_BIT, (rv_core->clint.regs[clint_msip] & 1));
+    }
 
-/******************* Public functions *******************************/
-rv_uint_xlen rv_core_fetch(rv_core_td *rv_core)
+    static inline void rv_core_do_irq(rv_core_td *rv_core, rv_uint_xlen mepc, rv_uint_xlen mcause, uint8_t is_sync_trap)
+    {
+        if(!rv_core->in_irq)
+        {
+            *rv_core->mcause = mcause;
+            *rv_core->mepc = mepc;
+            rv_core->pc = *rv_core->mtvec;
+            *rv_core->mstatus |= rv_core->curr_priv_mode << CSR_MSTATUS_MPP_BIT;
+
+            assign_xlen_bit(rv_core->mstatus, CSR_MSTATUS_MPIE_BIT, (*rv_core->mstatus >> CSR_MSTATUS_MIE_BIT) & CSR_MSTATUS_MIE_MASK);
+            CLEAR_BIT(*rv_core->mstatus, CSR_MSTATUS_MIE_BIT);
+
+            /* internal */
+            rv_core->in_irq = 1;
+            rv_core->is_sync_trap = is_sync_trap;
+        }
+    }
+
+    /* Interrupts are prioritized as follows, in decreasing order of priority:
+       Machine external interrupts (with configurable external priority)
+       Machine software interrupts
+       Machine timer interrupts
+    */
+    static inline uint8_t rv_core_prepare_interrupts(rv_core_td *rv_core)
+    {
+        /* check if interrupts are globally enabled */
+        if(CHECK_BIT(*rv_core->mstatus, CSR_MSTATUS_MIE_BIT))
+        {
+            /* check if MSI interrupt is enabled */
+            if(CHECK_BIT(*rv_core->mie, CSR_MIE_MIP_MSI_BIT))
+            {
+                /* check if interrupt pending */
+                if(CHECK_BIT(*rv_core->mip, CSR_MIE_MIP_MSI_BIT))
+                {
+                    rv_core_do_irq(rv_core, rv_core->pc, (1UL<<(XLEN-1)) | CSR_MCAUSE_MSI, 0);
+                    return 1;
+                }
+            }
+        }
+
+        if(rv_core->sync_trap_pending)
+        {
+            rv_core_do_irq(rv_core, rv_core->pc - 4, rv_core->sync_trap_cause, 1);
+            return 1;
+        }
+
+        return 0;
+    }
+#endif
+
+static inline rv_uint_xlen rv_core_fetch(rv_core_td *rv_core)
 {
     int err = RV_CORE_E_ERR;
     rv_uint_xlen addr = rv_core->pc;
@@ -927,7 +993,7 @@ rv_uint_xlen rv_core_fetch(rv_core_td *rv_core)
     return err;
 }
 
-rv_uint_xlen rv_core_decode(rv_core_td *rv_core)
+static inline rv_uint_xlen rv_core_decode(rv_core_td *rv_core)
 {
     rv_core->opcode = (rv_core->instruction & 0x7F);
     rv_core->rd = 0;
@@ -943,7 +1009,7 @@ rv_uint_xlen rv_core_decode(rv_core_td *rv_core)
     return 0;
 }
 
-rv_uint_xlen rv_core_execute(rv_core_td *rv_core)
+static rv_uint_xlen rv_core_execute(rv_core_td *rv_core)
 {
     rv_core->execute_cb(rv_core);
 
@@ -953,47 +1019,14 @@ rv_uint_xlen rv_core_execute(rv_core_td *rv_core)
     return 0;
 }
 
-#ifdef CSR_SUPPORT
-    static void rv_core_update_interrupts(rv_core_td *rv_core)
-    {
-        /* map msip register to the CSR */
-        assign_xlen_bit(rv_core->mip, CSR_MIE_MIP_MSI_BIT, (rv_core->clint.regs[clint_msip] & 1));
-    }
-
-    /* Interrupts are prioritized as follows, in decreasing order of priority:
-       Machine external interrupts (with configurable external priority)
-       Machine software interrupts
-       Machine timer interrupts
-    */
-
-    static uint8_t rv_core_check_for_interrupts(rv_core_td *rv_core)
-    {
-        /* check if interrupts are globally enabled */
-        if(CHECK_BIT(*rv_core->mstatus, CSR_MSTATUS_MIE_BIT))
-        {
-            /* check if MSI interrupt is enabled */
-            if(CHECK_BIT(*rv_core->mie, CSR_MIE_MIP_MSI_BIT))
-            {
-                /* check if interrupt pending */
-                if(CHECK_BIT(*rv_core->mip, CSR_MIE_MIP_MSI_BIT))
-                {
-                    *rv_core->mcause = (1UL<<(XLEN-1)) | CSR_MCAUSE_MSI;
-                    return 1;
-                }
-            }
-        }
-
-        return 0;
-    }
-#endif
-
+/******************* Public functions *******************************/
 void rv_core_run(rv_core_td *rv_core)
 {
     rv_core->next_pc = 0;
 
     if(rv_core_fetch(rv_core))
     {
-        prepare_mcause_exception(rv_core, CSR_MCAUSE_INSTR_ACCESS_FAULT);
+        prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ACCESS_FAULT);
     }
     else
     {
@@ -1002,20 +1035,12 @@ void rv_core_run(rv_core_td *rv_core)
     }
 
     /* increase program counter here */
-    if(rv_core->next_pc)
-        rv_core->pc = rv_core->next_pc;
-    else
-        rv_core->pc += 4;
+    rv_core->pc = rv_core->next_pc ? rv_core->next_pc : rv_core->pc + 4;
 
     #ifdef CSR_SUPPORT
         /* interrupt handling */
         rv_core_update_interrupts(rv_core);
-        if((!rv_core->in_irq) && rv_core_check_for_interrupts(rv_core))
-        {
-            *rv_core->mepc = rv_core->pc;
-            rv_core->pc = *rv_core->mtvec;
-            rv_core->in_irq = 1;
-        }
+        rv_core_prepare_interrupts(rv_core);
     #endif
 }
 
