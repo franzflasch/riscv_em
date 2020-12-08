@@ -39,13 +39,15 @@ int main(int argc, char *argv[])
 
     printf("Now starting rvI core, loaded program file will now be started...\n\n\n");
 
+    rv_core_reg_dump(&rv_soc.rv_core0);
+
     while(1)
     {
-        rv_core_reg_dump(&rv_soc.rv_core0);
         rv_core_run(&rv_soc.rv_core0);
+        rv_core_reg_dump(&rv_soc.rv_core0);
         // rv_core_reg_internal_after_exec(&rv_soc.rv_core);
 
-        if((rv_soc.rv_core0.pc == (success_pc + 4)))
+        if((rv_soc.rv_core0.pc == (success_pc)))
             break;
 
         if((num_cycles != 0) && (curr_cycle >= num_cycles))
