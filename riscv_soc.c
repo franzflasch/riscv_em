@@ -71,17 +71,17 @@ void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint
         ptr_address = (uint8_t *)&rv_soc->ram[address_for_write];
         memcpy(ptr_address+align_offset, &value, nr_bytes);
     }
-    else if(address == UART_TX_REG_ADDR)
-    {
-        putchar((char) value);
-        return;
-    }
     else if((address >= CLINT_BASE_ADDR) && (address <= CLINT_BASE_ADDR_END))
     {
         if(write_clint_reg(&rv_soc->rv_core0.clint, address, value))
         {
             die_msg("Error writing clint reg "PRINTF_FMT"\n", address);
         }
+    }
+    else if(address == UART_TX_REG_ADDR)
+    {
+        putchar((char) value);
+        return;
     }
     else
     {

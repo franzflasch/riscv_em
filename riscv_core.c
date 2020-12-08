@@ -620,11 +620,11 @@ static void preparation_func7(rv_core_td *rv_core, int32_t *next_subcode)
 }
 
 #ifdef RV64
-static void preparation_func6(rv_core_td *rv_core, int32_t *next_subcode)
-{
-    rv_core->func6 = ((rv_core->instruction >> 26) & 0x3F);
-    *next_subcode = rv_core->func6;
-}
+    static void preparation_func6(rv_core_td *rv_core, int32_t *next_subcode)
+    {
+        rv_core->func6 = ((rv_core->instruction >> 26) & 0x3F);
+        *next_subcode = rv_core->func6;
+    }
 #endif
 
 static void R_type_preparation(rv_core_td *rv_core, int32_t *next_subcode)
