@@ -9,6 +9,24 @@
 #define CLINT_MTIME_OFFS      0xBFF8
 #define CLINT_REG_SIZE_BYTES  8
 
+static rv_int_xlen get_u8_arr_index_offs(rv_uint_xlen address)
+{
+    if(address < (CLINT_MSIP_OFFS + CLINT_REG_SIZE_BYTES))
+    {
+        return (0*CLINT_REG_SIZE_BYTES);
+    }
+    else if(ADDR_WITHIN(address, CLINT_MTIMECMP_OFFS, CLINT_REG_SIZE_BYTES))
+    {
+        return (1*CLINT_REG_SIZE_BYTES);
+    }
+    else if(ADDR_WITHIN(address, CLINT_MTIME_OFFS, CLINT_REG_SIZE_BYTES))
+    {
+        return (2*CLINT_REG_SIZE_BYTES);
+    }
+
+    return -1;
+}
+
 int read_clint_reg(void *priv, rv_uint_xlen address, rv_uint_xlen *outval)
 {
     clint_td *clint = priv;
@@ -18,18 +36,7 @@ int read_clint_reg(void *priv, rv_uint_xlen address, rv_uint_xlen *outval)
     rv_uint_xlen *tmp_val = NULL;
     rv_int_xlen arr_index_offs = -1;
 
-    if(address < (CLINT_MSIP_OFFS + CLINT_REG_SIZE_BYTES))
-    {
-        arr_index_offs = 0;
-    }
-    else if(ADDR_WITHIN(address, CLINT_MTIMECMP_OFFS, CLINT_REG_SIZE_BYTES))
-    {
-        arr_index_offs = 8;
-    }
-    else if(ADDR_WITHIN(address, CLINT_MTIME_OFFS, CLINT_REG_SIZE_BYTES))
-    {
-        arr_index_offs = 16;
-    }
+    arr_index_offs = get_u8_arr_index_offs(address);
 
     if(arr_index_offs >= 0)
     {
@@ -52,18 +59,7 @@ int write_clint_reg(void *priv, rv_uint_xlen address, rv_uint_xlen val, uint8_t 
     uint8_t *tmp_u8 = (uint8_t *)clint->regs;
     rv_int_xlen arr_index_offs = -1;
 
-    if(address < (CLINT_MSIP_OFFS + CLINT_REG_SIZE_BYTES))
-    {
-        arr_index_offs = 0;
-    }
-    else if(ADDR_WITHIN(address, CLINT_MTIMECMP_OFFS, CLINT_REG_SIZE_BYTES))
-    {
-        arr_index_offs = 8;
-    }
-    else if(ADDR_WITHIN(address, CLINT_MTIME_OFFS, CLINT_REG_SIZE_BYTES))
-    {
-        arr_index_offs = 16;
-    }
+    arr_index_offs = get_u8_arr_index_offs(address);
 
     if(arr_index_offs >= 0)
     {

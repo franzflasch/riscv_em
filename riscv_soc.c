@@ -73,7 +73,7 @@ static rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address, int *err)
         }
         else
         {
-            DEBUG_PRINT("Invalid Adress, or no valid read pointer found, read not executed!: "PRINTF_FMT"\n", address);
+            DEBUG_PRINT("Invalid Address, or no valid read pointer found, read not executed!: "PRINTF_FMT"\n", address);
             break;
         }
     }
@@ -100,7 +100,7 @@ static void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen valu
         }
         else
         {
-            DEBUG_PRINT("Invalid Adress, or no valid write pointer found, write not executed!: "PRINTF_FMT"\n", address);
+            DEBUG_PRINT("Invalid Address, or no valid write pointer found, write not executed!: "PRINTF_FMT"\n", address);
             break;
         }
     }

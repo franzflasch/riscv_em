@@ -1,7 +1,7 @@
 #ifndef RISCV_CONFIG_H
 #define RISCV_CONFIG_H
 
-// #define DEBUG
+#define DEBUG
 
 #define RV64
 #define CSR_SUPPORT
