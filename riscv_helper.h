@@ -19,14 +19,15 @@
 
 #define die_msg(...) { printf(__VA_ARGS__); exit(-1); }
 
-#define SET_BIT(out_var,nbit)   ((out_var) |=  (1<<(nbit)))
-#define CLEAR_BIT(out_var,nbit) ((out_var) &= ~(1<<(nbit)))
-#define FLIP_BIT(out_var,nbit)  ((out_var) ^=  (1<<(nbit)))
-#define CHECK_BIT(out_var,nbit) ((out_var) &   (1<<(nbit)))
-
+#define SET_BIT(_out_var,_nbit)   ((_out_var) |=  (1<<(_nbit)))
+#define CLEAR_BIT(_out_var,_nbit) ((_out_var) &= ~(1<<(_nbit)))
+#define FLIP_BIT(_out_var,_nbit)  ((_out_var) ^=  (1<<(_nbit)))
+#define CHECK_BIT(_out_var,_nbit) ((_out_var) &   (1<<(_nbit)))
 static inline void assign_xlen_bit(rv_uint_xlen *out_var, rv_uint_xlen nbit, rv_uint_xlen bit_value)
 {
     *out_var = (*out_var & ~(1UL << nbit)) | ((bit_value & 1) << nbit);
 }
+
+#define ADDR_WITHIN(_addr, _start, size) ( (_addr >= _start) && (_addr < _start + size) )
 
 #endif /* RISCV_HELPER_H */

@@ -91,6 +91,7 @@ int write_csr_reg(csr_reg_desc_td *reg_table, privilege_level curr_priv_mode, ui
             {
                 reg_table->regs[i].value = val & reg_table->regs[i].write_mask;
                 ret_val = CSR_ACCESS_OK;
+                // printf("csr val %lx reg_val %lx mask %lx address %x\n", val, reg_table->regs[i].value, reg_table->regs[i].write_mask, address);
                 break;
             }
         }

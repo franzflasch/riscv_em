@@ -3,9 +3,6 @@
 
 #include <riscv_types.h>
 
-#define CLINT_ACCESS_OK 0
-#define CLINT_ACCESS_ERR 1
-
 typedef enum 
 {
     clint_msip = 0,
@@ -22,7 +19,8 @@ typedef struct clint_struct
 
 } clint_td;
 
-int read_clint_reg(clint_td *clint, rv_uint_xlen address, rv_uint_xlen *outval);
-int write_clint_reg(clint_td *clint, rv_uint_xlen address, rv_uint_xlen val);
+int read_clint_reg(void *priv, rv_uint_xlen address, rv_uint_xlen *outval);
+int write_clint_reg(void *priv, rv_uint_xlen address, rv_uint_xlen val, uint8_t nr_bytes);
+void clint_update(clint_td *clint);
 
 #endif /* RISCV_CLINT_H */

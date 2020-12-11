@@ -1,7 +1,7 @@
 #ifndef RISCV_CONFIG_H
 #define RISCV_CONFIG_H
 
-#define DEBUG
+// #define DEBUG
 
 #define RV64
 #define CSR_SUPPORT
@@ -10,7 +10,7 @@
 #define RAM_SIZE_BYTES 0x10000
 
 #define CLINT_BASE_ADDR 0x2000000
-#define CLINT_BASE_ADDR_END 0x0200FFFF
+#define CLINT_SIZE_BYTES 0x10000
 
 #define UART_TX_REG_ADDR 0x10000000
 

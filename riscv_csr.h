@@ -21,11 +21,11 @@
 
 #define CSR_ACCESS_READ (1<<0)
 #define CSR_ACCESS_WRITE (1<<1)
-#define CSR_ACCESS_RO(priv_level) (CSR_ACCESS_READ << (priv_level*2))
-#define CSR_ACCESS_WO(priv_level) (CSR_ACCESS_WRITE << (priv_level*2))
-#define CSR_ACCESS_RW(priv_level) ((CSR_ACCESS_WRITE | CSR_ACCESS_READ) << (priv_level*2))
-#define CSR_ACCESS_READ_GRANTED(priv_level, csr_access_flags) (CSR_ACCESS_RO(priv_level) & csr_access_flags)
-#define CSR_ACCESS_WRITE_GRANTED(priv_level, csr_access_flags) (CSR_ACCESS_WO(priv_level) & csr_access_flags)
+#define CSR_ACCESS_RO(_priv_level) (CSR_ACCESS_READ << (_priv_level*2))
+#define CSR_ACCESS_WO(_priv_level) (CSR_ACCESS_WRITE << (_priv_level*2))
+#define CSR_ACCESS_RW(_priv_level) ((CSR_ACCESS_WRITE | CSR_ACCESS_READ) << (_priv_level*2))
+#define CSR_ACCESS_READ_GRANTED(_priv_level, _csr_access_flags) (CSR_ACCESS_RO(_priv_level) & _csr_access_flags)
+#define CSR_ACCESS_WRITE_GRANTED(_priv_level, _csr_access_flags) (CSR_ACCESS_WO(_priv_level) & _csr_access_flags)
 
 #define CSR_ADDR_MVENDORID 0xF11
 #define CSR_ADDR_MARCHID   0xF12
@@ -49,6 +49,7 @@
 #define CSR_MCAUSE_INSTR_ADDR_MISALIGNED 0x0
 #define CSR_MCAUSE_INSTR_ACCESS_FAULT 0x1
 #define CSR_MCAUSE_MSI 0x3
+#define CSR_MCAUSE_MTI 0x7
 #define CSR_MCAUSE_ECALL_M 0xb
 
 #define CSR_MSTATUS_MIE_BIT 3
@@ -58,6 +59,7 @@
 #define CSR_MSTATUS_MPP_MASK 0x3
 
 #define CSR_MIE_MIP_MSI_BIT 3
+#define CSR_MIE_MIP_MTI_BIT 7
 
 typedef struct csr_reg_struct {
     uint16_t address;
@@ -72,9 +74,9 @@ typedef struct csr_reg_desc_struct {
     csr_reg_td *regs;
 
 } csr_reg_desc_td;
-#define INIT_CSR_REG_DESC(csr_reg_table) \
-    static csr_reg_desc_td  csr_reg_table##_desc = \
-    { sizeof(csr_reg_table)/sizeof(csr_reg_table[0]), csr_reg_table }
+#define INIT_CSR_REG_DESC(_csr_reg_table) \
+    static csr_reg_desc_td  _csr_reg_table##_desc = \
+    { sizeof(_csr_reg_table)/sizeof(_csr_reg_table[0]), _csr_reg_table }
 
 rv_uint_xlen *get_reg_reference(csr_reg_desc_td *reg_table, uint16_t address);
 

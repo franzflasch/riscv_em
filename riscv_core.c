@@ -502,10 +502,10 @@ static void instr_SW(rv_core_td *rv_core)
         if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
 
-        rv_core->x[rv_core->rd] = csr_val;
-
         if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, rv_core->x[rv_core->rs1]))
             DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
+
+        rv_core->x[rv_core->rd] = csr_val;
     }
 
     static void instr_CSRRS(rv_core_td *rv_core)
@@ -514,10 +514,10 @@ static void instr_SW(rv_core_td *rv_core)
         if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
 
-        rv_core->x[rv_core->rd] = csr_val;
-
         if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val | rv_core->x[rv_core->rs1]))
             DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
+
+        rv_core->x[rv_core->rd] = csr_val;
     }
 
     static void instr_CSRRC(rv_core_td *rv_core)
@@ -526,10 +526,10 @@ static void instr_SW(rv_core_td *rv_core)
         if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
 
-        rv_core->x[rv_core->rd] = csr_val;
-
         if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val & ~rv_core->x[rv_core->rs1]))
             DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
+
+        rv_core->x[rv_core->rd] = csr_val;
     }
 
     static void instr_CSRRWI(rv_core_td *rv_core)
@@ -538,10 +538,10 @@ static void instr_SW(rv_core_td *rv_core)
         if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
 
-        rv_core->x[rv_core->rd] = csr_val;
-
         if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, rv_core->rs1))
             DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
+
+        rv_core->x[rv_core->rd] = csr_val;
     }
 
     static void instr_CSRRSI(rv_core_td *rv_core)
@@ -550,10 +550,10 @@ static void instr_SW(rv_core_td *rv_core)
         if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
             DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
 
-        rv_core->x[rv_core->rd] = csr_val;
-
         if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val | rv_core->rs1))
             DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
+
+        rv_core->x[rv_core->rd] = csr_val;
     }
 
     static void instr_CSRRCI(rv_core_td *rv_core)
@@ -562,10 +562,10 @@ static void instr_SW(rv_core_td *rv_core)
         if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
 
-        rv_core->x[rv_core->rd] = csr_val;
-
         if(write_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val & ~rv_core->rs1))
             DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
+        
+        rv_core->x[rv_core->rd] = csr_val;
     }
 
     static void instr_ECALL(rv_core_td *rv_core)
@@ -590,6 +590,7 @@ static void instr_SW(rv_core_td *rv_core)
             rv_core->sync_trap_pending = 0;
         }
 
+        /* Restore MPP and MIE */
         rv_core->curr_priv_mode = (*rv_core->mstatus & (CSR_MSTATUS_MPP_MASK << CSR_MSTATUS_MPP_BIT)) >> CSR_MSTATUS_MPP_BIT;
         assign_xlen_bit(rv_core->mstatus, CSR_MSTATUS_MIE_BIT, (1 << CSR_MSTATUS_MPIE_BIT) >> CSR_MSTATUS_MPIE_BIT);
     }
@@ -926,8 +927,16 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
 #ifdef CSR_SUPPORT
     static inline void rv_core_update_interrupts(rv_core_td *rv_core)
     {
+        uint8_t timer_interrupt = (rv_core->clint.regs[clint_mtime] >= rv_core->clint.regs[clint_mtimecmp]);
+
         /* map msip register to the CSR */
         assign_xlen_bit(rv_core->mip, CSR_MIE_MIP_MSI_BIT, (rv_core->clint.regs[clint_msip] & 1));
+
+        /* map timer interrupt */
+        assign_xlen_bit(rv_core->mip, CSR_MIE_MIP_MTI_BIT, timer_interrupt & 1);
+
+        // if(timer_interrupt)
+        //     printf("timer irq %d %lx %ld\n", timer_interrupt, *rv_core->mip, rv_core->clint.regs[clint_mtime]);
     }
 
     static inline void rv_core_do_irq(rv_core_td *rv_core, rv_uint_xlen mepc, rv_uint_xlen mcause, uint8_t is_sync_trap)
@@ -937,9 +946,12 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
             *rv_core->mcause = mcause;
             *rv_core->mepc = mepc;
             rv_core->pc = *rv_core->mtvec;
-            *rv_core->mstatus |= rv_core->curr_priv_mode << CSR_MSTATUS_MPP_BIT;
 
+            /* Save MPP and MIE */
+            *rv_core->mstatus |= rv_core->curr_priv_mode << CSR_MSTATUS_MPP_BIT;
             assign_xlen_bit(rv_core->mstatus, CSR_MSTATUS_MPIE_BIT, (*rv_core->mstatus >> CSR_MSTATUS_MIE_BIT) & CSR_MSTATUS_MIE_MASK);
+
+            /* now clear MIE */
             CLEAR_BIT(*rv_core->mstatus, CSR_MSTATUS_MIE_BIT);
 
             /* internal */
@@ -965,6 +977,17 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
                 if(CHECK_BIT(*rv_core->mip, CSR_MIE_MIP_MSI_BIT))
                 {
                     rv_core_do_irq(rv_core, rv_core->pc, (1UL<<(XLEN-1)) | CSR_MCAUSE_MSI, 0);
+                    return 1;
+                }
+            }
+
+            /* Timer interrupt */
+            if(CHECK_BIT(*rv_core->mie, CSR_MIE_MIP_MTI_BIT))
+            {
+                /* check if interrupt pending */
+                if(CHECK_BIT(*rv_core->mip, CSR_MIE_MIP_MTI_BIT))
+                {
+                    rv_core_do_irq(rv_core, rv_core->pc, (1UL<<(XLEN-1)) | CSR_MCAUSE_MTI, 0);
                     return 1;
                 }
             }
@@ -1041,6 +1064,8 @@ void rv_core_run(rv_core_td *rv_core)
         /* interrupt handling */
         rv_core_update_interrupts(rv_core);
         rv_core_prepare_interrupts(rv_core);
+
+        clint_update(&rv_core->clint);
     #endif
 }
 

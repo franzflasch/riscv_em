@@ -10,8 +10,8 @@
 #define RV_CORE_E_OK 0
 #define RV_CORE_E_ERR 1
 
-#define RV_CORE_INSTANTIATE_CSR_REGS_FOR_CORE(name) \
-    static csr_reg_td name[] = { \
+#define RV_CORE_INSTANTIATE_CSR_REGS_FOR_CORE(_name) \
+    static csr_reg_td _name[] = { \
         /* Machine Information Registers */ \
         { CSR_ADDR_MVENDORID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO }, \
         { CSR_ADDR_MARCHID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO }, \
@@ -31,7 +31,7 @@
         { CSR_ADDR_MTVAL, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
         { CSR_ADDR_MIP, CSR_ACCESS_RW(machine_mode), 0, CSR_MIP_MIE_WR_MASK }, \
     }; \
-    INIT_CSR_REG_DESC(name);
+    INIT_CSR_REG_DESC(_name);
 
 typedef struct rv_core_struct rv_core_td;
 typedef struct rv_core_struct
@@ -105,8 +105,8 @@ typedef struct instruction_desc_struct
     instruction_hook_td *instruction_hook_list;
 
 } instruction_desc_td;
-#define INIT_INSTRUCTION_LIST_DESC(instruction_list) \
-    static instruction_desc_td  instruction_list##_desc = \
-    { sizeof(instruction_list)/sizeof(instruction_list[0]), instruction_list }
+#define INIT_INSTRUCTION_LIST_DESC(_instruction_list) \
+    static instruction_desc_td  _instruction_list##_desc = \
+    { sizeof(_instruction_list)/sizeof(_instruction_list[0]), _instruction_list }
 
 #endif /* RISCV_CORE_H */

@@ -15,6 +15,9 @@ typedef uint32_t rv_uint_xlen;
 typedef int32_t rv_int_xlen;
 #endif
 
+#define RV_MEM_ACCESS_OK 0
+#define RV_MEM_ACCESS_ERR 1
+
 typedef enum  
 {
     user_mode = 0,

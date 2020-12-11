@@ -7,86 +7,102 @@
 #include <riscv_helper.h>
 #include <riscv_soc.h>
 
-rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address, int *err)
-{
-    uint8_t align_offset = address & 0x3;
-    rv_uint_xlen return_val = 0;
-    rv_soc_td *rv_soc = priv;
-
-    rv_uint_xlen read_val = 0;
-
-    if((address >= RAM_BASE_ADDR) && (address < (RAM_BASE_ADDR+RAM_SIZE_BYTES)))
-    {
-        read_val = rv_soc->ram[(address-RAM_BASE_ADDR) >> 2];
-        #ifdef RV64
-            read_val |= ((uint64_t)rv_soc->ram[((address-RAM_BASE_ADDR) >> 2) + 1] << 32);
-        #endif
-    }
-    else if((address >= CLINT_BASE_ADDR) && (address <= CLINT_BASE_ADDR_END))
-    {
-        if(read_clint_reg(&rv_soc->rv_core0.clint, address, &read_val))
-        {
-            die_msg("Error reading clint reg "PRINTF_FMT"\n", address);
-        }
-    }
-    else
-    {
-        DEBUG_PRINT("Invalid Adress, read not executed!: "PRINTF_FMT"\n", address);
-        *err = RV_CORE_E_ERR;
-        return 0;
-    }
-
-    switch(align_offset)
-    {
-        case 1:
-            return_val = read_val >> 8;
-            break;
-        case 2:
-            return_val = read_val >> 16;
-            break;
-        case 3:
-            return_val = read_val >> 24;
-            break;
-        default:
-            return_val = read_val;
-            break;
-    }
-
-    *err = RV_CORE_E_OK;
-    return return_val;
+#define INIT_MEM_ACCESS_STRUCT(_ref, _entry, _read_func, _write_func, _priv, _addr_start, _mem_size) \
+{ \
+    size_t _tmp_count = _entry; \
+    _ref[_tmp_count].read = _read_func; \
+    _ref[_tmp_count].write = _write_func; \
+    _ref[_tmp_count].priv = _priv; \
+    _ref[_tmp_count].addr_start = _addr_start; \
+    _ref[_tmp_count].mem_size = _mem_size; \
 }
 
-void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes)
+static int read_ram(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
 {
-    uint8_t align_offset = address & 0x3;
-    rv_uint_xlen address_for_write = 0;
-    uint8_t *ptr_address = NULL;
+    uint8_t *ram_ptr = priv;
+    rv_uint_xlen *xlen_ptr = (rv_uint_xlen *)&ram_ptr[address_internal];
+    *outval = *xlen_ptr;
+    return RV_MEM_ACCESS_OK;
+}
 
+static int write_ram(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint8_t nr_bytes)
+{
+    uint8_t *ram_ptr = priv;
+    memcpy(&ram_ptr[address_internal], &val, nr_bytes);
+    return RV_MEM_ACCESS_OK;
+}
+
+static int write_uart(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint8_t nr_bytes)
+{
+    (void) priv;
+    (void) address_internal;
+    (void) nr_bytes;
+
+    putchar((char) val);
+    return RV_MEM_ACCESS_OK;
+}
+
+static void rv_soc_init_mem_acces_cbs(rv_soc_td *rv_soc)
+{
+    int count = 0;
+    INIT_MEM_ACCESS_STRUCT(rv_soc->mem_access_cbs, count++, read_ram, write_ram, rv_soc->ram, RAM_BASE_ADDR, RAM_SIZE_BYTES);
+    INIT_MEM_ACCESS_STRUCT(rv_soc->mem_access_cbs, count++, read_clint_reg, write_clint_reg, &rv_soc->rv_core0.clint, CLINT_BASE_ADDR, CLINT_SIZE_BYTES);
+    INIT_MEM_ACCESS_STRUCT(rv_soc->mem_access_cbs, count++, NULL, write_uart, NULL, UART_TX_REG_ADDR, 1);
+}
+
+static rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address, int *err)
+{
     rv_soc_td *rv_soc = priv;
+    rv_uint_xlen tmp_addr = 0;
+    rv_uint_xlen read_val = 0;
+    size_t i = 0;
 
-    DEBUG_PRINT("writing value "PRINTF_FMT " to address "PRINTF_FMT"\n", value, address);
-    if((address >= RAM_BASE_ADDR) && (address < (RAM_BASE_ADDR+RAM_SIZE_BYTES)))
+    *err = RV_CORE_E_ERR;
+
+    for(i=0;i<(sizeof(rv_soc->mem_access_cbs)/sizeof(rv_soc->mem_access_cbs[0]));i++)
     {
-        address_for_write = (address-RAM_BASE_ADDR) >> 2;
-        ptr_address = (uint8_t *)&rv_soc->ram[address_for_write];
-        memcpy(ptr_address+align_offset, &value, nr_bytes);
-    }
-    else if((address >= CLINT_BASE_ADDR) && (address <= CLINT_BASE_ADDR_END))
-    {
-        if(write_clint_reg(&rv_soc->rv_core0.clint, address, value))
+        if(rv_soc->mem_access_cbs[i].read != NULL)
         {
-            die_msg("Error writing clint reg "PRINTF_FMT"\n", address);
+            if(ADDR_WITHIN(address, rv_soc->mem_access_cbs[i].addr_start, rv_soc->mem_access_cbs[i].mem_size))
+            {
+                tmp_addr = address - rv_soc->mem_access_cbs[i].addr_start;
+                rv_soc->mem_access_cbs[i].read(rv_soc->mem_access_cbs[i].priv, tmp_addr, &read_val);
+                *err = RV_CORE_E_OK;
+                break;
+            }
+        }
+        else
+        {
+            DEBUG_PRINT("Invalid Adress, or no valid read pointer found, read not executed!: "PRINTF_FMT"\n", address);
+            break;
         }
     }
-    else if(address == UART_TX_REG_ADDR)
+
+    return read_val;
+}
+
+static void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes)
+{
+    rv_soc_td *rv_soc = priv;
+    rv_uint_xlen tmp_addr = 0;
+    size_t i = 0;
+
+    for(i=0;i<(sizeof(rv_soc->mem_access_cbs)/sizeof(rv_soc->mem_access_cbs[0]));i++)
     {
-        putchar((char) value);
-        return;
-    }
-    else
-    {
-        DEBUG_PRINT("Invalid address! "PRINTF_FMT"\n", address);
-        return;
+        if(rv_soc->mem_access_cbs[i].write != NULL)
+        {
+            if(ADDR_WITHIN(address, rv_soc->mem_access_cbs[i].addr_start, rv_soc->mem_access_cbs[i].mem_size))
+            {
+                tmp_addr = address - rv_soc->mem_access_cbs[i].addr_start;
+                rv_soc->mem_access_cbs[i].write(rv_soc->mem_access_cbs[i].priv, tmp_addr, value, nr_bytes);
+                break;
+            }
+        }
+        else
+        {
+            DEBUG_PRINT("Invalid Adress, or no valid write pointer found, write not executed!: "PRINTF_FMT"\n", address);
+            break;
+        }
     }
 
     return;
@@ -138,6 +154,9 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name)
 
     /* set some registers initial value to match qemu's */
     rv_soc->rv_core0.x[11] = 0x00001020;
+
+    /* initialize ram and peripheral read write access pointers */
+    rv_soc_init_mem_acces_cbs(rv_soc);
 
     result = fread(&rv_soc->ram, sizeof(char), lsize, p_fw_file);
     if(result != lsize)
