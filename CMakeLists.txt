@@ -14,6 +14,14 @@ set(INC_CORE
     src/core
 )
 
+set(SRC_PERIPH
+    src/peripherals/uart.c
+)
+
+set(INC_PERIPH
+    src/peripherals
+)
+
 set(SRC_SOC 
     src/soc/riscv_example_soc.c
 )
@@ -22,8 +30,8 @@ set(INC_SOC
     src/soc
 )
 
-add_executable(riscv_em ${SRC_CORE} ${SRC_SOC} src/main.c)
-target_include_directories(riscv_em PUBLIC . ${INC_CORE} ${INC_SOC})
+add_executable(riscv_em ${SRC_CORE} ${SRC_PERIPH} ${SRC_SOC} src/main.c)
+target_include_directories(riscv_em PUBLIC . ${INC_CORE} ${INC_PERIPH} ${INC_SOC})
 target_compile_options(riscv_em PRIVATE -Wall -Wextra -pedantic -Werror)
 
 install (TARGETS riscv_em

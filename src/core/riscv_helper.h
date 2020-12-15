@@ -1,9 +1,11 @@
 #ifndef RISCV_HELPER_H
 #define RISCV_HELPER_H
 
+#include <stdlib.h>
+#include <stdarg.h>
+
 #include <riscv_config.h>
 #include <riscv_types.h>
-#include <stdarg.h>
 
 #ifdef DEBUG
 #define DEBUG_PRINT(...) do{ printf( __VA_ARGS__ ); } while( 0 )

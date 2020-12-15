@@ -31,6 +31,27 @@
         { CSR_ADDR_MCAUSE, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
         { CSR_ADDR_MTVAL, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
         { CSR_ADDR_MIP, CSR_ACCESS_RW(machine_mode), 0, CSR_MIP_MIE_WR_MASK }, \
+        /* Machine Protection and Translation */ \
+        { CSR_PMPCFG0, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPCFG1, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPCFG2, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPCFG3, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPADDR0, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPADDR1, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPADDR2, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPADDR3, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPADDR4, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPADDR5, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPADDR6, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPADDR7, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPADDR8, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPADDR9, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPADDR10, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPADDR11, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPADDR12, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPADDR13, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPADDR14, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        { CSR_PMPADDR15, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
     }; \
     INIT_CSR_REG_DESC(_name);
 

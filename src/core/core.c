@@ -39,6 +39,12 @@ static inline void prepare_sync_trap(rv_core_td *rv_core, rv_uint_xlen cause)
     }
 }
 
+static void instr_NOP(rv_core_td *rv_core)
+{
+    (void) rv_core;
+    return;
+}
+
 /* RISCV Instructions */
 static void instr_LUI(rv_core_td *rv_core)
 {
@@ -499,6 +505,9 @@ static void instr_SW(rv_core_td *rv_core)
     static void instr_CSRRW(rv_core_td *rv_core)
     {
         rv_uint_xlen csr_val = 0;
+
+        // printf("CSR: " PRINTF_FMT "\n", rv_core->immediate);
+
         if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
 
@@ -886,7 +895,7 @@ static instruction_hook_td RV_opcode_list[] = {
     [INSTR_SB_SH_SW_SD] = {S_type_preparation, NULL, &SB_SH_SW_SD_func3_subcode_list_desc},
     [INSTR_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI] = {I_type_preparation, NULL, &ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI_func3_subcode_list_desc},
     [INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND] = {R_type_preparation, NULL, &ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list_desc},
-    [INSTR_FENCE_FENCE_I] = {NULL, NULL, NULL}, /* Not implemented */
+    [INSTR_FENCE_FENCE_I] = {NULL, instr_NOP, NULL}, /* Not implemented */
 
     #ifdef CSR_SUPPORT
         [INSTR_ECALL_EBREAK_MRET_SRET_URET_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI] = {I_type_preparation, NULL, &ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI_func3_subcode_list_desc},
@@ -911,8 +920,13 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
     unsigned int list_size = opcode_list_desc->instruction_hook_list_size;
     instruction_hook_td *opcode_list = opcode_list_desc->instruction_hook_list;
 
+    if( (opcode_list[opcode].preparation_cb == NULL) && 
+        (opcode_list[opcode].execution_cb == NULL) && 
+        (opcode_list[opcode].next == NULL) )
+        die_msg("Unknown instruction: %08x PC: "PRINTF_FMT"\n", rv_core->instruction, rv_core->pc);
+
     if(opcode >= list_size) 
-        die_msg("Unknown instruction %08x "PRINTF_FMT"\n", rv_core->instruction, rv_core->pc);
+        die_msg("Unknown instruction: %08x PC: "PRINTF_FMT"\n", rv_core->instruction, rv_core->pc);
 
     if(opcode_list[opcode].preparation_cb != NULL)
         opcode_list[opcode].preparation_cb(rv_core, &next_subcode);

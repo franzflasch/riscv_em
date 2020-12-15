@@ -46,6 +46,27 @@
 #define CSR_ADDR_MTVAL        0x343
 #define CSR_ADDR_MIP          0x344
 
+#define CSR_PMPCFG0           0x3A0
+#define CSR_PMPCFG1           0x3A1
+#define CSR_PMPCFG2           0x3A2
+#define CSR_PMPCFG3           0x3A3
+#define CSR_PMPADDR0          0x3B0
+#define CSR_PMPADDR1          0x3B1
+#define CSR_PMPADDR2          0x3B2
+#define CSR_PMPADDR3          0x3B3
+#define CSR_PMPADDR4          0x3B4
+#define CSR_PMPADDR5          0x3B5
+#define CSR_PMPADDR6          0x3B6
+#define CSR_PMPADDR7          0x3B7
+#define CSR_PMPADDR8          0x3B8
+#define CSR_PMPADDR9          0x3B9
+#define CSR_PMPADDR10         0x3BA
+#define CSR_PMPADDR11         0x3BB
+#define CSR_PMPADDR12         0x3BC
+#define CSR_PMPADDR13         0x3BD
+#define CSR_PMPADDR14         0x3BE
+#define CSR_PMPADDR15         0x3BF
+
 #define CSR_MCAUSE_INSTR_ADDR_MISALIGNED 0x0
 #define CSR_MCAUSE_INSTR_ACCESS_FAULT 0x1
 #define CSR_MCAUSE_MSI 0x3

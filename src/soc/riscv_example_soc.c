@@ -7,6 +7,8 @@
 #include <riscv_helper.h>
 #include <riscv_example_soc.h>
 
+#include <uart.h>
+
 #define INIT_MEM_ACCESS_STRUCT(_ref, _entry, _read_func, _write_func, _priv, _addr_start, _mem_size) \
 { \
     size_t _tmp_count = _entry; \
@@ -32,22 +34,12 @@ static int write_ram(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val
     return RV_MEM_ACCESS_OK;
 }
 
-static int write_uart(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint8_t nr_bytes)
-{
-    (void) priv;
-    (void) address_internal;
-    (void) nr_bytes;
-
-    putchar((char) val);
-    return RV_MEM_ACCESS_OK;
-}
-
 static void rv_soc_init_mem_acces_cbs(rv_soc_td *rv_soc)
 {
     int count = 0;
     INIT_MEM_ACCESS_STRUCT(rv_soc->mem_access_cbs, count++, read_ram, write_ram, rv_soc->ram, RAM_BASE_ADDR, RAM_SIZE_BYTES);
     INIT_MEM_ACCESS_STRUCT(rv_soc->mem_access_cbs, count++, read_clint_reg, write_clint_reg, &rv_soc->rv_core0.clint, CLINT_BASE_ADDR, CLINT_SIZE_BYTES);
-    INIT_MEM_ACCESS_STRUCT(rv_soc->mem_access_cbs, count++, NULL, write_uart, NULL, UART_TX_REG_ADDR, 1);
+    INIT_MEM_ACCESS_STRUCT(rv_soc->mem_access_cbs, count++, uart_read, uart_write, NULL, UART_TX_REG_ADDR, 1);
 }
 
 static rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address, int *err)
@@ -120,6 +112,11 @@ void rv_soc_dump_mem(rv_soc_td *rv_soc)
 
 void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name)
 {
+    static uint8_t __attribute__((aligned (4))) soc_ram[RAM_SIZE_BYTES];
+
+    memset(rv_soc, 0, sizeof(rv_soc_td));
+    rv_soc->ram = soc_ram;
+
     FILE * p_fw_file = NULL;
     unsigned long lsize = 0;
     size_t result = 0;
@@ -135,13 +132,11 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name)
     lsize = ftell(p_fw_file);
     rewind(p_fw_file);
 
-    if(lsize > sizeof(rv_soc->ram))
+    if(lsize > sizeof(soc_ram))
     {
-        printf("Not able to load fw file of size %lu, ram space is %lu\n", lsize, sizeof(rv_soc->ram));
+        printf("Not able to load fw file of size %lu, ram space is %lu\n", lsize, sizeof(soc_ram));
         exit(-2);
     }
-
-    memset(rv_soc, 0, sizeof(rv_soc_td));
 
     /* initialize one core with a csr table */
     #ifdef CSR_SUPPORT
@@ -158,7 +153,7 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name)
     /* initialize ram and peripheral read write access pointers */
     rv_soc_init_mem_acces_cbs(rv_soc);
 
-    result = fread(&rv_soc->ram, sizeof(char), lsize, p_fw_file);
+    result = fread(rv_soc->ram, sizeof(char), lsize, p_fw_file);
     if(result != lsize)
     {
         printf("Error while reading file!\n");

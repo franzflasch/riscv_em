@@ -18,7 +18,7 @@ typedef struct rv_soc_struct
 {
     /* For now we have 1 single core */
     rv_core_td rv_core0;
-    uint8_t __attribute__((aligned (4))) ram[RAM_SIZE_BYTES];
+    uint8_t *ram;
 
     rv_soc_mem_access_cb_td mem_access_cbs[3];
 
