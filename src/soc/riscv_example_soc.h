@@ -2,7 +2,7 @@
 #define RISCV_EXAMPLE_SOC_H
 
 #include <riscv_config.h>
-#include <riscv_core.h>
+#include <core.h>
 
 typedef struct rv_soc_mem_access_cb_struct
 {

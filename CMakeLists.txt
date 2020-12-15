@@ -5,9 +5,9 @@ set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wextra -Wpedantic")
 
 set(SRC_CORE 
-    src/core/riscv_core.c
-    src/core/riscv_csr.c
-    src/core/riscv_clint.c
+    src/core/core.c
+    src/core/csr.c
+    src/core/clint.c
 )
 
 set(INC_CORE
