@@ -5,7 +5,7 @@
 
 #include <riscv_config.h>
 #include <riscv_helper.h>
-#include <riscv_soc.h>
+#include <riscv_example_soc.h>
 
 #define INIT_MEM_ACCESS_STRUCT(_ref, _entry, _read_func, _write_func, _priv, _addr_start, _mem_size) \
 { \

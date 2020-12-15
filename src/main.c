@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <riscv_soc.h>
+#include <riscv_example_soc.h>
 
 int main(int argc, char *argv[])
 {

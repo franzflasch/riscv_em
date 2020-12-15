@@ -1,5 +1,5 @@
-#ifndef RISCV_SOC_H
-#define RISCV_SOC_H
+#ifndef RISCV_EXAMPLE_SOC_H
+#define RISCV_EXAMPLE_SOC_H
 
 #include <riscv_config.h>
 #include <riscv_core.h>
@@ -27,4 +27,4 @@ typedef struct rv_soc_struct
 void rv_soc_dump_mem(rv_soc_td *rv_soc);
 void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name);
 
-#endif /* RISCV_SOC_H */
+#endif /* RISCV_EXAMPLE_SOC_H */
