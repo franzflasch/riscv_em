@@ -59,6 +59,7 @@ typedef struct rv_core_struct rv_core_td;
 typedef struct rv_core_struct
 {
     privilege_level curr_priv_mode;
+    uint64_t curr_cycle;
 
     /* Registers */
     rv_uint_xlen x[NR_RVI_REGS];

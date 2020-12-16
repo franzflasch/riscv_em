@@ -2,25 +2,33 @@
 #define RISCV_INSTR_H
 
 /* R-Type Instructions */
-#define INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND 0x33
-    #define FUNC3_INSTR_ADD_SUB 0x0
+#define INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_MUL_MULH_MULHSU_MULHU_DIV_DIVU_REM_REMU 0x33
+    #define FUNC3_INSTR_ADD_SUB_MUL 0x0
         #define FUNC7_INSTR_ADD 0x00
+        #define FUNC7_INSTR_MUL 0x01
         #define FUNC7_INSTR_SUB 0x20
-    #define FUNC3_INSTR_SLL 0x1
+    #define FUNC3_INSTR_SLL_MULH 0x1
         #define FUNC7_INSTR_SLL 0x00
-    #define FUNC3_INSTR_SLT 0x2
+        #define FUNC7_INSTR_MULH 0x01
+    #define FUNC3_INSTR_SLT_MULHSU 0x2
         #define FUNC7_INSTR_SLT 0x00
-    #define FUNC3_INSTR_SLTU 0x3
+        #define FUNC7_INSTR_MULHSU 0x01
+    #define FUNC3_INSTR_SLTU_MULHU 0x3
         #define FUNC7_INSTR_SLTU 0x00
-    #define FUNC3_INSTR_XOR 0x4
+        #define FUNC7_INSTR_MULHU 0x01
+    #define FUNC3_INSTR_XOR_DIV 0x4
         #define FUNC7_INSTR_XOR 0x00
-    #define FUNC3_INSTR_SRL_SRA 0x5
+        #define FUNC7_INSTR_DIV 0x01
+    #define FUNC3_INSTR_SRL_SRA_DIVU 0x5
         #define FUNC7_INSTR_SRL 0x00
         #define FUNC7_INSTR_SRA 0x20
-    #define FUNC3_INSTR_OR 0x6
+        #define FUNC7_INSTR_DIVU 0x01
+    #define FUNC3_INSTR_OR_REM 0x6
         #define FUNC7_INSTR_OR 0x00
-    #define FUNC3_INSTR_AND 0x7
+        #define FUNC7_INSTR_REM 0x01
+    #define FUNC3_INSTR_AND_REMU 0x7
         #define FUNC7_INSTR_AND 0x00
+        #define FUNC7_INSTR_REMU 0x01
 
 /* I-Type Instructions */
 #define INSTR_JALR 0x67
@@ -93,7 +101,6 @@
 
 #define INSTR_ADDIW_SLLIW_SRLIW_SRAIW 0x1B
     #define FUNC3_INSTR_SLLIW 0x1
-        #define FUNC7_INSTR_SLLIW 0x0
     #define FUNC3_INSTR_SRLIW_SRAIW 0x5
         #define FUNC7_INSTR_SRLIW 0x0
         #define FUNC7_INSTR_SRAIW 0x20
@@ -104,25 +111,24 @@
         #define FUNC7_INSTR_ADDW 0x0
         #define FUNC7_INSTR_SUBW 0x20
     #define FUNC3_INSTR_SLLW 0x1
-        #define FUNC7_INSTR_SLLW 0x0
     #define FUNC3_INSTR_SRLW_SRAW 0x5
         #define FUNC7_INSTR_SRLW 0x0
         #define FUNC7_INSTR_SRAW 0x20
 
 /* Atomic Instructions */
 #define INSTR_AMO_W_D_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU 0x2F
-    #define FUNC3_W_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU 0x2
-    #define FUNC3_D_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU 0x3
-        #define FUNC5_AMO_LR 0x2
-        #define FUNC5_AMO_SC 0x3
-        #define FUNC5_AMO_SWAP 0x1
-        #define FUNC5_AMO_ADD 0x0
-        #define FUNC5_AMO_XOR 0x4
-        #define FUNC5_AMO_AND 0xC
-        #define FUNC5_AMO_OR 0x8
-        #define FUNC5_AMO_MIN 0x10
-        #define FUNC5_AMO_MAX 0x14
-        #define FUNC5_AMO_MINU 0x18
-        #define FUNC5_AMO_MAXU 0x1C
+    #define FUNC3_INSTR_W_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU 0x2
+    #define FUNC3_INSTR_D_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU 0x3
+        #define FUNC5_INSTR_AMO_LR 0x2
+        #define FUNC5_INSTR_AMO_SC 0x3
+        #define FUNC5_INSTR_AMO_SWAP 0x1
+        #define FUNC5_INSTR_AMO_ADD 0x0
+        #define FUNC5_INSTR_AMO_XOR 0x4
+        #define FUNC5_INSTR_AMO_AND 0xC
+        #define FUNC5_INSTR_AMO_OR 0x8
+        #define FUNC5_INSTR_AMO_MIN 0x10
+        #define FUNC5_INSTR_AMO_MAX 0x14
+        #define FUNC5_INSTR_AMO_MINU 0x18
+        #define FUNC5_INSTR_AMO_MAXU 0x1C
 
 #endif /* RISCV_INSTR_H */

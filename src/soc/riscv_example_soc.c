@@ -60,17 +60,13 @@ static rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address, int *err)
                 tmp_addr = address - rv_soc->mem_access_cbs[i].addr_start;
                 rv_soc->mem_access_cbs[i].read(rv_soc->mem_access_cbs[i].priv, tmp_addr, &read_val);
                 *err = RV_CORE_E_OK;
-                break;
+                return read_val;
             }
-        }
-        else
-        {
-            DEBUG_PRINT("Invalid Address, or no valid read pointer found, read not executed!: "PRINTF_FMT"\n", address);
-            break;
         }
     }
 
-    return read_val;
+    die_msg("Invalid Address, or no valid read pointer found, read not executed!: "PRINTF_FMT" %ld "PRINTF_FMT"\n", address, rv_soc->rv_core0.curr_cycle, rv_soc->rv_core0.pc);
+    return 0;
 }
 
 static void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes)
@@ -87,16 +83,12 @@ static void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen valu
             {
                 tmp_addr = address - rv_soc->mem_access_cbs[i].addr_start;
                 rv_soc->mem_access_cbs[i].write(rv_soc->mem_access_cbs[i].priv, tmp_addr, value, nr_bytes);
-                break;
+                return;
             }
-        }
-        else
-        {
-            DEBUG_PRINT("Invalid Address, or no valid write pointer found, write not executed!: "PRINTF_FMT"\n", address);
-            break;
         }
     }
 
+    die_msg("Invalid Address, or no valid write pointer found, write not executed!: "PRINTF_FMT" %ld "PRINTF_FMT"\n", address, rv_soc->rv_core0.curr_cycle, rv_soc->rv_core0.pc);
     return;
 }
 

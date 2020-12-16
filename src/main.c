@@ -9,7 +9,6 @@ int main(int argc, char *argv[])
 {
     uint32_t success_pc = 0;
     uint64_t num_cycles = 0;
-    uint64_t curr_cycle = 0;
 
     if(argc < 2)
     {
@@ -50,9 +49,7 @@ int main(int argc, char *argv[])
         if((rv_soc.rv_core0.pc == (success_pc)))
             break;
 
-        if((num_cycles != 0) && (curr_cycle >= num_cycles))
+        if((num_cycles != 0) && (rv_soc.rv_core0.curr_cycle >= num_cycles))
             break;
-
-        curr_cycle++;
     }
 }

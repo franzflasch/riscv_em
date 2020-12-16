@@ -1,11 +1,12 @@
 #ifndef RISCV_CONFIG_H
 #define RISCV_CONFIG_H
 
-// #define DEBUG
+#define DEBUG
 
 #define RV64
 #define CSR_SUPPORT
 #define ATOMIC_SUPPORT
+#define MULTIPLY_SUPPORT
 
 #define RAM_BASE_ADDR 0x80000000
 #define RAM_SIZE_BYTES 0x800000
