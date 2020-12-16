@@ -73,6 +73,7 @@ typedef struct rv_core_struct
     uint8_t func3;
     uint8_t func7;
     uint8_t func6;
+    uint8_t func5;
     uint16_t func12;
     rv_uint_xlen immediate;
     rv_uint_xlen jump_offset;
@@ -100,6 +101,9 @@ typedef struct rv_core_struct
     rv_uint_xlen *mip;
 
     clint_td clint;
+
+    int lr_valid;
+    rv_uint_xlen lr_address;
 
 } rv_core_td;
 

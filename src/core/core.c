@@ -506,8 +506,6 @@ static void instr_SW(rv_core_td *rv_core)
     {
         rv_uint_xlen csr_val = 0;
 
-        // printf("CSR: " PRINTF_FMT "\n", rv_core->immediate);
-
         if(read_csr_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
 
@@ -615,11 +613,327 @@ static void instr_SW(rv_core_td *rv_core)
         /* not implemented */
         (void)rv_core;
     }
+#endif
 
-    static void preparation_func12(rv_core_td *rv_core, int32_t *next_subcode)
+#ifdef ATOMIC_SUPPORT
+    static void instr_LR_W(rv_core_td *rv_core)
     {
-        rv_core->func12 = ((rv_core->instruction >> 20) & 0x0FFF);
-        *next_subcode = rv_core->func12;
+        instr_LW(rv_core);
+        rv_core->lr_valid = 1;
+        rv_core->lr_address = rv_core->x[rv_core->rs1];
+    }
+
+    static void instr_SC_W(rv_core_td *rv_core)
+    {
+        if(rv_core->lr_valid && (rv_core->lr_address == rv_core->x[rv_core->rs1]))
+        {
+            instr_SW(rv_core);
+            rv_core->x[rv_core->rd] = 0;
+        }
+        else
+        {
+            rv_core->x[rv_core->rd] = 1;
+        }
+        
+        rv_core->lr_valid = 0;
+        rv_core->lr_address = 0;
+    }
+
+    static void instr_AMOSWAP_W(rv_core_td *rv_core)
+    {
+        uint32_t rs2_val = rv_core->x[rv_core->rs2];
+        uint32_t result = 0;
+
+        instr_LW(rv_core);
+        result = rs2_val;
+
+        rv_uint_xlen address = rv_core->x[rv_core->rs1];
+        rv_core->write_mem(rv_core->priv, address, result, 4);
+    }
+
+    static void instr_AMOADD_W(rv_core_td *rv_core)
+    {
+        uint32_t rd_val = 0;
+        uint32_t rs2_val = rv_core->x[rv_core->rs2];
+        uint32_t result = 0;
+
+        instr_LW(rv_core);
+        rd_val = rv_core->x[rv_core->rd];
+        result = rd_val + rs2_val;
+
+        rv_uint_xlen address = rv_core->x[rv_core->rs1];
+        rv_core->write_mem(rv_core->priv, address, result, 4);
+    }
+
+    static void instr_AMOXOR_W(rv_core_td *rv_core)
+    {
+        uint32_t rd_val = 0;
+        uint32_t rs2_val = rv_core->x[rv_core->rs2];
+        uint32_t result = 0;
+
+        instr_LW(rv_core);
+        rd_val = rv_core->x[rv_core->rd];
+        result = rd_val ^ rs2_val;
+
+        rv_uint_xlen address = rv_core->x[rv_core->rs1];
+        rv_core->write_mem(rv_core->priv, address, result, 4);
+    }
+
+    static void instr_AMOAND_W(rv_core_td *rv_core)
+    {
+        uint32_t rd_val = 0;
+        uint32_t rs2_val = rv_core->x[rv_core->rs2];
+        uint32_t result = 0;
+
+        instr_LW(rv_core);
+        rd_val = rv_core->x[rv_core->rd];
+        result = rd_val & rs2_val;
+
+        rv_uint_xlen address = rv_core->x[rv_core->rs1];
+        rv_core->write_mem(rv_core->priv, address, result, 4);
+    }
+
+    static void instr_AMOOR_W(rv_core_td *rv_core)
+    {
+        uint32_t rd_val = 0;
+        uint32_t rs2_val = rv_core->x[rv_core->rs2];
+        uint32_t result = 0;
+
+        instr_LW(rv_core);
+        rd_val = rv_core->x[rv_core->rd];
+        result = rd_val | rs2_val;
+
+        rv_uint_xlen address = rv_core->x[rv_core->rs1];
+        rv_core->write_mem(rv_core->priv, address, result, 4);
+    }
+
+    static void instr_AMOMIN_W(rv_core_td *rv_core)
+    {
+        int32_t rd_val = 0;
+        int32_t rs2_val = rv_core->x[rv_core->rs2];
+        rv_uint_xlen result = 0;
+
+        instr_LW(rv_core);
+
+        rd_val = rv_core->x[rv_core->rd];
+        result = ASSIGN_MIN(rd_val, rs2_val);
+
+        rv_uint_xlen address = rv_core->x[rv_core->rs1];
+        rv_core->write_mem(rv_core->priv, address, result, 4);
+    }
+
+    static void instr_AMOMAX_W(rv_core_td *rv_core)
+    {
+        int32_t rd_val = 0;
+        int32_t rs2_val = rv_core->x[rv_core->rs2];
+        rv_uint_xlen result = 0;
+
+        instr_LW(rv_core);
+
+        rd_val = rv_core->x[rv_core->rd];
+        result = ASSIGN_MAX(rd_val, rs2_val);
+
+        rv_uint_xlen address = rv_core->x[rv_core->rs1];
+        rv_core->write_mem(rv_core->priv, address, result, 4);
+    }
+
+    static void instr_AMOMINU_W(rv_core_td *rv_core)
+    {
+        uint32_t rd_val = 0;
+        uint32_t rs2_val = rv_core->x[rv_core->rs2];
+        rv_uint_xlen result = 0;
+
+        instr_LW(rv_core);
+
+        rd_val = rv_core->x[rv_core->rd];
+        result = ASSIGN_MIN(rd_val, rs2_val);
+
+        rv_uint_xlen address = rv_core->x[rv_core->rs1];
+        rv_core->write_mem(rv_core->priv, address, result, 4);
+    }
+
+    static void instr_AMOMAXU_W(rv_core_td *rv_core)
+    {
+        uint32_t rd_val = 0;
+        uint32_t rs2_val = rv_core->x[rv_core->rs2];
+        rv_uint_xlen result = 0;
+
+        instr_LW(rv_core);
+
+        rd_val = rv_core->x[rv_core->rd];
+        result = ASSIGN_MAX(rd_val, rs2_val);
+
+        rv_uint_xlen address = rv_core->x[rv_core->rs1];
+        rv_core->write_mem(rv_core->priv, address, result, 4);
+    }
+
+    #ifdef RV64
+        static void instr_LR_D(rv_core_td *rv_core)
+        {
+            instr_LD(rv_core);
+            rv_core->lr_valid = 1;
+            rv_core->lr_address = rv_core->x[rv_core->rs1];
+        }
+
+        static void instr_SC_D(rv_core_td *rv_core)
+        {
+            if(rv_core->lr_valid && (rv_core->lr_address == rv_core->x[rv_core->rs1]))
+            {
+                instr_SD(rv_core);
+                rv_core->x[rv_core->rd] = 0;
+            }
+            else
+            {
+                rv_core->x[rv_core->rd] = 1;
+            }
+            
+            rv_core->lr_valid = 0;
+            rv_core->lr_address = 0;
+        }
+
+        static void instr_AMOSWAP_D(rv_core_td *rv_core)
+        {
+            rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
+            rv_uint_xlen result = 0;
+
+            instr_LD(rv_core);
+            result = rs2_val;
+
+            rv_uint_xlen address = rv_core->x[rv_core->rs1];
+            rv_core->write_mem(rv_core->priv, address, result, 8);
+        }
+
+        static void instr_AMOADD_D(rv_core_td *rv_core)
+        {
+            rv_uint_xlen rd_val = 0;
+            rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
+            rv_uint_xlen result = 0;
+
+            instr_LD(rv_core);
+            rd_val = rv_core->x[rv_core->rd];
+            result = rd_val + rs2_val;
+
+            rv_uint_xlen address = rv_core->x[rv_core->rs1];
+            rv_core->write_mem(rv_core->priv, address, result, 8);
+        }
+
+        static void instr_AMOXOR_D(rv_core_td *rv_core)
+        {
+            rv_uint_xlen rd_val = 0;
+            rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
+            rv_uint_xlen result = 0;
+
+            instr_LD(rv_core);
+            rd_val = rv_core->x[rv_core->rd];
+            result = rd_val ^ rs2_val;
+
+            rv_uint_xlen address = rv_core->x[rv_core->rs1];
+            rv_core->write_mem(rv_core->priv, address, result, 8);
+        }
+
+        static void instr_AMOAND_D(rv_core_td *rv_core)
+        {
+            rv_uint_xlen rd_val = 0;
+            rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
+            rv_uint_xlen result = 0;
+
+            instr_LD(rv_core);
+            rd_val = rv_core->x[rv_core->rd];
+            result = rd_val & rs2_val;
+
+            rv_uint_xlen address = rv_core->x[rv_core->rs1];
+            rv_core->write_mem(rv_core->priv, address, result, 8);
+        }
+
+        static void instr_AMOOR_D(rv_core_td *rv_core)
+        {
+            rv_uint_xlen rd_val = 0;
+            rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
+            rv_uint_xlen result = 0;
+
+            instr_LD(rv_core);
+            rd_val = rv_core->x[rv_core->rd];
+            result = rd_val | rs2_val;
+
+            rv_uint_xlen address = rv_core->x[rv_core->rs1];
+            rv_core->write_mem(rv_core->priv, address, result, 8);
+        }
+
+        static void instr_AMOMIN_D(rv_core_td *rv_core)
+        {
+            rv_int_xlen rd_val = 0;
+            rv_int_xlen rs2_val = rv_core->x[rv_core->rs2];
+            rv_uint_xlen result = 0;
+
+            instr_LD(rv_core);
+
+            rd_val = rv_core->x[rv_core->rd];
+            result = ASSIGN_MIN(rd_val, rs2_val);
+
+            rv_uint_xlen address = rv_core->x[rv_core->rs1];
+            rv_core->write_mem(rv_core->priv, address, result, 8);
+        }
+
+        static void instr_AMOMAX_D(rv_core_td *rv_core)
+        {
+            rv_int_xlen rd_val = 0;
+            rv_int_xlen rs2_val = rv_core->x[rv_core->rs2];
+            rv_uint_xlen result = 0;
+
+            instr_LD(rv_core);
+
+            rd_val = rv_core->x[rv_core->rd];
+            result = ASSIGN_MAX(rd_val, rs2_val);
+
+            rv_uint_xlen address = rv_core->x[rv_core->rs1];
+            rv_core->write_mem(rv_core->priv, address, result, 8);
+        }
+
+        static void instr_AMOMINU_D(rv_core_td *rv_core)
+        {
+            rv_uint_xlen rd_val = 0;
+            rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
+            rv_uint_xlen result = 0;
+
+            instr_LD(rv_core);
+
+            rd_val = rv_core->x[rv_core->rd];
+            result = ASSIGN_MIN(rd_val, rs2_val);
+
+            rv_uint_xlen address = rv_core->x[rv_core->rs1];
+            rv_core->write_mem(rv_core->priv, address, result, 8);
+        }
+
+        static void instr_AMOMAXU_D(rv_core_td *rv_core)
+        {
+            rv_uint_xlen rd_val = 0;
+            rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
+            rv_uint_xlen result = 0;
+
+            instr_LD(rv_core);
+
+            rd_val = rv_core->x[rv_core->rd];
+            result = ASSIGN_MAX(rd_val, rs2_val);
+
+            rv_uint_xlen address = rv_core->x[rv_core->rs1];
+            rv_core->write_mem(rv_core->priv, address, result, 8);
+        }
+    #endif
+#endif
+
+#ifdef ATOMIC_SUPPORT
+    static void preparation_func5(rv_core_td *rv_core, int32_t *next_subcode)
+    {
+        rv_core->func5 = ((rv_core->instruction >> 27) & 0x1F);
+        *next_subcode = rv_core->func5;
+    }
+#endif
+
+#ifdef RV64
+    static void preparation_func6(rv_core_td *rv_core, int32_t *next_subcode)
+    {
+        rv_core->func6 = ((rv_core->instruction >> 26) & 0x3F);
+        *next_subcode = rv_core->func6;
     }
 #endif
 
@@ -629,11 +943,11 @@ static void preparation_func7(rv_core_td *rv_core, int32_t *next_subcode)
     *next_subcode = rv_core->func7;
 }
 
-#ifdef RV64
-    static void preparation_func6(rv_core_td *rv_core, int32_t *next_subcode)
+#ifdef CSR_SUPPORT
+    static void preparation_func12(rv_core_td *rv_core, int32_t *next_subcode)
     {
-        rv_core->func6 = ((rv_core->instruction >> 26) & 0x3F);
-        *next_subcode = rv_core->func6;
+        rv_core->func12 = ((rv_core->instruction >> 20) & 0x0FFF);
+        *next_subcode = rv_core->func12;
     }
 #endif
 
@@ -717,7 +1031,6 @@ static instruction_hook_td LB_LH_LW_LBU_LHU_LWU_LD_func3_subcode_list[] = {
     [FUNC3_INSTR_LW] = {NULL, instr_LW, NULL},
     [FUNC3_INSTR_LBU] = {NULL, instr_LBU, NULL},
     [FUNC3_INSTR_LHU] = {NULL, instr_LHU, NULL},
-
     #ifdef RV64
         [FUNC3_INSTR_LWU] = {NULL, instr_LWU, NULL},
         [FUNC3_INSTR_LD] = {NULL, instr_LD, NULL},
@@ -885,6 +1198,48 @@ INIT_INSTRUCTION_LIST_DESC(ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode
     INIT_INSTRUCTION_LIST_DESC(ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI_func3_subcode_list);
 #endif
 
+#ifdef ATOMIC_SUPPORT
+    static instruction_hook_td W_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU_func5_subcode_list[] = {
+        [FUNC5_AMO_LR] = {NULL, instr_LR_W, NULL},
+        [FUNC5_AMO_SC] = {NULL, instr_SC_W, NULL},
+        [FUNC5_AMO_SWAP] = {NULL, instr_AMOSWAP_W, NULL},
+        [FUNC5_AMO_ADD] = {NULL, instr_AMOADD_W, NULL},
+        [FUNC5_AMO_XOR] = {NULL, instr_AMOXOR_W, NULL},
+        [FUNC5_AMO_AND] = {NULL, instr_AMOAND_W, NULL},
+        [FUNC5_AMO_OR] = {NULL, instr_AMOOR_W, NULL},
+        [FUNC5_AMO_MIN] = {NULL, instr_AMOMIN_W, NULL},
+        [FUNC5_AMO_MAX] = {NULL, instr_AMOMAX_W, NULL},
+        [FUNC5_AMO_MINU] = {NULL, instr_AMOMINU_W, NULL},
+        [FUNC5_AMO_MAXU] = {NULL, instr_AMOMAXU_W, NULL},
+    };
+    INIT_INSTRUCTION_LIST_DESC(W_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU_func5_subcode_list);
+
+    #ifdef RV64
+        static instruction_hook_td D_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU_func5_subcode_list[] = {
+            [FUNC5_AMO_LR] = {NULL, instr_LR_D, NULL},
+            [FUNC5_AMO_SC] = {NULL, instr_SC_D, NULL},
+            [FUNC5_AMO_SWAP] = {NULL, instr_AMOSWAP_D, NULL},
+            [FUNC5_AMO_ADD] = {NULL, instr_AMOADD_D, NULL},
+            [FUNC5_AMO_XOR] = {NULL, instr_AMOXOR_D, NULL},
+            [FUNC5_AMO_AND] = {NULL, instr_AMOAND_D, NULL},
+            [FUNC5_AMO_OR] = {NULL, instr_AMOOR_D, NULL},
+            [FUNC5_AMO_MIN] = {NULL, instr_AMOMIN_D, NULL},
+            [FUNC5_AMO_MAX] = {NULL, instr_AMOMAX_D, NULL},
+            [FUNC5_AMO_MINU] = {NULL, instr_AMOMINU_D, NULL},
+            [FUNC5_AMO_MAXU] = {NULL, instr_AMOMAXU_D, NULL},
+        };
+        INIT_INSTRUCTION_LIST_DESC(D_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU_func5_subcode_list);
+    #endif
+
+    static instruction_hook_td W_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU_func3_subcode_list[] = {
+        [FUNC3_W_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU] = {preparation_func5, NULL, &W_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU_func5_subcode_list_desc},
+        #ifdef RV64
+            [FUNC3_D_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU] = {preparation_func5, NULL, &D_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU_func5_subcode_list_desc},
+        #endif
+    };
+    INIT_INSTRUCTION_LIST_DESC(W_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU_func3_subcode_list);
+#endif
+
 static instruction_hook_td RV_opcode_list[] = {
     [INSTR_LUI] = {U_type_preparation, instr_LUI, NULL},
     [INSTR_AUIPC] = {U_type_preparation, instr_AUIPC, NULL},
@@ -897,13 +1252,17 @@ static instruction_hook_td RV_opcode_list[] = {
     [INSTR_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND] = {R_type_preparation, NULL, &ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode_list_desc},
     [INSTR_FENCE_FENCE_I] = {NULL, instr_NOP, NULL}, /* Not implemented */
 
+    #ifdef RV64
+        [INSTR_ADDIW_SLLIW_SRLIW_SRAIW] = {I_type_preparation, NULL, &SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list_desc},
+        [INSTR_ADDW_SUBW_SLLW_SRLW_SRAW] = {R_type_preparation, NULL, &ADDW_SUBW_SLLW_SRLW_SRAW_func3_subcode_list_desc},
+    #endif
+
     #ifdef CSR_SUPPORT
         [INSTR_ECALL_EBREAK_MRET_SRET_URET_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI] = {I_type_preparation, NULL, &ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI_func3_subcode_list_desc},
     #endif
 
-    #ifdef RV64
-        [INSTR_ADDIW_SLLIW_SRLIW_SRAIW] = {I_type_preparation, NULL, &SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list_desc},
-        [INSTR_ADDW_SUBW_SLLW_SRLW_SRAW] = {R_type_preparation, NULL, &ADDW_SUBW_SLLW_SRLW_SRAW_func3_subcode_list_desc},
+    #ifdef ATOMIC_SUPPORT
+        [INSTR_AMO_W_D_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU] = {R_type_preparation, NULL, &W_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU_func3_subcode_list_desc},
     #endif
 };
 INIT_INSTRUCTION_LIST_DESC(RV_opcode_list);

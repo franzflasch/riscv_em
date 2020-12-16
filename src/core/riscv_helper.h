@@ -32,4 +32,7 @@ static inline void assign_xlen_bit(rv_uint_xlen *out_var, rv_uint_xlen nbit, rv_
 
 #define ADDR_WITHIN(_addr, _start, size) ( (_addr >= _start) && (_addr < _start + size) )
 
+#define ASSIGN_MIN(a,b) (((a)<(b))?(a):(b))
+#define ASSIGN_MAX(a,b) (((a)>(b))?(a):(b))
+
 #endif /* RISCV_HELPER_H */

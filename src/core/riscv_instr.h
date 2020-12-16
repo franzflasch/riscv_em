@@ -109,4 +109,20 @@
         #define FUNC7_INSTR_SRLW 0x0
         #define FUNC7_INSTR_SRAW 0x20
 
+/* Atomic Instructions */
+#define INSTR_AMO_W_D_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU 0x2F
+    #define FUNC3_W_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU 0x2
+    #define FUNC3_D_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU 0x3
+        #define FUNC5_AMO_LR 0x2
+        #define FUNC5_AMO_SC 0x3
+        #define FUNC5_AMO_SWAP 0x1
+        #define FUNC5_AMO_ADD 0x0
+        #define FUNC5_AMO_XOR 0x4
+        #define FUNC5_AMO_AND 0xC
+        #define FUNC5_AMO_OR 0x8
+        #define FUNC5_AMO_MIN 0x10
+        #define FUNC5_AMO_MAX 0x14
+        #define FUNC5_AMO_MINU 0x18
+        #define FUNC5_AMO_MAXU 0x1C
+
 #endif /* RISCV_INSTR_H */
