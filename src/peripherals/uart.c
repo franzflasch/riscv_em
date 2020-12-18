@@ -51,8 +51,8 @@ int uart_write(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint
         case REG_TX:
             putchar((char) val);
         break;
-        default:
-            die_msg("UART: Reg " PRINTF_FMT " not supported yet!\n", address_internal);
+        // default:
+        //     die_msg("UART: Reg " PRINTF_FMT " not supported yet!\n", address_internal);
     }
 
     return RV_MEM_ACCESS_OK;
@@ -63,6 +63,8 @@ int uart_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
     (void) priv;
     (void) address_internal;
     (void) outval;
-    die_msg("UART READ currently not supported!\n");
+    /* just for testing */
+    *outval = 0x60;
+    // die_msg("UART READ currently not supported!\n");
     return RV_MEM_ACCESS_OK;
 }

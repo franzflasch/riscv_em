@@ -9,37 +9,40 @@
 
 #include <uart.h>
 
-#define INIT_MEM_ACCESS_STRUCT(_ref, _entry, _read_func, _write_func, _priv, _addr_start, _mem_size) \
+#define INIT_MEM_ACCESS_STRUCT(_ref_rv_soc, _entry, _read_func, _write_func, _priv, _addr_start, _mem_size) \
 { \
     size_t _tmp_count = _entry; \
-    _ref[_tmp_count].read = _read_func; \
-    _ref[_tmp_count].write = _write_func; \
-    _ref[_tmp_count].priv = _priv; \
-    _ref[_tmp_count].addr_start = _addr_start; \
-    _ref[_tmp_count].mem_size = _mem_size; \
+    if(_tmp_count >= (sizeof(_ref_rv_soc->mem_access_cbs)/sizeof(_ref_rv_soc->mem_access_cbs[0]))) \
+        die_msg("No mem access pointer available for entry nr %d, please increase mem_access_cbs!\n", _entry); \
+    _ref_rv_soc->mem_access_cbs[_tmp_count].read = _read_func; \
+    _ref_rv_soc->mem_access_cbs[_tmp_count].write = _write_func; \
+    _ref_rv_soc->mem_access_cbs[_tmp_count].priv = _priv; \
+    _ref_rv_soc->mem_access_cbs[_tmp_count].addr_start = _addr_start; \
+    _ref_rv_soc->mem_access_cbs[_tmp_count].mem_size = _mem_size; \
 }
 
-static int read_ram(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
+static int read_memory(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
 {
-    uint8_t *ram_ptr = priv;
-    rv_uint_xlen *xlen_ptr = (rv_uint_xlen *)&ram_ptr[address_internal];
+    uint8_t *mem_ptr = priv;
+    rv_uint_xlen *xlen_ptr = (rv_uint_xlen *)&mem_ptr[address_internal];
     *outval = *xlen_ptr;
     return RV_MEM_ACCESS_OK;
 }
 
-static int write_ram(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint8_t nr_bytes)
+static int write_memory(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint8_t nr_bytes)
 {
-    uint8_t *ram_ptr = priv;
-    memcpy(&ram_ptr[address_internal], &val, nr_bytes);
+    uint8_t *mem_ptr = priv;
+    memcpy(&mem_ptr[address_internal], &val, nr_bytes);
     return RV_MEM_ACCESS_OK;
 }
 
 static void rv_soc_init_mem_acces_cbs(rv_soc_td *rv_soc)
 {
     int count = 0;
-    INIT_MEM_ACCESS_STRUCT(rv_soc->mem_access_cbs, count++, read_ram, write_ram, rv_soc->ram, RAM_BASE_ADDR, RAM_SIZE_BYTES);
-    INIT_MEM_ACCESS_STRUCT(rv_soc->mem_access_cbs, count++, read_clint_reg, write_clint_reg, &rv_soc->rv_core0.clint, CLINT_BASE_ADDR, CLINT_SIZE_BYTES);
-    INIT_MEM_ACCESS_STRUCT(rv_soc->mem_access_cbs, count++, uart_read, uart_write, NULL, UART_TX_REG_ADDR, 1);
+    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, read_memory, write_memory, rv_soc->ram, RAM_BASE_ADDR, RAM_SIZE_BYTES);
+    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, read_clint_reg, write_clint_reg, &rv_soc->rv_core0.clint, CLINT_BASE_ADDR, CLINT_SIZE_BYTES);
+    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, uart_read, uart_write, NULL, UART_TX_REG_ADDR, 20);
+    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, read_memory, write_memory, rv_soc->mrom, MROM_BASE_ADDR, MROM_SIZE_BYTES);
 }
 
 static rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address, int *err)
@@ -104,9 +107,11 @@ void rv_soc_dump_mem(rv_soc_td *rv_soc)
 
 void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name)
 {
-    static uint8_t __attribute__((aligned (4))) soc_ram[RAM_SIZE_BYTES];
+    static uint8_t __attribute__((aligned (4))) soc_mrom[MROM_SIZE_BYTES] = { 0 };
+    static uint8_t __attribute__((aligned (4))) soc_ram[RAM_SIZE_BYTES] = { 0 };
 
     memset(rv_soc, 0, sizeof(rv_soc_td));
+    rv_soc->mrom = soc_mrom;
     rv_soc->ram = soc_ram;
 
     FILE * p_fw_file = NULL;

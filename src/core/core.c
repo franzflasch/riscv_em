@@ -67,6 +67,7 @@ static void instr_JAL(rv_core_td *rv_core)
     }
 
     rv_core->next_pc = rv_core->pc + rv_core->jump_offset;
+    // printf("%lx %lx %lx\n", rv_core->pc, rv_core->jump_offset, rv_core->next_pc);
 }
 
 static void instr_JALR(rv_core_td *rv_core)
@@ -1000,7 +1001,9 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_MUL(rv_core_td *rv_core)
     {
-        rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] * rv_core->x[rv_core->rs2];
+        rv_int_xlen signed_rs = rv_core->x[rv_core->rs1];
+        rv_int_xlen signed_rs2 = rv_core->x[rv_core->rs2];
+        rv_core->x[rv_core->rd] = signed_rs * signed_rs2;
     }
 
     static void instr_MULH(rv_core_td *rv_core)
@@ -1026,6 +1029,103 @@ static void instr_SW(rv_core_td *rv_core)
         MULHSU(rv_core->x[rv_core->rs1], rv_core->x[rv_core->rs2], &result_hi, &result_lo);
         rv_core->x[rv_core->rd] = result_hi;
     }
+
+    #ifdef RV64
+        static void instr_MULW(rv_core_td *rv_core)
+        {
+            int32_t signed_rs = rv_core->x[rv_core->rs1];
+            int32_t signed_rs2 = rv_core->x[rv_core->rs2];
+            int32_t result = signed_rs * signed_rs2;
+            rv_core->x[rv_core->rd] = SIGNEX(result, 31);
+        }
+
+        static void instr_DIVW(rv_core_td *rv_core)
+        {
+            int32_t signed_rs = rv_core->x[rv_core->rs1];
+            int32_t signed_rs2 = rv_core->x[rv_core->rs2];
+            int32_t result = 0;
+
+            /* division by zero */
+            if(signed_rs2 == 0)
+            {
+                rv_core->x[rv_core->rd] = -1;
+                return;
+            }
+            
+            /* overflow */
+            if((signed_rs == INT32_MIN) && (signed_rs2 == -1))
+            {
+                rv_core->x[rv_core->rd] = INT32_MIN;
+                return;
+            }
+
+            result = (signed_rs/signed_rs2);
+
+            rv_core->x[rv_core->rd] = SIGNEX(result, 31);
+        }
+
+        static void instr_DIVUW(rv_core_td *rv_core)
+        {
+            uint32_t unsigned_rs = rv_core->x[rv_core->rs1];
+            uint32_t unsigned_rs2 = rv_core->x[rv_core->rs2];
+            uint32_t result = 0;
+
+            /* division by zero */
+            if(unsigned_rs2 == 0)
+            {
+                rv_core->x[rv_core->rd] = -1;
+                return;
+            }
+
+            result = (unsigned_rs/unsigned_rs2);
+
+            rv_core->x[rv_core->rd] = SIGNEX(result, 31);
+        }
+
+        static void instr_REMW(rv_core_td *rv_core)
+        {
+            int32_t signed_rs = rv_core->x[rv_core->rs1];
+            int32_t signed_rs2 = rv_core->x[rv_core->rs2];
+            int32_t result = 0;
+
+            /* division by zero */
+            if(signed_rs2 == 0)
+            {
+                rv_core->x[rv_core->rd] = SIGNEX(signed_rs, 31);
+                return;
+            }
+
+            /* overflow */
+            if((signed_rs == INT32_MIN) && (signed_rs2 == -1))
+            {
+                rv_core->x[rv_core->rd] = 0;
+                return;
+            }
+
+            result = (signed_rs%signed_rs2);
+
+            rv_core->x[rv_core->rd] = SIGNEX(result, 31);
+        }
+
+        static void instr_REMUW(rv_core_td *rv_core)
+        {
+            uint32_t unsigned_rs = rv_core->x[rv_core->rs1];
+            uint32_t unsigned_rs2 = rv_core->x[rv_core->rs2];
+            uint32_t result = 0;
+
+            /* division by zero */
+            if(unsigned_rs2 == 0)
+            {
+                rv_core->x[rv_core->rd] = SIGNEX(unsigned_rs, 31);
+                return;
+            }
+
+            result = (unsigned_rs%unsigned_rs2);
+
+            rv_core->x[rv_core->rd] = SIGNEX(result, 31);
+        }
+    #endif
+
 #endif
 
 #ifdef ATOMIC_SUPPORT
@@ -1111,9 +1211,10 @@ static void J_type_preparation(rv_core_td *rv_core, int32_t *next_subcode)
     rv_core->rd = ((rv_core->instruction >> 7) & 0x1F);
     rv_core->jump_offset=((extract32(rv_core->instruction, 21, 10) << 1) |
                           (extract32(rv_core->instruction, 20, 1) << 11) |
-                          (extract32(rv_core->instruction, 12, 8) << 12) );
+                          (extract32(rv_core->instruction, 12, 8) << 12) |
+                          (extract32(rv_core->instruction, 31, 1) << 20));
     /* sign extend the 20 bit number */
-    rv_core->jump_offset = SIGNEX(rv_core->jump_offset, 19);
+    rv_core->jump_offset = SIGNEX(rv_core->jump_offset, 20);
     *next_subcode = -1;
 }
 
@@ -1277,24 +1378,35 @@ INIT_INSTRUCTION_LIST_DESC(ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode
     };
     INIT_INSTRUCTION_LIST_DESC(SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list);
 
-    static instruction_hook_td SRLW_SRAW_func7_subcode_list[] = {
+    static instruction_hook_td SRLW_SRAW_DIVUW_func7_subcode_list[] = {
         [FUNC7_INSTR_SRLW] = {NULL, instr_SRLW, NULL},
         [FUNC7_INSTR_SRAW] = {NULL, instr_SRAW, NULL},
+        #ifdef MULTIPLY_SUPPORT
+            [FUNC7_INSTR_DIVUW] = {NULL, instr_DIVUW, NULL},
+        #endif
     };
-    INIT_INSTRUCTION_LIST_DESC(SRLW_SRAW_func7_subcode_list);
+    INIT_INSTRUCTION_LIST_DESC(SRLW_SRAW_DIVUW_func7_subcode_list);
 
-    static instruction_hook_td ADDW_SUBW_func7_subcode_list[] = {
+    static instruction_hook_td ADDW_SUBW_MULW_func7_subcode_list[] = {
         [FUNC7_INSTR_ADDW] = {NULL, instr_ADDW, NULL},
         [FUNC7_INSTR_SUBW] = {NULL, instr_SUBW, NULL},
+        #ifdef MULTIPLY_SUPPORT
+            [FUNC7_INSTR_MULW] = {NULL, instr_MULW, NULL},
+        #endif
     };
-    INIT_INSTRUCTION_LIST_DESC(ADDW_SUBW_func7_subcode_list);
+    INIT_INSTRUCTION_LIST_DESC(ADDW_SUBW_MULW_func7_subcode_list);
 
-    static instruction_hook_td ADDW_SUBW_SLLW_SRLW_SRAW_func3_subcode_list[] = {
-        [FUNC3_INSTR_ADDW_SUBW] = {preparation_func7, NULL, &ADDW_SUBW_func7_subcode_list_desc},
+    static instruction_hook_td ADDW_SUBW_SLLW_SRLW_SRAW_MULW_DIVW_DIVUW_REMW_REMUW_func3_subcode_list[] = {
+        [FUNC3_INSTR_ADDW_SUBW_MULW] = {preparation_func7, NULL, &ADDW_SUBW_MULW_func7_subcode_list_desc},
         [FUNC3_INSTR_SLLW] = {NULL, instr_SLLW, NULL},
-        [FUNC3_INSTR_SRLW_SRAW] = {preparation_func7, instr_ADDIW, &SRLW_SRAW_func7_subcode_list_desc},
+        [FUNC3_INSTR_SRLW_SRAW_DIVUW] = {preparation_func7, NULL, &SRLW_SRAW_DIVUW_func7_subcode_list_desc},
+        #ifdef MULTIPLY_SUPPORT
+            [FUNC3_INSTR_DIVW] = {NULL, instr_DIVW, NULL},
+            [FUNC3_INSTR_REMW] = {NULL, instr_REMW, NULL},
+            [FUNC3_INSTR_REMUW] = {NULL, instr_REMUW, NULL},
+        #endif
     };
-    INIT_INSTRUCTION_LIST_DESC(ADDW_SUBW_SLLW_SRLW_SRAW_func3_subcode_list);
+    INIT_INSTRUCTION_LIST_DESC(ADDW_SUBW_SLLW_SRLW_SRAW_MULW_DIVW_DIVUW_REMW_REMUW_func3_subcode_list);
 #endif
 
 #ifdef CSR_SUPPORT
@@ -1375,7 +1487,7 @@ static instruction_hook_td RV_opcode_list[] = {
 
     #ifdef RV64
         [INSTR_ADDIW_SLLIW_SRLIW_SRAIW] = {I_type_preparation, NULL, &SLLIW_SRLIW_SRAIW_ADDIW_func3_subcode_list_desc},
-        [INSTR_ADDW_SUBW_SLLW_SRLW_SRAW] = {R_type_preparation, NULL, &ADDW_SUBW_SLLW_SRLW_SRAW_func3_subcode_list_desc},
+        [INSTR_ADDW_SUBW_SLLW_SRLW_SRAW_MULW_DIVW_DIVUW_REMW_REMUW] = {R_type_preparation, NULL, &ADDW_SUBW_SLLW_SRLW_SRAW_MULW_DIVW_DIVUW_REMW_REMUW_func3_subcode_list_desc},
     #endif
 
     #ifdef CSR_SUPPORT

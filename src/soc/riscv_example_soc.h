@@ -18,9 +18,10 @@ typedef struct rv_soc_struct
 {
     /* For now we have 1 single core */
     rv_core_td rv_core0;
+    uint8_t *mrom; /* Contains reset vector and device-tree? */
     uint8_t *ram;
 
-    rv_soc_mem_access_cb_td mem_access_cbs[3];
+    rv_soc_mem_access_cb_td mem_access_cbs[4];
 
 } rv_soc_td;
 

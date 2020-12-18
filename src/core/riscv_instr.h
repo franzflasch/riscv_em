@@ -106,14 +106,19 @@
         #define FUNC7_INSTR_SRAIW 0x20
     #define FUNC3_INSTR_ADDIW 0x0
 
-#define INSTR_ADDW_SUBW_SLLW_SRLW_SRAW 0x3B
-    #define FUNC3_INSTR_ADDW_SUBW 0x0
-        #define FUNC7_INSTR_ADDW 0x0
+#define INSTR_ADDW_SUBW_SLLW_SRLW_SRAW_MULW_DIVW_DIVUW_REMW_REMUW 0x3B
+    #define FUNC3_INSTR_ADDW_SUBW_MULW 0x0
+        #define FUNC7_INSTR_ADDW 0x00
         #define FUNC7_INSTR_SUBW 0x20
+        #define FUNC7_INSTR_MULW 0x01
     #define FUNC3_INSTR_SLLW 0x1
-    #define FUNC3_INSTR_SRLW_SRAW 0x5
-        #define FUNC7_INSTR_SRLW 0x0
+    #define FUNC3_INSTR_DIVW 0x4
+    #define FUNC3_INSTR_SRLW_SRAW_DIVUW 0x5
+        #define FUNC7_INSTR_SRLW 0x00
         #define FUNC7_INSTR_SRAW 0x20
+        #define FUNC7_INSTR_DIVUW 0x01
+    #define FUNC3_INSTR_REMW 0x6
+    #define FUNC3_INSTR_REMUW 0x7
 
 /* Atomic Instructions */
 #define INSTR_AMO_W_D_LR_SC_SWAP_ADD_XOR_AND_OR_MIN_MAX_MINU_MAXU 0x2F

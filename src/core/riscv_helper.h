@@ -55,6 +55,11 @@
     #define PRINTF_FMT "%08x"
     #define XLEN_INT_MIN 0x80000000
 
+    #define UMUL umul32wide
+    #define MUL mul32wide
+    #define MULHSU mulhsu32wide
+#endif
+
     static inline void umul32wide (uint32_t a, uint32_t b, uint32_t *hi, uint32_t *lo)
     {
         uint32_t a_lo = (uint16_t)a;
@@ -85,11 +90,6 @@
         umul32wide ((uint32_t)a, (uint32_t)b, (uint32_t *)hi, (uint32_t *)lo);
         if (a < 0LL) *hi -= b;
     }
-
-    #define UMUL umul32wide
-    #define MUL mul32wide
-    #define MULHSU mulhsu32wide
-#endif
 
 #define die_msg(...) { printf(__VA_ARGS__); exit(-1); }
 
