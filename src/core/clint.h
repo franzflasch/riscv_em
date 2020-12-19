@@ -19,8 +19,8 @@ typedef struct clint_struct
 
 } clint_td;
 
-int read_clint_reg(void *priv, rv_uint_xlen address, rv_uint_xlen *outval);
-int write_clint_reg(void *priv, rv_uint_xlen address, rv_uint_xlen val, uint8_t nr_bytes);
+int clint_read_reg(void *priv, rv_uint_xlen address, rv_uint_xlen *outval);
+int clint_write_reg(void *priv, rv_uint_xlen address, rv_uint_xlen val, uint8_t nr_bytes);
 void clint_update(clint_td *clint);
 
 #endif /* RISCV_CLINT_H */

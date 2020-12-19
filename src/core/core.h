@@ -79,8 +79,6 @@ typedef struct rv_core_struct
     rv_uint_xlen immediate;
     rv_uint_xlen jump_offset;
 
-    uint8_t in_irq;
-    uint8_t is_sync_trap;
     uint8_t sync_trap_pending;
     rv_uint_xlen sync_trap_cause;
 

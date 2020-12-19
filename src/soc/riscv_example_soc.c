@@ -21,7 +21,7 @@
     _ref_rv_soc->mem_access_cbs[_tmp_count].mem_size = _mem_size; \
 }
 
-static int read_memory(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
+static int memory_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
 {
     uint8_t *mem_ptr = priv;
     rv_uint_xlen *xlen_ptr = (rv_uint_xlen *)&mem_ptr[address_internal];
@@ -29,7 +29,7 @@ static int read_memory(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *
     return RV_MEM_ACCESS_OK;
 }
 
-static int write_memory(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint8_t nr_bytes)
+static int memory_write(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint8_t nr_bytes)
 {
     uint8_t *mem_ptr = priv;
     memcpy(&mem_ptr[address_internal], &val, nr_bytes);
@@ -39,10 +39,10 @@ static int write_memory(void *priv, rv_uint_xlen address_internal, rv_uint_xlen 
 static void rv_soc_init_mem_acces_cbs(rv_soc_td *rv_soc)
 {
     int count = 0;
-    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, read_memory, write_memory, rv_soc->ram, RAM_BASE_ADDR, RAM_SIZE_BYTES);
-    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, read_clint_reg, write_clint_reg, &rv_soc->rv_core0.clint, CLINT_BASE_ADDR, CLINT_SIZE_BYTES);
+    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, memory_read, memory_write, rv_soc->ram, RAM_BASE_ADDR, RAM_SIZE_BYTES);
+    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, clint_read_reg, clint_write_reg, &rv_soc->rv_core0.clint, CLINT_BASE_ADDR, CLINT_SIZE_BYTES);
     INIT_MEM_ACCESS_STRUCT(rv_soc, count++, uart_read, uart_write, NULL, UART_TX_REG_ADDR, 20);
-    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, read_memory, write_memory, rv_soc->mrom, MROM_BASE_ADDR, MROM_SIZE_BYTES);
+    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, memory_read, memory_write, rv_soc->mrom, MROM_BASE_ADDR, MROM_SIZE_BYTES);
 }
 
 static rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address, int *err)

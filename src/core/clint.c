@@ -28,7 +28,7 @@ static rv_int_xlen get_u8_arr_index_offs(rv_uint_xlen address)
     return -1;
 }
 
-int read_clint_reg(void *priv, rv_uint_xlen address, rv_uint_xlen *outval)
+int clint_read_reg(void *priv, rv_uint_xlen address, rv_uint_xlen *outval)
 {
     clint_td *clint = priv;
     int ret_val = RV_MEM_ACCESS_ERR;
@@ -52,7 +52,7 @@ int read_clint_reg(void *priv, rv_uint_xlen address, rv_uint_xlen *outval)
     return ret_val;
 }
 
-int write_clint_reg(void *priv, rv_uint_xlen address, rv_uint_xlen val, uint8_t nr_bytes)
+int clint_write_reg(void *priv, rv_uint_xlen address, rv_uint_xlen val, uint8_t nr_bytes)
 {
     clint_td *clint = priv;
     int ret_val = RV_MEM_ACCESS_ERR;

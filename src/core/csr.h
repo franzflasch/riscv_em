@@ -99,12 +99,12 @@ typedef struct csr_reg_desc_struct {
     static csr_reg_desc_td  _csr_reg_table##_desc = \
     { sizeof(_csr_reg_table)/sizeof(_csr_reg_table[0]), _csr_reg_table }
 
-rv_uint_xlen *get_reg_reference(csr_reg_desc_td *reg_table, uint16_t address);
+rv_uint_xlen *csr_get_reg_reference(csr_reg_desc_td *reg_table, uint16_t address);
 
-int read_csr_reg_internal(csr_reg_desc_td *reg_table, uint16_t address, rv_uint_xlen *out_val);
-int write_csr_reg_internal(csr_reg_desc_td *reg_table, uint16_t address, rv_uint_xlen val);
+int csr_read_reg_internal(csr_reg_desc_td *reg_table, uint16_t address, rv_uint_xlen *out_val);
+int csr_write_reg_internal(csr_reg_desc_td *reg_table, uint16_t address, rv_uint_xlen val);
 
-int read_csr_reg(csr_reg_desc_td *reg_table, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val);
-int write_csr_reg(csr_reg_desc_td *reg_table, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val);
+int csr_read_reg(csr_reg_desc_td *reg_table, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val);
+int csr_write_reg(csr_reg_desc_td *reg_table, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val);
 
 #endif /* RISCV_CSR_H */
