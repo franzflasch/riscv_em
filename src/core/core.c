@@ -11,7 +11,7 @@
 
 /* Defines */
 #define XREG_STACK_POINTER 2
-#define XREG_THREAD_POINTER 5
+#define XREG_T0 5
 
 #define STACK_POINTER_START_VAL 0x0
 
@@ -24,11 +24,6 @@
 #endif
 
 #define ADDR_MISALIGNED(addr) (addr & 0x3)
-
-static inline uint32_t extract32(uint32_t value, int start, int length)
-{
-    return (value >> start) & (~0U >> (32 - length));
-}
 
 static inline void prepare_sync_trap(rv_core_td *rv_core, rv_uint_xlen cause)
 {
@@ -1524,22 +1519,6 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
 }
 
 #ifdef CSR_SUPPORT
-    static inline void rv_core_update_interrupts(rv_core_td *rv_core)
-    {
-        uint8_t timer_interrupt = (rv_core->clint.regs[clint_mtime] >= rv_core->clint.regs[clint_mtimecmp]);
-
-        /* map msip register to the CSR */
-        if(CHECK_BIT(*rv_core->mie, CSR_MIE_MIP_MSI_BIT))
-            assign_xlen_bit(rv_core->mip, CSR_MIE_MIP_MSI_BIT, (rv_core->clint.regs[clint_msip] & 1));
-
-        /* map timer interrupt */
-        if(CHECK_BIT(*rv_core->mie, CSR_MIE_MIP_MTI_BIT))
-            assign_xlen_bit(rv_core->mip, CSR_MIE_MIP_MTI_BIT, timer_interrupt & 1);
-
-        // if(timer_interrupt)
-        //     printf("timer irq %d %lx %ld\n", timer_interrupt, *rv_core->mip, rv_core->clint.regs[clint_mtime]);
-    }
-
     static inline void rv_core_do_irq(rv_core_td *rv_core, rv_uint_xlen mepc, rv_uint_xlen mcause)
     {
         *rv_core->mcause = mcause;
@@ -1554,6 +1533,21 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
         CLEAR_BIT(*rv_core->mstatus, CSR_MSTATUS_MIE_BIT);
     }
 
+    static inline void rv_core_update_interrupts(rv_core_td *rv_core, uint8_t mei, uint8_t msi, uint8_t mti)
+    {
+        /* map msip register to the CSR */
+        if(CHECK_BIT(*rv_core->mie, CSR_MIE_MIP_MEI_BIT))
+            assign_xlen_bit(rv_core->mip, CSR_MIE_MIP_MEI_BIT, mei);
+
+        /* map msip register to the CSR */
+        if(CHECK_BIT(*rv_core->mie, CSR_MIE_MIP_MSI_BIT))
+            assign_xlen_bit(rv_core->mip, CSR_MIE_MIP_MSI_BIT, msi);
+
+        /* map timer interrupt */
+        if(CHECK_BIT(*rv_core->mie, CSR_MIE_MIP_MTI_BIT))
+            assign_xlen_bit(rv_core->mip, CSR_MIE_MIP_MTI_BIT, mti);
+    }
+
     /* Interrupts are prioritized as follows, in decreasing order of priority:
        Machine external interrupts (with configurable external priority)
        Machine software interrupts
@@ -1564,6 +1558,17 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
         /* check if interrupts are globally enabled */
         if(CHECK_BIT(*rv_core->mstatus, CSR_MSTATUS_MIE_BIT))
         {
+            /* check if MEI interrupt is enabled */
+            if(CHECK_BIT(*rv_core->mie, CSR_MIE_MIP_MEI_BIT))
+            {
+                /* check if interrupt pending */
+                if(CHECK_BIT(*rv_core->mip, CSR_MIE_MIP_MEI_BIT))
+                {
+                    rv_core_do_irq(rv_core, rv_core->pc, (1UL<<(XLEN-1)) | CSR_MCAUSE_MEI);
+                    return 1;
+                }
+            }
+
             /* check if MSI interrupt is enabled */
             if(CHECK_BIT(*rv_core->mie, CSR_MIE_MIP_MSI_BIT))
             {
@@ -1656,15 +1661,21 @@ void rv_core_run(rv_core_td *rv_core)
     /* increase program counter here */
     rv_core->pc = rv_core->next_pc ? rv_core->next_pc : rv_core->pc + 4;
 
+    rv_core->curr_cycle++;
+}
+
+void rv_core_process_interrupts(rv_core_td *rv_core, uint8_t mei, uint8_t msi, uint8_t mti)
+{
     #ifdef CSR_SUPPORT
         /* interrupt handling */
-        rv_core_update_interrupts(rv_core);
+        rv_core_update_interrupts(rv_core, mei, msi, mti);
         rv_core_prepare_interrupts(rv_core);
-
-        clint_update(&rv_core->clint);
+    #else
+        (void)rv_core;
+        (void)mei;
+        (void)msi;
+        (void)mti;
     #endif
-
-    rv_core->curr_cycle++;
 }
 
 void rv_core_reg_dump(rv_core_td *rv_core)
@@ -1703,9 +1714,7 @@ void rv_core_init(rv_core_td *rv_core,
     memset(rv_core, 0, sizeof(rv_core_td));
 
     rv_core->curr_priv_mode = machine_mode;
-    rv_core->pc = RAM_BASE_ADDR;
-    rv_core->x[XREG_THREAD_POINTER] = RAM_BASE_ADDR;
-    rv_core->x[XREG_STACK_POINTER] = STACK_POINTER_START_VAL;
+    rv_core->pc = MROM_BASE_ADDR;
 
     rv_core->priv = priv;
     rv_core->read_mem = read_mem;
@@ -1713,11 +1722,13 @@ void rv_core_init(rv_core_td *rv_core,
 
     rv_core->csr_table = csr_table;
 
-    /* set fast access pointers */
-    rv_core->mstatus = csr_get_reg_reference(csr_table, CSR_ADDR_MSTATUS);
-    rv_core->mcause = csr_get_reg_reference(csr_table, CSR_ADDR_MCAUSE);
-    rv_core->mepc = csr_get_reg_reference(csr_table, CSR_ADDR_MEPC);
-    rv_core->mtvec = csr_get_reg_reference(csr_table, CSR_ADDR_MTVEC);
-    rv_core->mie = csr_get_reg_reference(csr_table, CSR_ADDR_MIE);
-    rv_core->mip = csr_get_reg_reference(csr_table, CSR_ADDR_MIP);
+    #ifdef CSR_SUPPORT
+        /* set fast access pointers */
+        rv_core->mstatus = csr_get_reg_reference(csr_table, CSR_ADDR_MSTATUS);
+        rv_core->mcause = csr_get_reg_reference(csr_table, CSR_ADDR_MCAUSE);
+        rv_core->mepc = csr_get_reg_reference(csr_table, CSR_ADDR_MEPC);
+        rv_core->mtvec = csr_get_reg_reference(csr_table, CSR_ADDR_MTVEC);
+        rv_core->mie = csr_get_reg_reference(csr_table, CSR_ADDR_MIE);
+        rv_core->mip = csr_get_reg_reference(csr_table, CSR_ADDR_MIP);
+    #endif
 }

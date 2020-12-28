@@ -34,7 +34,6 @@ int clint_read_reg(void *priv, rv_uint_xlen address, rv_uint_xlen *outval)
     int ret_val = RV_MEM_ACCESS_ERR;
     rv_uint_xlen tmp_addr = 0;
     uint8_t *tmp_u8 = (uint8_t *)clint->regs;
-    rv_uint_xlen *tmp_val = NULL;
     rv_int_xlen arr_index_offs = -1;
 
     arr_index_offs = get_u8_arr_index_offs(address);
@@ -42,8 +41,7 @@ int clint_read_reg(void *priv, rv_uint_xlen address, rv_uint_xlen *outval)
     if(arr_index_offs >= 0)
     {
         tmp_addr = (address & 0x7) + arr_index_offs;
-        tmp_val = (rv_uint_xlen *)&tmp_u8[tmp_addr];
-        *outval = *tmp_val;
+        memcpy(outval, &tmp_u8[tmp_addr], sizeof(*outval));
         ret_val = RV_MEM_ACCESS_OK;
     }
 
@@ -72,7 +70,10 @@ int clint_write_reg(void *priv, rv_uint_xlen address, rv_uint_xlen val, uint8_t 
     return ret_val;
 }
 
-void clint_update(clint_td *clint)
+void clint_update(clint_td *clint, uint8_t *msi, uint8_t *mti)
 {
     clint->regs[clint_mtime]++;
+
+    *mti = (clint->regs[clint_mtime] >= clint->regs[clint_mtimecmp]);
+    *msi = (clint->regs[clint_msip] & 0x1);
 }

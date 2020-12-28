@@ -71,6 +71,7 @@
 #define CSR_MCAUSE_INSTR_ACCESS_FAULT 0x1
 #define CSR_MCAUSE_MSI 0x3
 #define CSR_MCAUSE_MTI 0x7
+#define CSR_MCAUSE_MEI 0xb
 #define CSR_MCAUSE_ECALL_M 0xb
 
 #define CSR_MSTATUS_MIE_BIT 3
@@ -81,6 +82,7 @@
 
 #define CSR_MIE_MIP_MSI_BIT 3
 #define CSR_MIE_MIP_MTI_BIT 7
+#define CSR_MIE_MIP_MEI_BIT 11
 
 typedef struct csr_reg_struct {
     uint16_t address;

@@ -1,22 +1,25 @@
 #ifndef RISCV_CONFIG_H
 #define RISCV_CONFIG_H
 
-#define DEBUG
+// #define DEBUG
 
 #define RV64
 #define CSR_SUPPORT
 #define ATOMIC_SUPPORT
 #define MULTIPLY_SUPPORT
 
-#define MROM_BASE_ADDR 0x1000
-#define MROM_SIZE_BYTES 0xf000
+#define MROM_BASE_ADDR 0x1000UL
+#define MROM_SIZE_BYTES 0xf000UL
 
-#define RAM_BASE_ADDR 0x80000000
-#define RAM_SIZE_BYTES 0x8000000 /* 128MB such as the default for the qemu virt machine */
+#define RAM_BASE_ADDR 0x80000000UL
+#define RAM_SIZE_BYTES 0x8000000UL /* 128MB such as the default for the qemu virt machine */
 
-#define CLINT_BASE_ADDR 0x2000000
-#define CLINT_SIZE_BYTES 0x10000
+#define CLINT_BASE_ADDR 0x2000000UL
+#define CLINT_SIZE_BYTES 0x10000UL
 
-#define UART_TX_REG_ADDR 0x10000000
+#define PLIC_BASE_ADDR 0x0C000000UL
+#define PLIC_SIZE_BYTES 0x3FFF004UL
+
+#define UART_TX_REG_ADDR 0x10000000UL
 
 #endif /* RISCV_CONFIG_H */

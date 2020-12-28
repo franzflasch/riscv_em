@@ -97,12 +97,33 @@
 #define CLEAR_BIT(_out_var,_nbit) ((_out_var) &= ~(1<<(_nbit)))
 #define FLIP_BIT(_out_var,_nbit)  ((_out_var) ^=  (1<<(_nbit)))
 #define CHECK_BIT(_out_var,_nbit) ((_out_var) &   (1<<(_nbit)))
+
+static inline void assign_u8_bit(uint8_t *out_var, uint8_t nbit, uint8_t bit_value)
+{
+    *out_var = (*out_var & ~(1UL << nbit)) | ((bit_value & 1) << nbit);
+}
+
+static inline void assign_u32_bit(uint32_t *out_var, uint32_t nbit, uint32_t bit_value)
+{
+    *out_var = (*out_var & ~(1UL << nbit)) | ((bit_value & 1) << nbit);
+}
+
 static inline void assign_xlen_bit(rv_uint_xlen *out_var, rv_uint_xlen nbit, rv_uint_xlen bit_value)
 {
     *out_var = (*out_var & ~(1UL << nbit)) | ((bit_value & 1) << nbit);
 }
 
-#define ADDR_WITHIN(_addr, _start, size) ( (_addr >= _start) && (_addr < _start + size) )
+static inline uint32_t extract8(uint8_t value, int start, int length)
+{
+    return (value >> start) & (~0U >> (8 - length));
+}
+
+static inline uint32_t extract32(uint32_t value, int start, int length)
+{
+    return (value >> start) & (~0U >> (32 - length));
+}
+
+#define ADDR_WITHIN(_addr, _start, _size) ( (_addr >= _start) && (_addr < _start + _size) )
 
 #define ASSIGN_MIN(a,b) (((a)<(b))?(a):(b))
 #define ASSIGN_MAX(a,b) (((a)>(b))?(a):(b))
