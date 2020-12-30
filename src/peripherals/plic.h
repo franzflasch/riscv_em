@@ -45,7 +45,7 @@ typedef struct plic_struct
 
 } plic_td;
 
-void plic_add_pending(plic_td *plic, uint32_t interrupt_id, uint8_t pending);
+void plic_update_pending(plic_td *plic, uint32_t interrupt_id, uint8_t pending);
 uint8_t plic_update(plic_td *plic);
 int plic_write_reg(void *priv, rv_uint_xlen address, rv_uint_xlen val, uint8_t nr_bytes);
 int plic_read_reg(void *priv, rv_uint_xlen address, rv_uint_xlen *out_val);

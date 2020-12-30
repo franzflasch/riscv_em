@@ -85,7 +85,7 @@ static void plic_check_sanity(plic_td *plic)
     plic->priority_threshold = plic->priority_threshold & 0x7;
 }
 
-void plic_add_pending(plic_td *plic, uint32_t interrupt_id, uint8_t pending)
+void plic_update_pending(plic_td *plic, uint32_t interrupt_id, uint8_t pending)
 {
     uint32_t irq_reg = interrupt_id/32;
     uint32_t irq_bit = interrupt_id%32;
@@ -174,7 +174,7 @@ int plic_write_reg(void *priv, rv_uint_xlen address, rv_uint_xlen val, uint8_t n
             assign_u32_bit(&plic->claimed_bits[irq_reg], irq_bit, 0);
         }
 
-        /* be sure that all updates values are sane */
+        /* be sure that all updated values are sane */
         plic_check_sanity(plic);
         return RV_MEM_ACCESS_OK;
     }

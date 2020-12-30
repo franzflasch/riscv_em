@@ -140,7 +140,7 @@ void rv_soc_dump_mem(rv_soc_td *rv_soc)
     }
 }
 
-void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name)
+void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
 {
     uint64_t i;
     uint64_t start_addr = RAM_BASE_ADDR;
@@ -177,7 +177,18 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name)
     rv_soc->mrom = soc_mrom;
     rv_soc->ram = soc_ram;
 
+    printf("%s\n", dtb_file_name);
+    write_mem_from_file(dtb_file_name, &soc_mrom[8*4], sizeof(soc_mrom)-(8*4));
     write_mem_from_file(fw_file_name, soc_ram, sizeof(soc_ram));
+
+    // for(i=0;i<30;i++)
+    // {
+    //     if(i%8 == 0)
+    //         printf("\n");
+
+    //     printf("%x", soc_mrom[i]);
+    // }
+    // exit(1);
 
     /* initialize one core with a csr table */
     #ifdef CSR_SUPPORT
@@ -216,7 +227,7 @@ void rv_soc_run(rv_soc_td *rv_soc, rv_uint_xlen success_pc, uint64_t num_cycles)
         // printf("Uart pending: %d\n", uart_irq_pending);
 
         /* update interrupt controllers */
-        plic_add_pending(&rv_soc->plic, 10, uart_irq_pending);
+        plic_update_pending(&rv_soc->plic, 10, uart_irq_pending);
         mei = plic_update(&rv_soc->plic);
         clint_update(&rv_soc->clint, &msi, &mti);
 

@@ -184,6 +184,10 @@ int uart_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
                 *outval = 0;
             }
         break;
+        // case REG_IIR:
+        //     /* 1 means no interrupt pending */
+        //     *outval = 1;
+        // break;
         case REG_LSR:
             /* THR empty and line idle is always true here in our emulation */
             tmp_out_val = (1<<6) | (1<<5);
@@ -192,6 +196,9 @@ int uart_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
         case REG_LCR:
             *outval = (uart->dlab<<7) | uart->regs[REG_LCR];
         break;
+        // case REG_MSR:
+        //     *outval = 0;
+        // break;
         default:
             die_msg("UART-Read Reg " PRINTF_FMT " not supported yet!\n", address_internal);
     }

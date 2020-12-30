@@ -9,6 +9,13 @@
 
 #include <core.h>
 
+// #define CORE_DEBUG
+#ifdef CORE_DEBUG
+#define CORE_DBG(...) do{ printf( __VA_ARGS__ ); } while( 0 )
+#else
+#define CORE_DBG(...) do{ } while ( 0 )
+#endif
+
 /* Defines */
 #define XREG_STACK_POINTER 2
 #define XREG_T0 5
@@ -36,6 +43,7 @@ static inline void prepare_sync_trap(rv_core_td *rv_core, rv_uint_xlen cause)
 
 static void instr_NOP(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     (void) rv_core;
     return;
 }
@@ -43,20 +51,24 @@ static void instr_NOP(rv_core_td *rv_core)
 /* RISCV Instructions */
 static void instr_LUI(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_core->x[rv_core->rd] = (rv_core->immediate << 12);
 }
 
 static void instr_AUIPC(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_core->x[rv_core->rd] = (rv_core->pc) + (rv_core->immediate << 12);
 }
 
 static void instr_JAL(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_core->x[rv_core->rd] = rv_core->pc + 4;
 
     if(ADDR_MISALIGNED(rv_core->jump_offset))
     {
+        die_msg("Addr misaligned!\n");
         prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
         return;
     }
@@ -67,26 +79,31 @@ static void instr_JAL(rv_core_td *rv_core)
 
 static void instr_JALR(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_uint_xlen curr_pc = rv_core->pc + 4;
     rv_core->jump_offset = SIGNEX(rv_core->immediate, 11);
 
-    if(ADDR_MISALIGNED(rv_core->jump_offset))
+    rv_core->next_pc = (rv_core->x[rv_core->rs1] + rv_core->jump_offset);
+    rv_core->next_pc &= ~(1<<0);
+
+    if(ADDR_MISALIGNED(rv_core->next_pc))
     {
+        die_msg("Addr misaligned!\n");
         prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
         return;
     }
 
-    rv_core->next_pc = (rv_core->x[rv_core->rs1] + rv_core->jump_offset);
-    rv_core->next_pc &= ~(1<<0);
     rv_core->x[rv_core->rd] = curr_pc;
 }
 
 static void instr_BEQ(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     if(rv_core->x[rv_core->rs1] == rv_core->x[rv_core->rs2])
     {
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
+            die_msg("Addr misaligned!\n");
             prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
             return;
         }
@@ -97,10 +114,12 @@ static void instr_BEQ(rv_core_td *rv_core)
 
 static void instr_BNE(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     if(rv_core->x[rv_core->rs1] != rv_core->x[rv_core->rs2])
     {
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
+            die_msg("Addr misaligned!\n");
             prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
             return;
         }
@@ -111,6 +130,7 @@ static void instr_BNE(rv_core_td *rv_core)
 
 static void instr_BLT(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_int_xlen signed_rs = rv_core->x[rv_core->rs1];
     rv_int_xlen signed_rs2 = rv_core->x[rv_core->rs2];
 
@@ -118,6 +138,7 @@ static void instr_BLT(rv_core_td *rv_core)
     {
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
+            die_msg("Addr misaligned!\n");
             prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
             return;
         }
@@ -128,6 +149,7 @@ static void instr_BLT(rv_core_td *rv_core)
 
 static void instr_BGE(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_int_xlen signed_rs = rv_core->x[rv_core->rs1];
     rv_int_xlen signed_rs2 = rv_core->x[rv_core->rs2];
 
@@ -135,6 +157,7 @@ static void instr_BGE(rv_core_td *rv_core)
     {
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
+            die_msg("Addr misaligned!\n");
             prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
             return;
         }
@@ -145,10 +168,12 @@ static void instr_BGE(rv_core_td *rv_core)
 
 static void instr_BLTU(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     if(rv_core->x[rv_core->rs1] < rv_core->x[rv_core->rs2])
     {
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
+            die_msg("Addr misaligned!\n");
             prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
             return;
         }
@@ -159,10 +184,12 @@ static void instr_BLTU(rv_core_td *rv_core)
 
 static void instr_BGEU(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     if(rv_core->x[rv_core->rs1] >= rv_core->x[rv_core->rs2])
     {
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
+            die_msg("Addr misaligned!\n");
             prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
             return;
         }
@@ -173,13 +200,16 @@ static void instr_BGEU(rv_core_td *rv_core)
 
 static void instr_ADDI(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x %lx\n", __func__, rv_core->instruction, rv_core->pc);
     rv_int_xlen signed_immediate = SIGNEX(rv_core->immediate, 11);
     rv_int_xlen signed_rs_val = rv_core->x[rv_core->rs1];
+    CORE_DBG("%s: %lx %lx %lx %x\n", __func__, rv_core->x[rv_core->rs1], signed_rs_val, signed_immediate, rv_core->rs1);
     rv_core->x[rv_core->rd] = (signed_immediate + signed_rs_val);
 }
 
 static void instr_SLTI(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_int_xlen signed_immediate = SIGNEX(rv_core->immediate, 11);
     rv_int_xlen signed_rs_val = rv_core->x[rv_core->rs1];
 
@@ -191,6 +221,7 @@ static void instr_SLTI(rv_core_td *rv_core)
 
 static void instr_SLTIU(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_uint_xlen unsigned_immediate = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen unsigned_rs_val = rv_core->x[rv_core->rs1];
 
@@ -202,6 +233,7 @@ static void instr_SLTIU(rv_core_td *rv_core)
 
 static void instr_XORI(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_int_xlen signed_immediate = SIGNEX(rv_core->immediate, 11);
     rv_core->immediate = SIGNEX(rv_core->immediate, 11);
     signed_immediate = rv_core->immediate;
@@ -214,18 +246,21 @@ static void instr_XORI(rv_core_td *rv_core)
 
 static void instr_ORI(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_core->immediate = SIGNEX(rv_core->immediate, 11);
     rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] | rv_core->immediate;
 }
 
 static void instr_ANDI(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_core->immediate = SIGNEX(rv_core->immediate, 11);
     rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] & rv_core->immediate;
 }
 
 static void instr_SLLI(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     #ifdef RV64
         rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] << (rv_core->immediate & 0x3F));
     #else
@@ -235,6 +270,7 @@ static void instr_SLLI(rv_core_td *rv_core)
 
 static void instr_SRAI(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_int_xlen rs_val = rv_core->x[rv_core->rs1];
 
     /* a right shift on signed ints seem to be always arithmetic */
@@ -248,6 +284,7 @@ static void instr_SRAI(rv_core_td *rv_core)
 
 static void instr_SRLI(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     #ifdef RV64
         rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] >> (rv_core->immediate & 0x3F));
     #else
@@ -257,16 +294,20 @@ static void instr_SRLI(rv_core_td *rv_core)
 
 static void instr_ADD(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+    CORE_DBG("%s: %lx %x\n", __func__, rv_core->x[rv_core->rs1], rv_core->rs1);
     rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] + rv_core->x[rv_core->rs2];
 }
 
 static void instr_SUB(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] - rv_core->x[rv_core->rs2];
 }
 
 static void instr_SLL(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     #ifdef RV64
         rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] << (rv_core->x[rv_core->rs2] & 0x3F);
     #else
@@ -276,6 +317,7 @@ static void instr_SLL(rv_core_td *rv_core)
 
 static void instr_SLT(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_int_xlen signed_rs = rv_core->x[rv_core->rs1];
     rv_int_xlen signed_rs2 = rv_core->x[rv_core->rs2];
 
@@ -285,6 +327,7 @@ static void instr_SLT(rv_core_td *rv_core)
 
 static void instr_SLTU(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     if(rv_core->rs1 == 0)
     {
         if(rv_core->x[rv_core->rs2])
@@ -303,11 +346,13 @@ static void instr_SLTU(rv_core_td *rv_core)
 
 static void instr_XOR(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] ^ rv_core->x[rv_core->rs2];
 }
 
 static void instr_SRL(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     #ifdef RV64
         rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] >> (rv_core->x[rv_core->rs2] & 0x3F);
     #else
@@ -317,16 +362,19 @@ static void instr_SRL(rv_core_td *rv_core)
 
 static void instr_OR(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] | (rv_core->x[rv_core->rs2]);
 }
 
 static void instr_AND(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] & (rv_core->x[rv_core->rs2]);
 }
 
 static void instr_SRA(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_int_xlen signed_rs = rv_core->x[rv_core->rs1];
 
     #ifdef RV64
@@ -338,6 +386,7 @@ static void instr_SRA(rv_core_td *rv_core)
 
 static void instr_LB(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     int err = RV_CORE_E_ERR;
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
@@ -347,6 +396,7 @@ static void instr_LB(rv_core_td *rv_core)
 
 static void instr_LH(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     int err = RV_CORE_E_ERR;
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
@@ -356,6 +406,7 @@ static void instr_LH(rv_core_td *rv_core)
 
 static void instr_LW(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     int err = RV_CORE_E_ERR;
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
@@ -369,6 +420,7 @@ static void instr_LW(rv_core_td *rv_core)
 
 static void instr_LBU(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     int err = RV_CORE_E_ERR;
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
@@ -378,6 +430,7 @@ static void instr_LBU(rv_core_td *rv_core)
 
 static void instr_LHU(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     int err = RV_CORE_E_ERR;
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
@@ -387,6 +440,7 @@ static void instr_LHU(rv_core_td *rv_core)
 
 static void instr_SB(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     uint8_t value_to_write = (uint8_t)rv_core->x[rv_core->rs2];
@@ -395,6 +449,7 @@ static void instr_SB(rv_core_td *rv_core)
 
 static void instr_SH(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     uint16_t value_to_write = (uint16_t)rv_core->x[rv_core->rs2];
@@ -403,6 +458,7 @@ static void instr_SH(rv_core_td *rv_core)
 
 static void instr_SW(rv_core_td *rv_core)
 {
+    CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     rv_uint_xlen value_to_write = (rv_uint_xlen)rv_core->x[rv_core->rs2];
@@ -412,6 +468,7 @@ static void instr_SW(rv_core_td *rv_core)
 #ifdef RV64
     static void instr_LWU(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         int err = RV_CORE_E_ERR;
         rv_uint_xlen unsigned_offset = SIGNEX(rv_core->immediate, 11);
         rv_uint_xlen address = rv_core->x[rv_core->rs1] + unsigned_offset;
@@ -421,28 +478,34 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_LD(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         int err = RV_CORE_E_ERR;
         rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
-        rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
+        rv_int_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
+        CORE_DBG("%s: %lx %lx %lx %x\n", __func__, rv_core->x[rv_core->rs1], address, rv_core->immediate, rv_core->rs1);
         rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address, &err);
     }
 
     static void instr_SD(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
         rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
         rv_uint_xlen value_to_write = (rv_uint_xlen)rv_core->x[rv_core->rs2];
+        CORE_DBG("%s: %lx %lx %lx %x\n", __func__, rv_core->x[rv_core->rs1], address, rv_core->immediate, rv_core->rs1);
         rv_core->write_mem(rv_core->priv, address, value_to_write, 8);
     }
 
     static void instr_SRAIW(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         int32_t signed_rs_val = rv_core->x[rv_core->rs1];
         rv_core->x[rv_core->rd] = (signed_rs_val >> (rv_core->immediate & 0x1F));
     }
 
     static void instr_ADDIW(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         int32_t signed_immediate = SIGNEX(rv_core->immediate, 11);
         int32_t signed_rs_val = rv_core->x[rv_core->rs1];
         rv_core->x[rv_core->rd] = (signed_rs_val + signed_immediate);
@@ -450,12 +513,14 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_SLLIW(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] << (rv_core->immediate & 0x1F)) & 0xFFFFFFFF;
         rv_core->x[rv_core->rd] = SIGNEX(rv_core->x[rv_core->rd], 31);
     }
 
     static void instr_SRLIW(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         uint32_t unsigned_rs_val = rv_core->x[rv_core->rs1];
         rv_core->x[rv_core->rd] = (unsigned_rs_val >> (rv_core->immediate & 0x1F));
         rv_core->x[rv_core->rd] = SIGNEX(rv_core->x[rv_core->rd], 31);
@@ -463,6 +528,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_SRLW(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         uint32_t rs1_val = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = (rv_core->x[rv_core->rs2] & 0x1F);
         rv_core->x[rv_core->rd] = SIGNEX(rs1_val >> rs2_val, 31);
@@ -470,6 +536,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_SRAW(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         int32_t rs1_val_signed = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = (rv_core->x[rv_core->rs2] & 0x1F);
         rv_core->x[rv_core->rd] = SIGNEX(rs1_val_signed >> rs2_val, 31);
@@ -477,6 +544,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_SLLW(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         uint32_t rs1_val = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = (rv_core->x[rv_core->rs2] & 0x1F);
         rv_core->x[rv_core->rd] = SIGNEX(rs1_val << rs2_val, 31);
@@ -484,6 +552,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_ADDW(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         uint32_t rs1_val = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
         rv_core->x[rv_core->rd] = SIGNEX(rs1_val + rs2_val, 31);
@@ -491,6 +560,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_SUBW(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         uint32_t rs1_val = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
         rv_core->x[rv_core->rd] = SIGNEX(rs1_val - rs2_val, 31);
@@ -500,6 +570,7 @@ static void instr_SW(rv_core_td *rv_core)
 #ifdef CSR_SUPPORT
     static void instr_CSRRW(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen csr_val = 0;
 
         if(csr_read_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
@@ -513,6 +584,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_CSRRS(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen csr_val = 0;
         if(csr_read_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
@@ -525,6 +597,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_CSRRC(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen csr_val = 0;
         if(csr_read_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
@@ -537,6 +610,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_CSRRWI(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen csr_val = 0;
         if(csr_read_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
@@ -549,6 +623,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_CSRRSI(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen csr_val = 0;
         if(csr_read_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
             DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
@@ -561,6 +636,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_CSRRCI(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen csr_val = 0;
         if(csr_read_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
@@ -573,17 +649,20 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_ECALL(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         prepare_sync_trap(rv_core, CSR_MCAUSE_ECALL_M);
     }
 
     static void instr_EBREAK(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         /* not implemented */
         (void)rv_core;
     }
 
     static void instr_MRET(rv_core_td *rv_core)
-    {        
+    {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_core->next_pc = *rv_core->mepc;
 
         /* Restore MPP and MIE */
@@ -593,12 +672,14 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_SRET(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         /* not implemented */
         (void)rv_core;
     }
 
     static void instr_URET(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         /* not implemented */
         (void)rv_core;
     }
@@ -607,6 +688,7 @@ static void instr_SW(rv_core_td *rv_core)
 #ifdef ATOMIC_SUPPORT
     static void instr_LR_W(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_core->lr_address = rv_core->x[rv_core->rs1];
         rv_core->lr_valid = 1;
         instr_LW(rv_core);
@@ -614,6 +696,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_SC_W(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         if(rv_core->lr_valid && (rv_core->lr_address == rv_core->x[rv_core->rs1]))
         {
             instr_SW(rv_core);
@@ -630,6 +713,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_AMOSWAP_W(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
         uint32_t result = 0;
@@ -642,6 +726,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_AMOADD_W(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         uint32_t rd_val = 0;
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
@@ -656,6 +741,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_AMOXOR_W(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         uint32_t rd_val = 0;
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
@@ -670,6 +756,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_AMOAND_W(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         uint32_t rd_val = 0;
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
@@ -684,6 +771,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_AMOOR_W(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         uint32_t rd_val = 0;
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
@@ -698,6 +786,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_AMOMIN_W(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         int32_t rd_val = 0;
         int32_t rs2_val = rv_core->x[rv_core->rs2];
@@ -713,6 +802,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_AMOMAX_W(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         int32_t rd_val = 0;
         int32_t rs2_val = rv_core->x[rv_core->rs2];
@@ -728,6 +818,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_AMOMINU_W(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         uint32_t rd_val = 0;
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
@@ -743,6 +834,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_AMOMAXU_W(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         uint32_t rd_val = 0;
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
@@ -759,6 +851,7 @@ static void instr_SW(rv_core_td *rv_core)
     #ifdef RV64
         static void instr_LR_D(rv_core_td *rv_core)
         {
+            CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             rv_core->lr_valid = 1;
             rv_core->lr_address = rv_core->x[rv_core->rs1];
             instr_LD(rv_core);
@@ -766,6 +859,7 @@ static void instr_SW(rv_core_td *rv_core)
 
         static void instr_SC_D(rv_core_td *rv_core)
         {
+            CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             if(rv_core->lr_valid && (rv_core->lr_address == rv_core->x[rv_core->rs1]))
             {
                 instr_SD(rv_core);
@@ -782,6 +876,7 @@ static void instr_SW(rv_core_td *rv_core)
 
         static void instr_AMOSWAP_D(rv_core_td *rv_core)
         {
+            CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
             rv_uint_xlen result = 0;
@@ -794,6 +889,7 @@ static void instr_SW(rv_core_td *rv_core)
 
         static void instr_AMOADD_D(rv_core_td *rv_core)
         {
+            CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_uint_xlen rd_val = 0;
             rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
@@ -808,6 +904,7 @@ static void instr_SW(rv_core_td *rv_core)
 
         static void instr_AMOXOR_D(rv_core_td *rv_core)
         {
+            CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_uint_xlen rd_val = 0;
             rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
@@ -822,6 +919,7 @@ static void instr_SW(rv_core_td *rv_core)
 
         static void instr_AMOAND_D(rv_core_td *rv_core)
         {
+            CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_uint_xlen rd_val = 0;
             rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
@@ -836,6 +934,7 @@ static void instr_SW(rv_core_td *rv_core)
 
         static void instr_AMOOR_D(rv_core_td *rv_core)
         {
+            CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_uint_xlen rd_val = 0;
             rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
@@ -850,6 +949,7 @@ static void instr_SW(rv_core_td *rv_core)
 
         static void instr_AMOMIN_D(rv_core_td *rv_core)
         {
+            CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_int_xlen rd_val = 0;
             rv_int_xlen rs2_val = rv_core->x[rv_core->rs2];
@@ -865,6 +965,7 @@ static void instr_SW(rv_core_td *rv_core)
 
         static void instr_AMOMAX_D(rv_core_td *rv_core)
         {
+            CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_int_xlen rd_val = 0;
             rv_int_xlen rs2_val = rv_core->x[rv_core->rs2];
@@ -880,6 +981,7 @@ static void instr_SW(rv_core_td *rv_core)
 
         static void instr_AMOMINU_D(rv_core_td *rv_core)
         {
+            CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_uint_xlen rd_val = 0;
             rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
@@ -895,6 +997,7 @@ static void instr_SW(rv_core_td *rv_core)
 
         static void instr_AMOMAXU_D(rv_core_td *rv_core)
         {
+            CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_uint_xlen rd_val = 0;
             rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
@@ -913,6 +1016,7 @@ static void instr_SW(rv_core_td *rv_core)
 #ifdef MULTIPLY_SUPPORT
     static void instr_DIV(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_int_xlen signed_rs = rv_core->x[rv_core->rs1];
         rv_int_xlen signed_rs2 = rv_core->x[rv_core->rs2];
 
@@ -935,6 +1039,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_DIVU(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen unsigned_rs = rv_core->x[rv_core->rs1];
         rv_uint_xlen unsigned_rs2 = rv_core->x[rv_core->rs2];
 
@@ -950,6 +1055,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_REM(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_int_xlen signed_rs = rv_core->x[rv_core->rs1];
         rv_int_xlen signed_rs2 = rv_core->x[rv_core->rs2];
 
@@ -974,6 +1080,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_REMU(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen unsigned_rs = rv_core->x[rv_core->rs1];
         rv_uint_xlen unsigned_rs2 = rv_core->x[rv_core->rs2];
 
@@ -989,6 +1096,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_MUL(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_int_xlen signed_rs = rv_core->x[rv_core->rs1];
         rv_int_xlen signed_rs2 = rv_core->x[rv_core->rs2];
         rv_core->x[rv_core->rd] = signed_rs * signed_rs2;
@@ -996,6 +1104,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_MULH(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_int_xlen result_hi = 0;
         rv_int_xlen result_lo = 0;
         MUL(rv_core->x[rv_core->rs1], rv_core->x[rv_core->rs2], &result_hi, &result_lo);
@@ -1004,6 +1113,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_MULHU(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen result_hi = 0;
         rv_uint_xlen result_lo = 0;
         UMUL(rv_core->x[rv_core->rs1], rv_core->x[rv_core->rs2], &result_hi, &result_lo);
@@ -1012,6 +1122,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_MULHSU(rv_core_td *rv_core)
     {
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_int_xlen result_hi = 0;
         rv_int_xlen result_lo = 0;
         MULHSU(rv_core->x[rv_core->rs1], rv_core->x[rv_core->rs2], &result_hi, &result_lo);
@@ -1021,6 +1132,7 @@ static void instr_SW(rv_core_td *rv_core)
     #ifdef RV64
         static void instr_MULW(rv_core_td *rv_core)
         {
+            CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             int32_t signed_rs = rv_core->x[rv_core->rs1];
             int32_t signed_rs2 = rv_core->x[rv_core->rs2];
             int32_t result = signed_rs * signed_rs2;
@@ -1029,6 +1141,7 @@ static void instr_SW(rv_core_td *rv_core)
 
         static void instr_DIVW(rv_core_td *rv_core)
         {
+            CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             int32_t signed_rs = rv_core->x[rv_core->rs1];
             int32_t signed_rs2 = rv_core->x[rv_core->rs2];
             int32_t result = 0;
@@ -1054,6 +1167,7 @@ static void instr_SW(rv_core_td *rv_core)
 
         static void instr_DIVUW(rv_core_td *rv_core)
         {
+            CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             uint32_t unsigned_rs = rv_core->x[rv_core->rs1];
             uint32_t unsigned_rs2 = rv_core->x[rv_core->rs2];
             uint32_t result = 0;
@@ -1072,6 +1186,7 @@ static void instr_SW(rv_core_td *rv_core)
 
         static void instr_REMW(rv_core_td *rv_core)
         {
+            CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             int32_t signed_rs = rv_core->x[rv_core->rs1];
             int32_t signed_rs2 = rv_core->x[rv_core->rs2];
             int32_t result = 0;
@@ -1097,6 +1212,7 @@ static void instr_SW(rv_core_td *rv_core)
 
         static void instr_REMUW(rv_core_td *rv_core)
         {
+            CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             uint32_t unsigned_rs = rv_core->x[rv_core->rs1];
             uint32_t unsigned_rs2 = rv_core->x[rv_core->rs2];
             uint32_t result = 0;
@@ -1181,8 +1297,9 @@ static void B_type_preparation(rv_core_td *rv_core, int32_t *next_subcode)
     rv_core->rs2 = ((rv_core->instruction >> 20) & 0x1F);
     rv_core->jump_offset=((extract32(rv_core->instruction, 8, 4) << 1) |
                           (extract32(rv_core->instruction, 25, 6) << 5) |
-                          (extract32(rv_core->instruction, 7, 1) << 11));
-    rv_core->jump_offset = SIGNEX(rv_core->jump_offset, 11);
+                          (extract32(rv_core->instruction, 7, 1) << 11) |
+                          (extract32(rv_core->instruction, 31, 1) << 12) );
+    rv_core->jump_offset = SIGNEX(rv_core->jump_offset, 12);
     *next_subcode = rv_core->func3;
 }
 
@@ -1492,11 +1609,6 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
 {
     int32_t next_subcode = -1;
 
-    // if(rv_core->pc == 0x800008ac)
-    // {
-    //     printf("DBG %x %x\n", rv_core->func3, rv_core->func7);
-    // }
-
     unsigned int list_size = opcode_list_desc->instruction_hook_list_size;
     instruction_hook_td *opcode_list = opcode_list_desc->instruction_hook_list;
 
@@ -1587,6 +1699,7 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
                 if(CHECK_BIT(*rv_core->mip, CSR_MIE_MIP_MTI_BIT))
                 {
                     rv_core_do_irq(rv_core, rv_core->pc, (1UL<<(XLEN-1)) | CSR_MCAUSE_MTI);
+                    // printf("TIMER IRQ!!!\n");
                     return 1;
                 }
             }
@@ -1646,6 +1759,7 @@ static rv_uint_xlen rv_core_execute(rv_core_td *rv_core)
 /******************* Public functions *******************************/
 void rv_core_run(rv_core_td *rv_core)
 {
+    // printf("%lx %lx\n", rv_core->pc, *rv_core->mtvec);
     rv_core->next_pc = 0;
 
     if(rv_core_fetch(rv_core))

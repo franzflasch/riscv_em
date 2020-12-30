@@ -41,15 +41,16 @@ char getch()
 
 void *uart_rx_thread(void* p)
 {
-    rv_soc_td *rv_soc = p;
-    char x = 0;
+    (void)p;
+    // rv_soc_td *rv_soc = p;
+    // char x = 0;
 
     // printf("Uart RX Thread running...\n");
 
     while(1)
     {
-        x = getch();
-        uart_add_rx_char(&rv_soc->uart, x);
+        // x = getch();
+        // uart_add_rx_char(&rv_soc->uart, x);
         // printf("Press: %c\n", x);
     }
 }
@@ -60,14 +61,20 @@ static void start_uart_rx_thread(void *p)
     pthread_create(&uart_rx_th_id, NULL, uart_rx_thread, p);
 }
 
-static void parse_options(int argc, char** argv, char **fw_file, uint64_t *success_pc, uint64_t *num_cycles)
+static void parse_options(int argc, 
+                          char** argv, 
+                          char **fw_file, 
+                          char **dtb_file, 
+                          uint64_t *success_pc, 
+                          uint64_t *num_cycles)
 {
     int c;
     char *arg_fw_file = NULL;
+    char *arg_dtb_file = NULL;
     char *arg_success_pc = NULL;
     char *arg_num_cycles = NULL;
 
-    while ((c = getopt(argc, argv, "s:f:n:")) != -1)
+    while ((c = getopt(argc, argv, "s:f:d:n:")) != -1)
     {
         switch (c)
         {
@@ -84,6 +91,15 @@ static void parse_options(int argc, char** argv, char **fw_file, uint64_t *succe
             case 'f':
             {
                 arg_fw_file = optarg;
+                // if (arg_fw_file)
+                // {
+                //     printf("Firmware file %s\n", arg_fw_file);
+                // }
+                break;
+            }
+            case 'd':
+            {
+                arg_dtb_file = optarg;
                 // if (arg_fw_file)
                 // {
                 //     printf("Firmware file %s\n", arg_fw_file);
@@ -116,24 +132,32 @@ static void parse_options(int argc, char** argv, char **fw_file, uint64_t *succe
         exit(1);
     }
 
+    if(arg_dtb_file == NULL)
+    {
+        printf("Please specify dtb file!\n");
+        exit(1);
+    }
+
     printf("FW file: %s\n", arg_fw_file);
     printf("Success PC: %lx\n", *success_pc);
     printf("Num Cycles: %ld\n", *num_cycles);
 
     *fw_file = arg_fw_file;
+    *dtb_file = arg_dtb_file;
 }
 
 
 int main(int argc, char *argv[])
 {
     char *fw_file = NULL;
+    char *dtb_file = NULL;
     rv_uint_xlen success_pc = 0;
     uint64_t num_cycles = 0;
 
-    parse_options(argc, argv, &fw_file, &success_pc, &num_cycles);
+    parse_options(argc, argv, &fw_file, &dtb_file, &success_pc, &num_cycles);
 
     rv_soc_td rv_soc;
-    rv_soc_init(&rv_soc, fw_file);
+    rv_soc_init(&rv_soc, fw_file, dtb_file);
 
     start_uart_rx_thread(&rv_soc);
 
