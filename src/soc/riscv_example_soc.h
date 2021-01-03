@@ -26,7 +26,7 @@ typedef struct rv_soc_struct
 
     clint_td clint;
     plic_td plic;
-    uart_16550a_td uart;
+    uart_ns8250_td uart;
 
     rv_soc_mem_access_cb_td mem_access_cbs[5];
 

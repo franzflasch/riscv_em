@@ -574,7 +574,11 @@ static void instr_SW(rv_core_td *rv_core)
         rv_uint_xlen csr_val = 0;
 
         if(csr_read_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
-            die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+        {
+            // die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+            prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
+            return;
+        }
 
         if(csr_write_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, rv_core->x[rv_core->rs1]))
             DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
@@ -587,7 +591,11 @@ static void instr_SW(rv_core_td *rv_core)
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen csr_val = 0;
         if(csr_read_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
-            die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+        {
+            // die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+            prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
+            return;
+        }
 
         if(csr_write_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val | rv_core->x[rv_core->rs1]))
             DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
@@ -600,7 +608,11 @@ static void instr_SW(rv_core_td *rv_core)
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen csr_val = 0;
         if(csr_read_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
-            die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+        {
+            // die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+            prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
+            return;
+        }
 
         if(csr_write_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val & ~rv_core->x[rv_core->rs1]))
             DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
@@ -613,7 +625,11 @@ static void instr_SW(rv_core_td *rv_core)
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen csr_val = 0;
         if(csr_read_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
-            die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+        {
+            // die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+            prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
+            return;
+        }
 
         if(csr_write_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, rv_core->rs1))
             DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
@@ -626,7 +642,11 @@ static void instr_SW(rv_core_td *rv_core)
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen csr_val = 0;
         if(csr_read_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
-            DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
+        {
+            // die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+            prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
+            return;
+        }
 
         if(csr_write_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val | rv_core->rs1))
             DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
@@ -639,7 +659,11 @@ static void instr_SW(rv_core_td *rv_core)
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         rv_uint_xlen csr_val = 0;
         if(csr_read_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
-            die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+        {
+            // die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+            prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
+            return;
+        }
 
         if(csr_write_reg(rv_core->csr_table, rv_core->curr_priv_mode, rv_core->immediate, csr_val & ~rv_core->rs1))
             DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
@@ -650,14 +674,14 @@ static void instr_SW(rv_core_td *rv_core)
     static void instr_ECALL(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-        prepare_sync_trap(rv_core, CSR_MCAUSE_ECALL_M);
+        prepare_sync_trap(rv_core, CSR_MCAUSE_ECALL_U + rv_core->curr_priv_mode);
     }
 
     static void instr_EBREAK(rv_core_td *rv_core)
     {
-        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         /* not implemented */
         (void)rv_core;
+        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     }
 
     static void instr_MRET(rv_core_td *rv_core)
@@ -666,7 +690,7 @@ static void instr_SW(rv_core_td *rv_core)
         rv_core->next_pc = *rv_core->mepc;
 
         /* Restore MPP and MIE */
-        rv_core->curr_priv_mode = (*rv_core->mstatus & (CSR_MSTATUS_MPP_MASK << CSR_MSTATUS_MPP_BIT)) >> CSR_MSTATUS_MPP_BIT;
+        rv_core->curr_priv_mode = extract32(*rv_core->mstatus, CSR_MSTATUS_MPP_BIT, 2);
         assign_xlen_bit(rv_core->mstatus, CSR_MSTATUS_MIE_BIT, (1 << CSR_MSTATUS_MPIE_BIT) >> CSR_MSTATUS_MPIE_BIT);
     }
 
@@ -1521,6 +1545,7 @@ INIT_INSTRUCTION_LIST_DESC(ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode
         [FUNC12_INSTR_MRET] = {NULL, instr_MRET, NULL},
         [FUNC12_INSTR_SRET] = {NULL, instr_SRET, NULL},
         [FUNC12_INSTR_URET] = {NULL, instr_URET, NULL},
+        [FUNC12_INSTR_WFI] = {NULL, instr_NOP, NULL},
     };
     INIT_INSTRUCTION_LIST_DESC(ECALL_EBREAK_MRET_SRET_URET_func12_subcode_list);
 
@@ -1531,7 +1556,7 @@ INIT_INSTRUCTION_LIST_DESC(ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND_func3_subcode
         [FUNC3_INSTR_CSRRWI] = {NULL, instr_CSRRWI, NULL},
         [FUNC3_INSTR_CSRRSI] = {NULL, instr_CSRRSI, NULL},
         [FUNC3_INSTR_CSRRCI] = {NULL, instr_CSRRCI, NULL},
-        [FUNC3_INSTR_ECALL_EBREAK_MRET_SRET_URET] = {preparation_func12, NULL, &ECALL_EBREAK_MRET_SRET_URET_func12_subcode_list_desc}
+        [FUNC3_INSTR_ECALL_EBREAK_MRET_SRET_URET_WFI] = {preparation_func12, NULL, &ECALL_EBREAK_MRET_SRET_URET_func12_subcode_list_desc}
     };
     INIT_INSTRUCTION_LIST_DESC(ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI_func3_subcode_list);
 #endif
@@ -1596,7 +1621,7 @@ static instruction_hook_td RV_opcode_list[] = {
     #endif
 
     #ifdef CSR_SUPPORT
-        [INSTR_ECALL_EBREAK_MRET_SRET_URET_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI] = {I_type_preparation, NULL, &ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI_func3_subcode_list_desc},
+        [INSTR_ECALL_EBREAK_MRET_SRET_URET_WFI_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI] = {I_type_preparation, NULL, &ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI_func3_subcode_list_desc},
     #endif
 
     #ifdef ATOMIC_SUPPORT
@@ -1643,6 +1668,9 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
 
         /* now clear MIE */
         CLEAR_BIT(*rv_core->mstatus, CSR_MSTATUS_MIE_BIT);
+
+        /* Elevate privilege mode */
+        rv_core->curr_priv_mode = machine_mode;
     }
 
     static inline void rv_core_update_interrupts(rv_core_td *rv_core, uint8_t mei, uint8_t msi, uint8_t mti)
@@ -1657,7 +1685,13 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
 
         /* map timer interrupt */
         if(CHECK_BIT(*rv_core->mie, CSR_MIE_MIP_MTI_BIT))
+        {
             assign_xlen_bit(rv_core->mip, CSR_MIE_MIP_MTI_BIT, mti);
+            // if(mti)
+            // {
+            //     printf("MTI!\n");
+            // }
+        }
     }
 
     /* Interrupts are prioritized as follows, in decreasing order of priority:

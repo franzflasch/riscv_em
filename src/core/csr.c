@@ -72,8 +72,14 @@ int csr_read_reg(csr_reg_desc_td *reg_table, privilege_level curr_priv_mode, uin
                 ret_val = CSR_ACCESS_OK;
                 break;
             }
+            // else if(address == 0x340)
+            // {
+            //     printf("MSCRATCH! %x %x\n", curr_priv_mode, reg_table->regs[i].access_flags);
+            // }
         }
     }
+
+    // printf("CSR READ %d\n", i);
 
     return ret_val;
 }
@@ -96,6 +102,8 @@ int csr_write_reg(csr_reg_desc_td *reg_table, privilege_level curr_priv_mode, ui
             }
         }
     }
+
+    // printf("CSR WRITE %d\n", i);
 
     return ret_val;
 }

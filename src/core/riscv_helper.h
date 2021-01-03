@@ -113,14 +113,14 @@ static inline void assign_xlen_bit(rv_uint_xlen *out_var, rv_uint_xlen nbit, rv_
     *out_var = (*out_var & ~(1UL << nbit)) | ((bit_value & 1) << nbit);
 }
 
-static inline uint32_t extract8(uint8_t value, int start, int length)
+static inline uint8_t extract8(uint8_t value, int start, int length)
 {
-    return (value >> start) & (~0U >> (8 - length));
+    return (value >> start) & (0xFF >> (8 - length));
 }
 
 static inline uint32_t extract32(uint32_t value, int start, int length)
 {
-    return (value >> start) & (~0U >> (32 - length));
+    return (value >> start) & (0xFFFFFFFF >> (32 - length));
 }
 
 #define ADDR_WITHIN(_addr, _start, _size) ( (_addr >= _start) && (_addr < _start + _size) )

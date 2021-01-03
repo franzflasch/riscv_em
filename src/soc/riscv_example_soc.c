@@ -40,7 +40,7 @@ static void rv_soc_init_mem_acces_cbs(rv_soc_td *rv_soc)
     INIT_MEM_ACCESS_STRUCT(rv_soc, count++, memory_read, memory_write, rv_soc->ram, RAM_BASE_ADDR, RAM_SIZE_BYTES);
     INIT_MEM_ACCESS_STRUCT(rv_soc, count++, clint_read_reg, clint_write_reg, &rv_soc->clint, CLINT_BASE_ADDR, CLINT_SIZE_BYTES);
     INIT_MEM_ACCESS_STRUCT(rv_soc, count++, plic_read_reg, plic_write_reg, &rv_soc->plic, PLIC_BASE_ADDR, PLIC_SIZE_BYTES);
-    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, uart_read, uart_write, &rv_soc->uart, UART_TX_REG_ADDR, UART_16550A_NR_REGS);
+    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, uart_read, uart_write, &rv_soc->uart, UART_TX_REG_ADDR, UART_NS8250_NR_REGS);
     INIT_MEM_ACCESS_STRUCT(rv_soc, count++, memory_read, memory_write, rv_soc->mrom, MROM_BASE_ADDR, MROM_SIZE_BYTES);
 }
 

@@ -41,17 +41,17 @@ char getch()
 
 void *uart_rx_thread(void* p)
 {
-    (void)p;
-    // rv_soc_td *rv_soc = p;
-    // char x = 0;
+    // (void)p;
+    rv_soc_td *rv_soc = p;
+    char x = 0;
 
-    // printf("Uart RX Thread running...\n");
+    printf("Uart RX Thread running...\n");
 
     while(1)
     {
-        // x = getch();
-        // uart_add_rx_char(&rv_soc->uart, x);
-        // printf("Press: %c\n", x);
+        x = getch();
+        // printf("Press: %c PC: %lx\n", x , rv_soc->rv_core0.pc);
+        uart_add_rx_char(&rv_soc->uart, x);
     }
 }
 

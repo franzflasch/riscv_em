@@ -101,6 +101,10 @@ uint8_t plic_update(plic_td *plic)
 
     /* check for any enabled interrupt and threshold */
     for(i=0;i<NR_ENABLE_REGS;i++)
+    {
+        if( (!plic->enable_bits[i]) || (!plic->pending_bits[i]) )
+            continue;
+
         for(j=0;j<sizeof(plic->enable_bits[0])*8;j++)
         {
             if( CHECK_BIT(plic->enable_bits[i], j) && 
@@ -117,6 +121,7 @@ uint8_t plic_update(plic_td *plic)
 
             irq_id_count++;
         }
+    }
 
     if(irq_to_trigger > 0)
     {

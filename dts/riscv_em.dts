@@ -54,7 +54,7 @@
             compatible = "riscv,plic0";
             reg = <0x0 0xC000000 0x0 0x4000000>;
             interrupts-extended = <&cpu0_intc 11>, <&cpu0_intc 0xffffffff>;
-            riscv,ndev = <3>;
+            riscv,ndev = <1>;
             riscv,max-priority = <7>;
         };
 

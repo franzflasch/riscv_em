@@ -67,12 +67,18 @@ int clint_write_reg(void *priv, rv_uint_xlen address, rv_uint_xlen val, uint8_t 
         ret_val = RV_MEM_ACCESS_OK;
     }
 
+    // printf("mtimecmp: %ld\n", clint->regs[clint_mtimecmp]);
+
     return ret_val;
 }
 
 void clint_update(clint_td *clint, uint8_t *msi, uint8_t *mti)
 {
-    clint->regs[clint_mtime]+=1;
+    static uint8_t i = 0;
+    if(i%2 == 0)
+        clint->regs[clint_mtime]+=1;
+
+    i++;
 
     *mti = (clint->regs[clint_mtime] >= clint->regs[clint_mtimecmp]);
     *msi = (clint->regs[clint_msip] & 0x1);
