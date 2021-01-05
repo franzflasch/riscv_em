@@ -36,9 +36,9 @@ typedef struct uart_ns8250_struct
     fifo_t rx_fifo;
     uint8_t rx_fifo_data[UART_NS8250_FIFO_SIZE];
     uint8_t rx_irq_fifo_level;
+    uint8_t lsr_change;
 
-    uint8_t rx_val;
-    uint8_t rx_data_avail;
+    uint8_t curr_iir_id;
 
     uint8_t regs[UART_NS8250_NR_REGS];
 

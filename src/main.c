@@ -9,7 +9,7 @@
 #include <pthread.h>
 
 #include <riscv_example_soc.h>
-#include <uart.h>
+#include <simple_uart.h>
 
 char getch() 
 {
@@ -49,9 +49,15 @@ void *uart_rx_thread(void* p)
 
     while(1)
     {
+        // x = getchar();
         x = getch();
-        // printf("Press: %c PC: %lx\n", x , rv_soc->rv_core0.pc);
-        uart_add_rx_char(&rv_soc->uart, x);
+        // printf("Press: %c PC: %lx mie: %lx mip: %lx\n", x , rv_soc->rv_core0.pc, *rv_soc->rv_core0.mie, *rv_soc->rv_core0.mip);
+
+        #ifdef USE_SIMPLE_UART
+            simple_uart_add_rx_char(&rv_soc->uart, x);
+        #else
+            uart_add_rx_char(&rv_soc->uart8250, x);
+        #endif
     }
 }
 

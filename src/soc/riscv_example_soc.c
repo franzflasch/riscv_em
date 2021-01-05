@@ -40,7 +40,11 @@ static void rv_soc_init_mem_acces_cbs(rv_soc_td *rv_soc)
     INIT_MEM_ACCESS_STRUCT(rv_soc, count++, memory_read, memory_write, rv_soc->ram, RAM_BASE_ADDR, RAM_SIZE_BYTES);
     INIT_MEM_ACCESS_STRUCT(rv_soc, count++, clint_read_reg, clint_write_reg, &rv_soc->clint, CLINT_BASE_ADDR, CLINT_SIZE_BYTES);
     INIT_MEM_ACCESS_STRUCT(rv_soc, count++, plic_read_reg, plic_write_reg, &rv_soc->plic, PLIC_BASE_ADDR, PLIC_SIZE_BYTES);
-    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, uart_read, uart_write, &rv_soc->uart, UART_TX_REG_ADDR, UART_NS8250_NR_REGS);
+    #ifdef USE_SIMPLE_UART
+        INIT_MEM_ACCESS_STRUCT(rv_soc, count++, simple_uart_read, simple_uart_write, &rv_soc->uart, SIMPLE_UART_TX_REG_ADDR, SIMPLE_UART_SIZE_BYTES);
+    #else
+        INIT_MEM_ACCESS_STRUCT(rv_soc, count++, uart_read, uart_write, &rv_soc->uart8250, UART8250_TX_REG_ADDR, UART_NS8250_NR_REGS);
+    #endif
     INIT_MEM_ACCESS_STRUCT(rv_soc, count++, memory_read, memory_write, rv_soc->mrom, MROM_BASE_ADDR, MROM_SIZE_BYTES);
 }
 
@@ -198,8 +202,11 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
         rv_core_init(&rv_soc->rv_core0, rv_soc, rv_soc_read_mem, rv_soc_write_mem, NULL);
     #endif
 
-    /* init uart */
-    uart_init(&rv_soc->uart);
+    #ifdef USE_SIMPLE_UART
+        simple_uart_init(&rv_soc->uart);
+    #else
+        uart_init(&rv_soc->uart8250);
+    #endif
 
     /* initialize ram and peripheral read write access pointers */
     rv_soc_init_mem_acces_cbs(rv_soc);
@@ -222,7 +229,11 @@ void rv_soc_run(rv_soc_td *rv_soc, rv_uint_xlen success_pc, uint64_t num_cycles)
         rv_core_run(&rv_soc->rv_core0);
 
         /* update peripherals */
-        uart_irq_pending = uart_update(&rv_soc->uart);
+        #ifdef USE_SIMPLE_UART
+            uart_irq_pending = simple_uart_update(&rv_soc->uart);
+        #else
+            uart_irq_pending = uart_update(&rv_soc->uart8250);
+        #endif
 
         // printf("Uart pending: %d\n", uart_irq_pending);
 

@@ -58,12 +58,20 @@
             riscv,max-priority = <7>;
         };
 
-        uart0: serial@10000000 {
+        // uart0: serial@10000000 {
+        //     interrupts = <0xa>;
+        //     interrupt-parent = <&plic0>;
+        //     clock-frequency = <0x384000>;
+        //     reg = <0x0 0x10000000 0x0 0x100>;
+        //     compatible = "ns16550a";
+        // };
+
+        uart0: serial@3000000 {
             interrupts = <0xa>;
             interrupt-parent = <&plic0>;
             clock-frequency = <0x384000>;
-            reg = <0x0 0x10000000 0x0 0x100>;
-            compatible = "ns16550a";
+            reg = <0x0 0x3000000 0x0 0x1>;
+            compatible = "simple-uart";
         };
     };
 };

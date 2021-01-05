@@ -4,7 +4,7 @@
 #include <pthread.h>
 
 #include <riscv_helper.h>
-#include <uart.h>
+#include <uart_8250.h>
 
 // #define UART_DEBUG
 #ifdef UART_DEBUG
@@ -48,7 +48,9 @@ void uart_init(uart_ns8250_td *uart)
     fifo_init(&uart->rx_fifo, uart->rx_fifo_data, UART_NS8250_FIFO_SIZE);
 
     /* no interrupt pending */
-    uart->regs[REG_IIR] = NO_IRQ_PENDING;
+    // uart->regs[REG_IIR] = NO_IRQ_PENDING;
+    uart->rx_irq_fifo_level = 1;
+    uart->curr_iir_id = 1;
 }
 
 int uart_write(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint8_t nr_bytes)
@@ -69,7 +71,7 @@ int uart_write(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint
             {
                 fifo_in(&uart->tx_fifo, &val_u8, 1);
 
-                if( (!uart->fifo_enabled) || (val_u8 == '\n') || (val_u8 == '\r'))
+                if( (!uart->fifo_enabled) || (val_u8 == '\n') )
                     uart->tx_needs_flush = 1;
 
                 if(uart->regs[REG_IIR] == 2)
@@ -139,6 +141,7 @@ int uart_write(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint
 
             tmp_bits = extract8(val, 6, 2);
             uart->rx_irq_fifo_level = (tmp_bits == 3) ? 14 : (tmp_bits == 2) ? 8 : (tmp_bits == 1) ? 4 : 1;
+            // printf("fifo level %d\n", uart->rx_irq_fifo_level);
         break;
         case REG_LCR:
             uart->regs[REG_LCR] = val_u8;
@@ -152,7 +155,7 @@ int uart_write(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint
                 UART_DBG("dlab deactivated\n");
         break;
         case REG_MCR:
-            /* nothing to do here */
+            uart->regs[REG_MCR] = val_u8;
         break;
         default:
             die_msg("UART-Write Reg " PRINTF_FMT " not supported yet!\n", address_internal);
@@ -175,7 +178,9 @@ int uart_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
         case REG_RX_TX_DIV_LATCH_LO:
             if(!uart->dlab)
             {
-                *outval = 'X';
+                fifo_out(&uart->rx_fifo, &tmp_out_val, 1);
+                *outval = tmp_out_val;
+                // printf("RX: %c %d\n", tmp_out_val, uart->lsr_change);
             }
             else
             {
@@ -192,7 +197,6 @@ int uart_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
                                 (uart->irq_enabled_msr_change << 3) |
                                 (uart->irq_enabled_sleep << 4) |
                                 (uart->irq_enabled_low_power << 5) );
-
                 *outval = tmp_out_val;
             }
             else
@@ -204,9 +208,12 @@ int uart_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
         break;
         case REG_IIR:
             /* 1 means no interrupt pending */
+            // printf("RX: %x %d %d\n", uart->regs[REG_IIR], uart->lsr_change, fifo_len(&uart->rx_fifo));
             *outval = uart->regs[REG_IIR];
+            // uart->wait_for_iir_read = 0;
             if(uart->regs[REG_IIR] == 2)
             {
+                uart->curr_iir_id = NO_IRQ_PENDING;
                 uart->tx_stop_triggering = 1;
             }
         break;
@@ -232,7 +239,12 @@ int uart_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
                                 err_data_fifo << 7
                             );
 
+                // printf("LSR! %x\n", tmp_out_val);
+
                 *outval = tmp_out_val;
+
+                if(uart->lsr_change)
+                    uart->lsr_change = 0;
             }
         break;
         case REG_LCR:
@@ -240,7 +252,11 @@ int uart_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
         break;
         case REG_MSR:
             /* Not supported currently */
-            *outval = 0;
+            *outval = 0xb0;
+        break;
+        case REG_MCR:
+            /* Not supported currently */
+            *outval = 0x8;
         break;
         default:
             die_msg("UART-Read Reg " PRINTF_FMT " not supported yet!\n", address_internal);
@@ -261,8 +277,6 @@ uint8_t uart_update(void *priv)
 
     pthread_mutex_lock(&uart->lock);
 
-    uart->regs[REG_IIR] = NO_IRQ_PENDING;
-
     if(fifo_is_full(&uart->tx_fifo) || uart->tx_needs_flush)
     {
         tmp_fifo_len = fifo_len(&uart->tx_fifo);
@@ -271,18 +285,31 @@ uint8_t uart_update(void *priv)
             fifo_out(&uart->tx_fifo, &tmp_char, 1);
             putchar(tmp_char);
         }
+        fflush( stdout );
     }
 
-    if(uart->irq_enabled_tx_holding_reg_empty)
+    if( (uart->irq_enabled_rlsr_change || uart->irq_enabled_rx_data_available ) && uart->lsr_change )
     {
-        if(fifo_is_empty(&uart->tx_fifo) && (!uart->tx_stop_triggering))
-        {
-            irq_trigger = 1;
-            uart->regs[REG_IIR] = 0x2;
-        }
+        // printf("RX\n");
+        irq_trigger = 1;
+        uart->curr_iir_id = 0xC;
+        // uart->regs[REG_IIR] = 0xC;
+    }
+    else if( uart->irq_enabled_rx_data_available && (fifo_len(&uart->rx_fifo) >= uart->rx_irq_fifo_level) )
+    {
+        // printf("RX\n");
+        irq_trigger = 1;
+        uart->curr_iir_id = 0x4;
+        // uart->regs[REG_IIR] = 0xC;
+    }
+    else if( (uart->irq_enabled_tx_holding_reg_empty) && fifo_is_empty(&uart->tx_fifo) && (!uart->tx_stop_triggering) )
+    {
+        // printf("TX\n");
+        irq_trigger = 1;
+        uart->curr_iir_id = 0x2;
     }
 
-    fflush( stdout );
+    uart->regs[REG_IIR] = uart->curr_iir_id;
 
     pthread_mutex_unlock(&uart->lock);
 
@@ -293,17 +320,12 @@ void uart_add_rx_char(uart_ns8250_td *uart, uint8_t x)
 {
     pthread_mutex_lock(&uart->lock);
 
-    (void)x;
+    // uint8_t tmp = 13;
+    fifo_in(&uart->rx_fifo, &x, 1);
+    // fifo_in(&uart->rx_fifo, &tmp, 1);
+    uart->lsr_change = 1;
 
-    // if(uart->fifo_enabled)
-    // {
-    //     fifo_in(&uart->rx_fifo, &x, 1);
-    // }
-    // else
-    // {
-    //     uart->rx_val = x;
-    // }
-
+    // printf("RX %x\n", x);
     // assign_u8_bit(&uart->regs[REG_LSR], 0, 1);
 
     pthread_mutex_unlock(&uart->lock);

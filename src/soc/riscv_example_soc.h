@@ -5,7 +5,8 @@
 #include <core.h>
 
 #include <plic.h>
-#include <uart.h>
+#include <uart_8250.h>
+#include <simple_uart.h>
 
 typedef struct rv_soc_mem_access_cb_struct
 {
@@ -26,9 +27,14 @@ typedef struct rv_soc_struct
 
     clint_td clint;
     plic_td plic;
-    uart_ns8250_td uart;
 
-    rv_soc_mem_access_cb_td mem_access_cbs[5];
+    #ifdef USE_SIMPLE_UART
+        simple_uart_td uart;
+    #else
+        uart_ns8250_td uart8250;
+    #endif
+
+    rv_soc_mem_access_cb_td mem_access_cbs[6];
 
 } rv_soc_td;
 

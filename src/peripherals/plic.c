@@ -111,9 +111,14 @@ uint8_t plic_update(plic_td *plic)
                 CHECK_BIT(plic->pending_bits[i], j) && 
                 (plic->priority[irq_id_count] >= plic->priority_threshold) )
             {
-                /* find irq with highest prio */
-                if( !CHECK_BIT(plic->claimed_bits[i], j) && (plic->priority[irq_id_count] > highest_prio))
+                if(CHECK_BIT(plic->claimed_bits[i], j))
                 {
+                    /* qemu also seems to clear pending bit if it was already claimed */
+                    assign_u32_bit(&plic->pending_bits[i], j, 0);
+                }
+                else if((plic->priority[irq_id_count] > highest_prio))
+                {
+                    /* find irq with highest prio */
                     highest_prio = plic->priority[irq_id_count];
                     irq_to_trigger = irq_id_count;
                 }
@@ -128,6 +133,10 @@ uint8_t plic_update(plic_td *plic)
         PLIC_DBG("plic !!IRQ!! trigger! %d\n", irq_to_trigger);
         plic->claim_complete = irq_to_trigger;
         return 1;
+    }
+    else
+    {
+        plic->claim_complete = 0;
     }
 
     return 0;
@@ -148,9 +157,11 @@ int plic_read_reg(void *priv, rv_uint_xlen address, rv_uint_xlen *out_val)
         /* check if it is the claim complete reg */
         if(is_claim_complete)
         {
+            PLIC_DBG("CLAIM READ! %lx\n", *out_val);
             irq_reg = *out_val/32;
             irq_bit = *out_val%32;
-            assign_u32_bit(&plic->claimed_bits[irq_reg], irq_bit, 1);
+            if(CHECK_BIT(plic->pending_bits[irq_reg], irq_bit))
+                assign_u32_bit(&plic->claimed_bits[irq_reg], irq_bit, 1);
         }
 
         return RV_MEM_ACCESS_OK;
@@ -174,6 +185,7 @@ int plic_write_reg(void *priv, rv_uint_xlen address, rv_uint_xlen val, uint8_t n
         /* check if it is the claim complete reg */
         if(is_claim_complete)
         {
+            PLIC_DBG("CLAIM WRITE! %lx\n", val);
             irq_reg = val/32;
             irq_bit = val%32;
             assign_u32_bit(&plic->claimed_bits[irq_reg], irq_bit, 0);

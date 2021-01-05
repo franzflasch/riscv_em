@@ -24,7 +24,8 @@ set(INC_CORE
 set(SRC_PERIPH
     src/peripherals/clint.c
     src/peripherals/plic.c
-    src/peripherals/uart.c
+    src/peripherals/simple_uart.c
+    src/peripherals/uart_8250.c
 )
 
 set(INC_PERIPH

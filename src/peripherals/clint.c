@@ -75,7 +75,7 @@ int clint_write_reg(void *priv, rv_uint_xlen address, rv_uint_xlen val, uint8_t 
 void clint_update(clint_td *clint, uint8_t *msi, uint8_t *mti)
 {
     static uint8_t i = 0;
-    if(i%2 == 0)
+    if(i%1 == 0)
         clint->regs[clint_mtime]+=1;
 
     i++;

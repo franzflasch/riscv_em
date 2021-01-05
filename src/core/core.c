@@ -74,7 +74,6 @@ static void instr_JAL(rv_core_td *rv_core)
     }
 
     rv_core->next_pc = rv_core->pc + rv_core->jump_offset;
-    // printf("%lx %lx %lx\n", rv_core->pc, rv_core->jump_offset, rv_core->next_pc);
 }
 
 static void instr_JALR(rv_core_td *rv_core)
@@ -1083,8 +1082,6 @@ static void instr_SW(rv_core_td *rv_core)
         rv_int_xlen signed_rs = rv_core->x[rv_core->rs1];
         rv_int_xlen signed_rs2 = rv_core->x[rv_core->rs2];
 
-        // printf("Div zero!!! %lx %lx\n", signed_rs, signed_rs2);
-
         /* division by zero */
         if(signed_rs2 == 0)
         {
@@ -1685,13 +1682,7 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
 
         /* map timer interrupt */
         if(CHECK_BIT(*rv_core->mie, CSR_MIE_MIP_MTI_BIT))
-        {
             assign_xlen_bit(rv_core->mip, CSR_MIE_MIP_MTI_BIT, mti);
-            // if(mti)
-            // {
-            //     printf("MTI!\n");
-            // }
-        }
     }
 
     /* Interrupts are prioritized as follows, in decreasing order of priority:
@@ -1733,7 +1724,6 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
                 if(CHECK_BIT(*rv_core->mip, CSR_MIE_MIP_MTI_BIT))
                 {
                     rv_core_do_irq(rv_core, rv_core->pc, (1UL<<(XLEN-1)) | CSR_MCAUSE_MTI);
-                    // printf("TIMER IRQ!!!\n");
                     return 1;
                 }
             }
@@ -1757,9 +1747,6 @@ static inline rv_uint_xlen rv_core_fetch(rv_core_td *rv_core)
     rv_uint_xlen addr = rv_core->pc;
 
     rv_core->instruction = rv_core->read_mem(rv_core->priv, addr, &err);
-
-    // printf("INSTR: %x\n", rv_core->instruction);
-    // getchar();
 
     return err;
 }
@@ -1793,7 +1780,6 @@ static rv_uint_xlen rv_core_execute(rv_core_td *rv_core)
 /******************* Public functions *******************************/
 void rv_core_run(rv_core_td *rv_core)
 {
-    // printf("%lx %lx\n", rv_core->pc, *rv_core->mtvec);
     rv_core->next_pc = 0;
 
     if(rv_core_fetch(rv_core))
