@@ -17,9 +17,7 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+        with:
+          repository: franzflasch/riscv-test-scripts
       - name: test
         run: echo "Hallo!"
-
-      - uses: actions/checkout@v2
-        with:
-        name: franzflasch/riscv-test-scripts     <-- clone https://github.com/org1/repo1
