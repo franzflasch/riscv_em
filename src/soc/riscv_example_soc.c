@@ -181,8 +181,9 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
     rv_soc->mrom = soc_mrom;
     rv_soc->ram = soc_ram;
 
-    printf("%s\n", dtb_file_name);
-    write_mem_from_file(dtb_file_name, &soc_mrom[8*4], sizeof(soc_mrom)-(8*4));
+    if(dtb_file_name != NULL)
+        write_mem_from_file(dtb_file_name, &soc_mrom[8*4], sizeof(soc_mrom)-(8*4));
+
     write_mem_from_file(fw_file_name, soc_ram, sizeof(soc_ram));
 
     // for(i=0;i<30;i++)

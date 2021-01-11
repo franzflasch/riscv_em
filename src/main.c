@@ -61,9 +61,9 @@ void *uart_rx_thread(void* p)
     }
 }
 
-static pthread_t uart_rx_th_id;
-static void start_uart_rx_thread(void *p)
+void start_uart_rx_thread(void *p)
 {
+    pthread_t uart_rx_th_id;
     pthread_create(&uart_rx_th_id, NULL, uart_rx_thread, p);
 }
 
@@ -140,8 +140,7 @@ static void parse_options(int argc,
 
     if(arg_dtb_file == NULL)
     {
-        printf("Please specify dtb file!\n");
-        exit(1);
+        printf("No dtb specified! Linux will probably not work\n");
     }
 
     printf("FW file: %s\n", arg_fw_file);
@@ -165,7 +164,9 @@ int main(int argc, char *argv[])
     rv_soc_td rv_soc;
     rv_soc_init(&rv_soc, fw_file, dtb_file);
 
-    start_uart_rx_thread(&rv_soc);
+    #ifndef DEBUG
+        start_uart_rx_thread(&rv_soc);
+    #endif
 
     // rv_soc_dump_mem(&rv_soc);
 
