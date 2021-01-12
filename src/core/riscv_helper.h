@@ -7,7 +7,7 @@
 #include <riscv_config.h>
 #include <riscv_types.h>
 
-#ifdef DEBUG
+#ifdef RISCV_EM_DEBUG
 #define DEBUG_PRINT(...) do{ printf( __VA_ARGS__ ); } while( 0 )
 #else
 #define DEBUG_PRINT(...) do{ } while ( 0 )

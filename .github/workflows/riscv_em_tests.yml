@@ -17,7 +17,9 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-        with:
-          repository: franzflasch/riscv-test-scripts
-      - name: test
-        run: echo "Hallo!"
+#      - name: set env
+#        run: echo "/toolchain/riscv64-none-elf/bin" >> $GITHUB_PATH
+      - name: prepare
+        run: ./github_ci_prepare.sh
+      - name: run-tests
+        run: ./github_ci_run_tests.sh

@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
     rv_soc_td rv_soc;
     rv_soc_init(&rv_soc, fw_file, dtb_file);
 
-    #ifndef DEBUG
+    #ifndef RISCV_EM_DEBUG
         start_uart_rx_thread(&rv_soc);
     #endif
 
