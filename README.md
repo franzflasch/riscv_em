@@ -31,5 +31,5 @@ Please see https://github.com/franzflasch/linux_for_riscv_em
 
 ### Start the emulator and load linux:
 ```sh
-./build/riscv_em -f /working_dir/Desktop/work/private/riscv-nommu/linux_for_riscv_em/output/linux/loader_64.bin -d dts/riscv_em.dtb
+./build/riscv_em -f <linux_for_riscv_em-path>/output/linux/loader_64.bin -d dts/riscv_em.dtb
 ```
