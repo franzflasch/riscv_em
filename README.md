@@ -2,7 +2,7 @@
 This is a risc-v emulator written in plain C.  
 It started as a fun project a while ago and is now capable of doing a few things (but still just a hobby, won't be big and professional like qemu ;)  
 
-## Ever wanted to know what the absolute minimum requirements are to run linux?
+### Ever wanted to know what the absolute minimum requirements are to run linux?
 riscv_em is the answer. Yes, the emulator is capable of running Linux. (Although only nommu-linux for now.)  
 
 One goal of this project is to be easily able to understand its source code and thus also the risc-v isa. You can also see this project as an attempt to directly translate the RISC-V ISA specs (Currently Unprivileged Spec v.20191213 and Privileged Spec v.20190608) into plain C.  
