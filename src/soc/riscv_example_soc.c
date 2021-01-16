@@ -121,9 +121,6 @@ static void write_mem_from_file(char *file_name, uint8_t *memory, rv_uint_xlen m
         exit(-2);
     }
 
-    /* set some registers initial value to match qemu's */
-    // rv_soc->rv_core0.x[11] = 0x00001020;
-
     result = fread(memory, sizeof(uint8_t), lsize, p_fw_file);
     if(result != lsize)
     {
@@ -152,7 +149,7 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
     static uint8_t __attribute__((aligned (4))) soc_mrom[MROM_SIZE_BYTES] = { 0 };
     static uint8_t __attribute__((aligned (4))) soc_ram[RAM_SIZE_BYTES] = { 0 };
 
-    /* reset vector */
+    /* this is the reset vector, taken from qemu v4.2 */
     uint32_t reset_vec[8] = {
         0x00000297,                  /* 1:  auipc  t0, %pcrel_hi(dtb) */
         0x02028593,                  /*     addi   a1, t0, %pcrel_lo(1b) */
@@ -182,18 +179,9 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
     rv_soc->ram = soc_ram;
 
     if(dtb_file_name != NULL)
-        write_mem_from_file(dtb_file_name, &soc_mrom[8*4], sizeof(soc_mrom)-(8*4));
+        write_mem_from_file(dtb_file_name, &soc_mrom[8*sizeof(uint32_t)], sizeof(soc_mrom)-(8*sizeof(uint32_t)));
 
     write_mem_from_file(fw_file_name, soc_ram, sizeof(soc_ram));
-
-    // for(i=0;i<30;i++)
-    // {
-    //     if(i%8 == 0)
-    //         printf("\n");
-
-    //     printf("%x", soc_mrom[i]);
-    // }
-    // exit(1);
 
     /* initialize one core with a csr table */
     #ifdef CSR_SUPPORT
@@ -211,9 +199,6 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
 
     /* initialize ram and peripheral read write access pointers */
     rv_soc_init_mem_acces_cbs(rv_soc);
-
-    // rv_soc_dump_mem(rv_soc);
-    // while(1);
 
     DEBUG_PRINT("rv SOC initialized!\n");
 }

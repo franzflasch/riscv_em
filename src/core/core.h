@@ -107,7 +107,7 @@ typedef struct rv_core_struct
 void rv_core_run(rv_core_td *rv_core);
 void rv_core_process_interrupts(rv_core_td *rv_core, uint8_t mei, uint8_t msi, uint8_t mti);
 void rv_core_reg_dump(rv_core_td *rv_core);
-void rv_core_reg_internal_after_exec(rv_core_td *rv_core);
+void rv_core_reg_dump_more_regs(rv_core_td *rv_core);
 void rv_core_init(rv_core_td *rv_core,
                   void *priv,
                   rv_uint_xlen (*read_mem)(void *priv, rv_uint_xlen address, int *err),

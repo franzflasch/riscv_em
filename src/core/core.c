@@ -1826,7 +1826,7 @@ void rv_core_reg_dump(rv_core_td *rv_core)
     }
 }
 
-void rv_core_reg_internal_after_exec(rv_core_td *rv_core)
+void rv_core_reg_dump_more_regs(rv_core_td *rv_core)
 {
     (void) rv_core;
 
