@@ -117,7 +117,7 @@ static void write_mem_from_file(char *file_name, uint8_t *memory, rv_uint_xlen m
 
     if(lsize > mem_size)
     {
-        printf("Not able to load fw file of size %lu, mem space is %lu\n", lsize, mem_size);
+        printf("Not able to load fw file of size %lu, mem space is " PRINTF_FMTU "\n", lsize, mem_size);
         exit(-2);
     }
 

@@ -4,6 +4,16 @@ project (riscv_em)
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wextra -Wpedantic")
 
+OPTION(RV_ARCH "RISC-V Arch" "64")
+if(RV_ARCH STREQUAL "64")
+    add_compile_definitions(RV64)
+endif()
+
+OPTION(RISCV_EM_DEBUG "RISC-V Debug Enable" "1")
+if(RISCV_EM_DEBUG STREQUAL "1")
+    add_compile_definitions(RISCV_EM_DEBUG)
+endif()
+
 set(SRC_HELPER 
     src/helpers/fifo.c
 )

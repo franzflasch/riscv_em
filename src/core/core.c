@@ -1663,7 +1663,7 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
         *rv_core->mstatus |= rv_core->curr_priv_mode << CSR_MSTATUS_MPP_BIT;
         assign_xlen_bit(rv_core->mstatus, CSR_MSTATUS_MPIE_BIT, (*rv_core->mstatus >> CSR_MSTATUS_MIE_BIT) & CSR_MSTATUS_MIE_MASK);
 
-        /* now clear MIE */
+        /* now clear MIE (disables all interrupts) */
         CLEAR_BIT(*rv_core->mstatus, CSR_MSTATUS_MIE_BIT);
 
         /* Elevate privilege mode */

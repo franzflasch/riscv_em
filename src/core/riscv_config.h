@@ -1,10 +1,7 @@
 #ifndef RISCV_CONFIG_H
 #define RISCV_CONFIG_H
 
-// #define RISCV_EM_DEBUG
-
-#define RV64
-#define CSR_SUPPORT
+#define CSR_SUPPORT /* This is currently mandatory, because of the qemu reset-vector */
 #define ATOMIC_SUPPORT
 #define MULTIPLY_SUPPORT
 

@@ -8,6 +8,7 @@
 #include <termios.h>
 #include <pthread.h>
 
+#include <riscv_helper.h>
 #include <riscv_example_soc.h>
 #include <simple_uart.h>
 
@@ -71,7 +72,7 @@ static void parse_options(int argc,
                           char** argv, 
                           char **fw_file, 
                           char **dtb_file, 
-                          uint64_t *success_pc, 
+                          rv_uint_xlen *success_pc, 
                           uint64_t *num_cycles)
 {
     int c;
@@ -144,7 +145,7 @@ static void parse_options(int argc,
     }
 
     printf("FW file: %s\n", arg_fw_file);
-    printf("Success PC: %lx\n", *success_pc);
+    printf("Success PC: " PRINTF_FMT "\n", *success_pc);
     printf("Num Cycles: %ld\n", *num_cycles);
 
     *fw_file = arg_fw_file;

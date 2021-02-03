@@ -15,6 +15,7 @@
 
 #ifdef RV64
     #define PRINTF_FMT "%016lx"
+    #define PRINTF_FMTU "%lu"
     #define XLEN_INT_MIN 0x8000000000000000
 
     static inline void umul64wide (uint64_t a, uint64_t b, uint64_t *hi, uint64_t *lo)
@@ -53,6 +54,7 @@
     #define MULHSU mulhsu64wide
 #else
     #define PRINTF_FMT "%08x"
+    #define PRINTF_FMTU "%u"
     #define XLEN_INT_MIN 0x80000000
 
     #define UMUL umul32wide
@@ -60,36 +62,36 @@
     #define MULHSU mulhsu32wide
 #endif
 
-    static inline void umul32wide (uint32_t a, uint32_t b, uint32_t *hi, uint32_t *lo)
-    {
-        uint32_t a_lo = (uint16_t)a;
-        uint32_t a_hi = a >> 16;
-        uint32_t b_lo = (uint16_t)b;
-        uint32_t b_hi = b >> 16;
+static inline void umul32wide (uint32_t a, uint32_t b, uint32_t *hi, uint32_t *lo)
+{
+    uint32_t a_lo = (uint16_t)a;
+    uint32_t a_hi = a >> 16;
+    uint32_t b_lo = (uint16_t)b;
+    uint32_t b_hi = b >> 16;
 
-        uint32_t p0 = a_lo * b_lo;
-        uint32_t p1 = a_lo * b_hi;
-        uint32_t p2 = a_hi * b_lo;
-        uint32_t p3 = a_hi * b_hi;
+    uint32_t p0 = a_lo * b_lo;
+    uint32_t p1 = a_lo * b_hi;
+    uint32_t p2 = a_hi * b_lo;
+    uint32_t p3 = a_hi * b_hi;
 
-        uint32_t cy = (uint16_t)(((p0 >> 16) + (uint16_t)p1 + (uint16_t)p2) >> 16);
+    uint32_t cy = (uint16_t)(((p0 >> 16) + (uint16_t)p1 + (uint16_t)p2) >> 16);
 
-        *lo = p0 + (p1 << 16) + (p2 << 16);
-        *hi = p3 + (p1 >> 16) + (p2 >> 16) + cy;
-    }
+    *lo = p0 + (p1 << 16) + (p2 << 16);
+    *hi = p3 + (p1 >> 16) + (p2 >> 16) + cy;
+}
 
-    static inline void mul32wide (int32_t a, int32_t b, int32_t *hi, int32_t *lo)
-    {
-        umul32wide ((uint32_t)a, (uint32_t)b, (uint32_t *)hi, (uint32_t *)lo);
-        if (a < 0LL) *hi -= b;
-        if (b < 0LL) *hi -= a;
-    }
+static inline void mul32wide (int32_t a, int32_t b, int32_t *hi, int32_t *lo)
+{
+    umul32wide ((uint32_t)a, (uint32_t)b, (uint32_t *)hi, (uint32_t *)lo);
+    if (a < 0LL) *hi -= b;
+    if (b < 0LL) *hi -= a;
+}
 
-    static inline void mulhsu32wide (int32_t a, uint32_t b, int32_t *hi, int32_t *lo)
-    {
-        umul32wide ((uint32_t)a, (uint32_t)b, (uint32_t *)hi, (uint32_t *)lo);
-        if (a < 0LL) *hi -= b;
-    }
+static inline void mulhsu32wide (int32_t a, uint32_t b, int32_t *hi, int32_t *lo)
+{
+    umul32wide ((uint32_t)a, (uint32_t)b, (uint32_t *)hi, (uint32_t *)lo);
+    if (a < 0LL) *hi -= b;
+}
 
 #define die_msg(...) { printf(__VA_ARGS__); exit(-1); }
 
