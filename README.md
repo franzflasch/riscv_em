@@ -16,7 +16,8 @@ Support for MMU (and full blown Linux) is already on my list for 2021.
 ### How-To build:  
 ```console  
 mkdir build && cd build  
-cmake ..  
+# uclinux currently only works with RV64
+cmake -DRV_ARCH=64 ..  
 make  
 ```  
 
