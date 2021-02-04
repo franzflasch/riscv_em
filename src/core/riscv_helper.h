@@ -6,6 +6,7 @@
 
 #include <riscv_config.h>
 #include <riscv_types.h>
+#include <riscv_xlen_specifics.h>
 
 #ifdef RISCV_EM_DEBUG
 #define DEBUG_PRINT(...) do{ printf( __VA_ARGS__ ); } while( 0 )
@@ -13,54 +14,43 @@
 #define DEBUG_PRINT(...) do{ } while ( 0 )
 #endif
 
-#ifdef RV64
-    #define PRINTF_FMT "%016lx"
-    #define PRINTF_FMTU "%lu"
-    #define XLEN_INT_MIN 0x8000000000000000
+#define die_msg(...) { printf(__VA_ARGS__); exit(-1); }
 
-    static inline void umul64wide (uint64_t a, uint64_t b, uint64_t *hi, uint64_t *lo)
-    {
-        uint64_t a_lo = (uint32_t)a;
-        uint64_t a_hi = a >> 32;
-        uint64_t b_lo = (uint32_t)b;
-        uint64_t b_hi = b >> 32;
+#define ADDR_WITHIN(_addr, _start, _size) ( (_addr >= _start) && (_addr < _start + _size) )
 
-        uint64_t p0 = a_lo * b_lo;
-        uint64_t p1 = a_lo * b_hi;
-        uint64_t p2 = a_hi * b_lo;
-        uint64_t p3 = a_hi * b_hi;
+#define ASSIGN_MIN(a,b) (((a)<(b))?(a):(b))
+#define ASSIGN_MAX(a,b) (((a)>(b))?(a):(b))
 
-        uint32_t cy = (uint32_t)(((p0 >> 32) + (uint32_t)p1 + (uint32_t)p2) >> 32);
+static inline void umul64wide (uint64_t a, uint64_t b, uint64_t *hi, uint64_t *lo)
+{
+    uint64_t a_lo = (uint32_t)a;
+    uint64_t a_hi = a >> 32;
+    uint64_t b_lo = (uint32_t)b;
+    uint64_t b_hi = b >> 32;
 
-        *lo = p0 + (p1 << 32) + (p2 << 32);
-        *hi = p3 + (p1 >> 32) + (p2 >> 32) + cy;
-    }
+    uint64_t p0 = a_lo * b_lo;
+    uint64_t p1 = a_lo * b_hi;
+    uint64_t p2 = a_hi * b_lo;
+    uint64_t p3 = a_hi * b_hi;
 
-    static inline void mul64wide (int64_t a, int64_t b, int64_t *hi, int64_t *lo)
-    {
-        umul64wide ((uint64_t)a, (uint64_t)b, (uint64_t *)hi, (uint64_t *)lo);
-        if (a < 0LL) *hi -= b;
-        if (b < 0LL) *hi -= a;
-    }
+    uint32_t cy = (uint32_t)(((p0 >> 32) + (uint32_t)p1 + (uint32_t)p2) >> 32);
 
-    static inline void mulhsu64wide (int64_t a, uint64_t b, int64_t *hi, int64_t *lo)
-    {
-        umul64wide ((uint64_t)a, (uint64_t)b, (uint64_t *)hi, (uint64_t *)lo);
-        if (a < 0LL) *hi -= b;
-    }
+    *lo = p0 + (p1 << 32) + (p2 << 32);
+    *hi = p3 + (p1 >> 32) + (p2 >> 32) + cy;
+}
 
-    #define UMUL umul64wide
-    #define MUL mul64wide
-    #define MULHSU mulhsu64wide
-#else
-    #define PRINTF_FMT "%08x"
-    #define PRINTF_FMTU "%u"
-    #define XLEN_INT_MIN 0x80000000
+static inline void mul64wide (int64_t a, int64_t b, int64_t *hi, int64_t *lo)
+{
+    umul64wide ((uint64_t)a, (uint64_t)b, (uint64_t *)hi, (uint64_t *)lo);
+    if (a < 0LL) *hi -= b;
+    if (b < 0LL) *hi -= a;
+}
 
-    #define UMUL umul32wide
-    #define MUL mul32wide
-    #define MULHSU mulhsu32wide
-#endif
+static inline void mulhsu64wide (int64_t a, uint64_t b, int64_t *hi, int64_t *lo)
+{
+    umul64wide ((uint64_t)a, (uint64_t)b, (uint64_t *)hi, (uint64_t *)lo);
+    if (a < 0LL) *hi -= b;
+}
 
 static inline void umul32wide (uint32_t a, uint32_t b, uint32_t *hi, uint32_t *lo)
 {
@@ -93,8 +83,9 @@ static inline void mulhsu32wide (int32_t a, uint32_t b, int32_t *hi, int32_t *lo
     if (a < 0LL) *hi -= b;
 }
 
-#define die_msg(...) { printf(__VA_ARGS__); exit(-1); }
-
+/*
+ * Bit Operators 
+ */
 #define SET_BIT(_out_var,_nbit)   ((_out_var) |=  (1<<(_nbit)))
 #define CLEAR_BIT(_out_var,_nbit) ((_out_var) &= ~(1<<(_nbit)))
 #define FLIP_BIT(_out_var,_nbit)  ((_out_var) ^=  (1<<(_nbit)))
@@ -124,10 +115,5 @@ static inline uint32_t extract32(uint32_t value, int start, int length)
 {
     return (value >> start) & (0xFFFFFFFF >> (32 - length));
 }
-
-#define ADDR_WITHIN(_addr, _start, _size) ( (_addr >= _start) && (_addr < _start + _size) )
-
-#define ASSIGN_MIN(a,b) (((a)<(b))?(a):(b))
-#define ASSIGN_MAX(a,b) (((a)>(b))?(a):(b))
 
 #endif /* RISCV_HELPER_H */

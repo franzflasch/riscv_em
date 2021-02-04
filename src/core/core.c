@@ -11,9 +11,9 @@
 
 // #define CORE_DEBUG
 #ifdef CORE_DEBUG
-#define CORE_DBG(...) do{ printf( __VA_ARGS__ ); } while( 0 )
+    #define CORE_DBG(...) do{ printf( __VA_ARGS__ ); } while( 0 )
 #else
-#define CORE_DBG(...) do{ } while ( 0 )
+    #define CORE_DBG(...) do{ } while ( 0 )
 #endif
 
 /* Defines */
@@ -21,14 +21,6 @@
 #define XREG_T0 5
 
 #define STACK_POINTER_START_VAL 0x0
-
-/* Helpers */
-/* portable signextension from: https://stackoverflow.com/a/31655073 */
-#ifdef RV64
-    #define SIGNEX(v, sb) ((v) | (((v) & (1LL << (sb))) ? ~((1LL << (sb))-1LL) : 0))
-#else
-    #define SIGNEX(v, sb) ((v) | (((v) & (1 << (sb))) ? ~((1 << (sb))-1) : 0))
-#endif
 
 #define ADDR_MISALIGNED(addr) (addr & 0x3)
 
@@ -260,11 +252,7 @@ static void instr_ANDI(rv_core_td *rv_core)
 static void instr_SLLI(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    #ifdef RV64
-        rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] << (rv_core->immediate & 0x3F));
-    #else
-        rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] << (rv_core->immediate & 0x1F));
-    #endif
+    rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] << (rv_core->immediate & SHIFT_OP_MASK));
 }
 
 static void instr_SRAI(rv_core_td *rv_core)
@@ -273,22 +261,14 @@ static void instr_SRAI(rv_core_td *rv_core)
     rv_int_xlen rs_val = rv_core->x[rv_core->rs1];
 
     /* a right shift on signed ints seem to be always arithmetic */
-    #ifdef RV64
-        rs_val = rs_val >> (rv_core->immediate & 0x3F);
-    #else
-        rs_val = rs_val >> (rv_core->immediate & 0x1F);
-    #endif
+    rs_val = rs_val >> (rv_core->immediate & SHIFT_OP_MASK);
     rv_core->x[rv_core->rd] = rs_val;
 }
 
 static void instr_SRLI(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    #ifdef RV64
-        rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] >> (rv_core->immediate & 0x3F));
-    #else
-        rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] >> (rv_core->immediate & 0x1F));
-    #endif
+    rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] >> (rv_core->immediate & SHIFT_OP_MASK));
 }
 
 static void instr_ADD(rv_core_td *rv_core)
@@ -307,11 +287,7 @@ static void instr_SUB(rv_core_td *rv_core)
 static void instr_SLL(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    #ifdef RV64
-        rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] << (rv_core->x[rv_core->rs2] & 0x3F);
-    #else
-        rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] << (rv_core->x[rv_core->rs2]);
-    #endif
+    rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] << (rv_core->x[rv_core->rs2] & SHIFT_OP_MASK);
 }
 
 static void instr_SLT(rv_core_td *rv_core)
@@ -352,11 +328,7 @@ static void instr_XOR(rv_core_td *rv_core)
 static void instr_SRL(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    #ifdef RV64
-        rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] >> (rv_core->x[rv_core->rs2] & 0x3F);
-    #else
-        rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] >> (rv_core->x[rv_core->rs2]);
-    #endif
+    rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] >> (rv_core->x[rv_core->rs2] & SHIFT_OP_MASK);
 }
 
 static void instr_OR(rv_core_td *rv_core)
@@ -375,12 +347,7 @@ static void instr_SRA(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_int_xlen signed_rs = rv_core->x[rv_core->rs1];
-
-    #ifdef RV64
-        rv_core->x[rv_core->rd] = signed_rs >> (rv_core->x[rv_core->rs2] & 0x3F);
-    #else
-        rv_core->x[rv_core->rd] = signed_rs >> (rv_core->x[rv_core->rs2]);
-    #endif
+    rv_core->x[rv_core->rd] = signed_rs >> (rv_core->x[rv_core->rs2] & SHIFT_OP_MASK);
 }
 
 static void instr_LB(rv_core_td *rv_core)
@@ -409,12 +376,8 @@ static void instr_LW(rv_core_td *rv_core)
     int err = RV_CORE_E_ERR;
     rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    #ifdef RV64
-        uint32_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
-        rv_core->x[rv_core->rd] = SIGNEX(tmp_load_val, 31);
-    #else
-        rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address, &err);
-    #endif
+    int32_t tmp_load_val = (int32_t)rv_core->read_mem(rv_core->priv, address, &err);
+    rv_core->x[rv_core->rd] = tmp_load_val;
 }
 
 static void instr_LBU(rv_core_td *rv_core)
@@ -513,16 +476,16 @@ static void instr_SW(rv_core_td *rv_core)
     static void instr_SLLIW(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-        rv_core->x[rv_core->rd] = (rv_core->x[rv_core->rs1] << (rv_core->immediate & 0x1F)) & 0xFFFFFFFF;
-        rv_core->x[rv_core->rd] = SIGNEX(rv_core->x[rv_core->rd], 31);
+        int32_t signed_tmp32 = (rv_core->x[rv_core->rs1] << (rv_core->immediate & 0x1F)) & 0xFFFFFFFF;
+        rv_core->x[rv_core->rd] = (rv_int_xlen)signed_tmp32;
     }
 
     static void instr_SRLIW(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         uint32_t unsigned_rs_val = rv_core->x[rv_core->rs1];
-        rv_core->x[rv_core->rd] = (unsigned_rs_val >> (rv_core->immediate & 0x1F));
-        rv_core->x[rv_core->rd] = SIGNEX(rv_core->x[rv_core->rd], 31);
+        int32_t signed_tmp32 = (unsigned_rs_val >> (rv_core->immediate & 0x1F));
+        rv_core->x[rv_core->rd] = (rv_int_xlen)signed_tmp32;
     }
 
     static void instr_SRLW(rv_core_td *rv_core)
@@ -530,7 +493,8 @@ static void instr_SW(rv_core_td *rv_core)
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         uint32_t rs1_val = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = (rv_core->x[rv_core->rs2] & 0x1F);
-        rv_core->x[rv_core->rd] = SIGNEX(rs1_val >> rs2_val, 31);
+        int32_t signed_tmp32 = rs1_val >> rs2_val;
+        rv_core->x[rv_core->rd] = (rv_int_xlen)signed_tmp32;
     }
 
     static void instr_SRAW(rv_core_td *rv_core)
@@ -538,7 +502,8 @@ static void instr_SW(rv_core_td *rv_core)
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         int32_t rs1_val_signed = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = (rv_core->x[rv_core->rs2] & 0x1F);
-        rv_core->x[rv_core->rd] = SIGNEX(rs1_val_signed >> rs2_val, 31);
+        int32_t signed_tmp32 = rs1_val_signed >> rs2_val;
+        rv_core->x[rv_core->rd] = (rv_int_xlen)signed_tmp32;
     }
 
     static void instr_SLLW(rv_core_td *rv_core)
@@ -546,7 +511,8 @@ static void instr_SW(rv_core_td *rv_core)
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         uint32_t rs1_val = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = (rv_core->x[rv_core->rs2] & 0x1F);
-        rv_core->x[rv_core->rd] = SIGNEX(rs1_val << rs2_val, 31);
+        int32_t signed_tmp32 = rs1_val << rs2_val;
+        rv_core->x[rv_core->rd] = (rv_int_xlen)signed_tmp32;
     }
 
     static void instr_ADDW(rv_core_td *rv_core)
@@ -554,7 +520,8 @@ static void instr_SW(rv_core_td *rv_core)
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         uint32_t rs1_val = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
-        rv_core->x[rv_core->rd] = SIGNEX(rs1_val + rs2_val, 31);
+        int32_t signed_tmp32 = rs1_val + rs2_val;
+        rv_core->x[rv_core->rd] = (rv_int_xlen)signed_tmp32;
     }
 
     static void instr_SUBW(rv_core_td *rv_core)
@@ -562,7 +529,8 @@ static void instr_SW(rv_core_td *rv_core)
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         uint32_t rs1_val = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
-        rv_core->x[rv_core->rd] = SIGNEX(rs1_val - rs2_val, 31);
+        int32_t signed_tmp32 = rs1_val - rs2_val;
+        rv_core->x[rv_core->rd] = (rv_int_xlen)signed_tmp32;
     }
 #endif
 
@@ -1156,8 +1124,7 @@ static void instr_SW(rv_core_td *rv_core)
             CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
             int32_t signed_rs = rv_core->x[rv_core->rs1];
             int32_t signed_rs2 = rv_core->x[rv_core->rs2];
-            int32_t result = signed_rs * signed_rs2;
-            rv_core->x[rv_core->rd] = SIGNEX(result, 31);
+            rv_core->x[rv_core->rd] = (rv_int_xlen)(signed_rs * signed_rs2);
         }
 
         static void instr_DIVW(rv_core_td *rv_core)
@@ -1183,7 +1150,7 @@ static void instr_SW(rv_core_td *rv_core)
 
             result = (signed_rs/signed_rs2);
 
-            rv_core->x[rv_core->rd] = SIGNEX(result, 31);
+            rv_core->x[rv_core->rd] = (rv_int_xlen)result;
         }
 
         static void instr_DIVUW(rv_core_td *rv_core)
@@ -1215,7 +1182,7 @@ static void instr_SW(rv_core_td *rv_core)
             /* division by zero */
             if(signed_rs2 == 0)
             {
-                rv_core->x[rv_core->rd] = SIGNEX(signed_rs, 31);
+                rv_core->x[rv_core->rd] = (rv_int_xlen)signed_rs;
                 return;
             }
 
@@ -1228,7 +1195,7 @@ static void instr_SW(rv_core_td *rv_core)
 
             result = (signed_rs%signed_rs2);
 
-            rv_core->x[rv_core->rd] = SIGNEX(result, 31);
+            rv_core->x[rv_core->rd] = (rv_int_xlen)result;
         }
 
         static void instr_REMUW(rv_core_td *rv_core)
