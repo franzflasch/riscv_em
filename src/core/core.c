@@ -72,7 +72,7 @@ static void instr_JALR(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     rv_uint_xlen curr_pc = rv_core->pc + 4;
-    rv_core->jump_offset = SIGNEX(rv_core->immediate, 11);
+    rv_core->jump_offset = SIGNEX_BIT_11(rv_core->immediate);
 
     rv_core->next_pc = (rv_core->x[rv_core->rs1] + rv_core->jump_offset);
     rv_core->next_pc &= ~(1<<0);
@@ -192,7 +192,7 @@ static void instr_BGEU(rv_core_td *rv_core)
 static void instr_ADDI(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x %lx\n", __func__, rv_core->instruction, rv_core->pc);
-    rv_int_xlen signed_immediate = SIGNEX(rv_core->immediate, 11);
+    rv_int_xlen signed_immediate = SIGNEX_BIT_11(rv_core->immediate);
     rv_int_xlen signed_rs_val = rv_core->x[rv_core->rs1];
     CORE_DBG("%s: %lx %lx %lx %x\n", __func__, rv_core->x[rv_core->rs1], signed_rs_val, signed_immediate, rv_core->rs1);
     rv_core->x[rv_core->rd] = (signed_immediate + signed_rs_val);
@@ -201,7 +201,7 @@ static void instr_ADDI(rv_core_td *rv_core)
 static void instr_SLTI(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    rv_int_xlen signed_immediate = SIGNEX(rv_core->immediate, 11);
+    rv_int_xlen signed_immediate = SIGNEX_BIT_11(rv_core->immediate);
     rv_int_xlen signed_rs_val = rv_core->x[rv_core->rs1];
 
     if(signed_rs_val < signed_immediate)
@@ -213,7 +213,7 @@ static void instr_SLTI(rv_core_td *rv_core)
 static void instr_SLTIU(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    rv_uint_xlen unsigned_immediate = SIGNEX(rv_core->immediate, 11);
+    rv_uint_xlen unsigned_immediate = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen unsigned_rs_val = rv_core->x[rv_core->rs1];
 
     if(unsigned_rs_val < unsigned_immediate)
@@ -225,9 +225,8 @@ static void instr_SLTIU(rv_core_td *rv_core)
 static void instr_XORI(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    rv_int_xlen signed_immediate = SIGNEX(rv_core->immediate, 11);
-    rv_core->immediate = SIGNEX(rv_core->immediate, 11);
-    signed_immediate = rv_core->immediate;
+    rv_int_xlen signed_immediate = SIGNEX_BIT_11(rv_core->immediate);
+    rv_core->immediate = signed_immediate;
 
     if(signed_immediate == -1)
         rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] ^ -1;
@@ -238,14 +237,14 @@ static void instr_XORI(rv_core_td *rv_core)
 static void instr_ORI(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    rv_core->immediate = SIGNEX(rv_core->immediate, 11);
+    rv_core->immediate = SIGNEX_BIT_11(rv_core->immediate);
     rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] | rv_core->immediate;
 }
 
 static void instr_ANDI(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    rv_core->immediate = SIGNEX(rv_core->immediate, 11);
+    rv_core->immediate = SIGNEX_BIT_11(rv_core->immediate);
     rv_core->x[rv_core->rd] = rv_core->x[rv_core->rs1] & rv_core->immediate;
 }
 
@@ -354,27 +353,27 @@ static void instr_LB(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     int err = RV_CORE_E_ERR;
-    rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
+    rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     uint8_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
-    rv_core->x[rv_core->rd] = SIGNEX(tmp_load_val, 7);
+    rv_core->x[rv_core->rd] = SIGNEX_BIT_7(tmp_load_val);
 }
 
 static void instr_LH(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     int err = RV_CORE_E_ERR;
-    rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
+    rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     uint16_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
-    rv_core->x[rv_core->rd] = SIGNEX(tmp_load_val, 15);
+    rv_core->x[rv_core->rd] = SIGNEX_BIT_15(tmp_load_val);
 }
 
 static void instr_LW(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     int err = RV_CORE_E_ERR;
-    rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
+    rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     int32_t tmp_load_val = (int32_t)rv_core->read_mem(rv_core->priv, address, &err);
     rv_core->x[rv_core->rd] = tmp_load_val;
@@ -384,7 +383,7 @@ static void instr_LBU(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     int err = RV_CORE_E_ERR;
-    rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
+    rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     uint8_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
     rv_core->x[rv_core->rd] = tmp_load_val;
@@ -394,7 +393,7 @@ static void instr_LHU(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
     int err = RV_CORE_E_ERR;
-    rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
+    rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     uint16_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
     rv_core->x[rv_core->rd] = tmp_load_val;
@@ -403,7 +402,7 @@ static void instr_LHU(rv_core_td *rv_core)
 static void instr_SB(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
+    rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     uint8_t value_to_write = (uint8_t)rv_core->x[rv_core->rs2];
     rv_core->write_mem(rv_core->priv, address, value_to_write, 1);
@@ -412,7 +411,7 @@ static void instr_SB(rv_core_td *rv_core)
 static void instr_SH(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
+    rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     uint16_t value_to_write = (uint16_t)rv_core->x[rv_core->rs2];
     rv_core->write_mem(rv_core->priv, address, value_to_write, 2);
@@ -421,7 +420,7 @@ static void instr_SH(rv_core_td *rv_core)
 static void instr_SW(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
+    rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     rv_uint_xlen value_to_write = (rv_uint_xlen)rv_core->x[rv_core->rs2];
     rv_core->write_mem(rv_core->priv, address, value_to_write, 4);
@@ -432,7 +431,7 @@ static void instr_SW(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         int err = RV_CORE_E_ERR;
-        rv_uint_xlen unsigned_offset = SIGNEX(rv_core->immediate, 11);
+        rv_uint_xlen unsigned_offset = SIGNEX_BIT_11(rv_core->immediate);
         rv_uint_xlen address = rv_core->x[rv_core->rs1] + unsigned_offset;
         uint32_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
         rv_core->x[rv_core->rd] = tmp_load_val;
@@ -442,7 +441,7 @@ static void instr_SW(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
         int err = RV_CORE_E_ERR;
-        rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
+        rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
         rv_int_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
         CORE_DBG("%s: %lx %lx %lx %x\n", __func__, rv_core->x[rv_core->rs1], address, rv_core->immediate, rv_core->rs1);
         rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address, &err);
@@ -451,7 +450,7 @@ static void instr_SW(rv_core_td *rv_core)
     static void instr_SD(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-        rv_int_xlen signed_offset = SIGNEX(rv_core->immediate, 11);
+        rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
         rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
         rv_uint_xlen value_to_write = (rv_uint_xlen)rv_core->x[rv_core->rs2];
         CORE_DBG("%s: %lx %lx %lx %x\n", __func__, rv_core->x[rv_core->rs1], address, rv_core->immediate, rv_core->rs1);
@@ -468,7 +467,7 @@ static void instr_SW(rv_core_td *rv_core)
     static void instr_ADDIW(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-        int32_t signed_immediate = SIGNEX(rv_core->immediate, 11);
+        int32_t signed_immediate = SIGNEX_BIT_11(rv_core->immediate);
         int32_t signed_rs_val = rv_core->x[rv_core->rs1];
         rv_core->x[rv_core->rd] = (signed_rs_val + signed_immediate);
     }
@@ -1169,7 +1168,7 @@ static void instr_SW(rv_core_td *rv_core)
 
             result = (unsigned_rs/unsigned_rs2);
 
-            rv_core->x[rv_core->rd] = SIGNEX(result, 31);
+            rv_core->x[rv_core->rd] = SIGNEX_BIT_31(result);
         }
 
         static void instr_REMW(rv_core_td *rv_core)
@@ -1208,13 +1207,13 @@ static void instr_SW(rv_core_td *rv_core)
             /* division by zero */
             if(unsigned_rs2 == 0)
             {
-                rv_core->x[rv_core->rd] = SIGNEX(unsigned_rs, 31);
+                rv_core->x[rv_core->rd] = SIGNEX_BIT_31(unsigned_rs);
                 return;
             }
 
             result = (unsigned_rs%unsigned_rs2);
 
-            rv_core->x[rv_core->rd] = SIGNEX(result, 31);
+            rv_core->x[rv_core->rd] = SIGNEX_BIT_31(result);
         }
     #endif
 
@@ -1287,7 +1286,7 @@ static void B_type_preparation(rv_core_td *rv_core, int32_t *next_subcode)
                           (extract32(rv_core->instruction, 25, 6) << 5) |
                           (extract32(rv_core->instruction, 7, 1) << 11) |
                           (extract32(rv_core->instruction, 31, 1) << 12) );
-    rv_core->jump_offset = SIGNEX(rv_core->jump_offset, 12);
+    rv_core->jump_offset = SIGNEX_BIT_12(rv_core->jump_offset);
     *next_subcode = rv_core->func3;
 }
 
@@ -1295,7 +1294,7 @@ static void U_type_preparation(rv_core_td *rv_core, int32_t *next_subcode)
 {
     rv_core->rd = ((rv_core->instruction >> 7) & 0x1F);
     rv_core->immediate = ((rv_core->instruction >> 12) & 0xFFFFF);
-    rv_core->immediate = SIGNEX(rv_core->immediate, 19);
+    rv_core->immediate = SIGNEX_BIT_19(rv_core->immediate);
     *next_subcode = -1;
 }
 
@@ -1307,7 +1306,7 @@ static void J_type_preparation(rv_core_td *rv_core, int32_t *next_subcode)
                           (extract32(rv_core->instruction, 12, 8) << 12) |
                           (extract32(rv_core->instruction, 31, 1) << 20));
     /* sign extend the 20 bit number */
-    rv_core->jump_offset = SIGNEX(rv_core->jump_offset, 20);
+    rv_core->jump_offset = SIGNEX_BIT_20(rv_core->jump_offset);
     *next_subcode = -1;
 }
 
