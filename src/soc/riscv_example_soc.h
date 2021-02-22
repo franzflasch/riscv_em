@@ -1,7 +1,7 @@
 #ifndef RISCV_EXAMPLE_SOC_H
 #define RISCV_EXAMPLE_SOC_H
 
-#include <riscv_config.h>
+#include <riscv_types.h>
 #include <core.h>
 
 #include <plic.h>

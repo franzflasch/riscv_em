@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <riscv_config.h>
+#include <riscv_types.h>
 #include <riscv_helper.h>
 #include <riscv_instr.h>
 

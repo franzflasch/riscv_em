@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#include <riscv_config.h>
 #include <riscv_types.h>
 #include <riscv_xlen_specifics.h>
 

@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <riscv_config.h>
 #include <riscv_helper.h>
 #include <riscv_example_soc.h>
 
@@ -59,15 +58,12 @@ static rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address, int *err)
 
     for(i=0;i<(sizeof(rv_soc->mem_access_cbs)/sizeof(rv_soc->mem_access_cbs[0]));i++)
     {
-        if(rv_soc->mem_access_cbs[i].read != NULL)
+        if(ADDR_WITHIN(address, rv_soc->mem_access_cbs[i].addr_start, rv_soc->mem_access_cbs[i].mem_size))
         {
-            if(ADDR_WITHIN(address, rv_soc->mem_access_cbs[i].addr_start, rv_soc->mem_access_cbs[i].mem_size))
-            {
-                tmp_addr = address - rv_soc->mem_access_cbs[i].addr_start;
-                rv_soc->mem_access_cbs[i].read(rv_soc->mem_access_cbs[i].priv, tmp_addr, &read_val);
-                *err = RV_CORE_E_OK;
-                return read_val;
-            }
+            tmp_addr = address - rv_soc->mem_access_cbs[i].addr_start;
+            rv_soc->mem_access_cbs[i].read(rv_soc->mem_access_cbs[i].priv, tmp_addr, &read_val);
+            *err = RV_CORE_E_OK;
+            return read_val;
         }
     }
 
@@ -83,14 +79,11 @@ static void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen valu
 
     for(i=0;i<(sizeof(rv_soc->mem_access_cbs)/sizeof(rv_soc->mem_access_cbs[0]));i++)
     {
-        if(rv_soc->mem_access_cbs[i].write != NULL)
+        if(ADDR_WITHIN(address, rv_soc->mem_access_cbs[i].addr_start, rv_soc->mem_access_cbs[i].mem_size))
         {
-            if(ADDR_WITHIN(address, rv_soc->mem_access_cbs[i].addr_start, rv_soc->mem_access_cbs[i].mem_size))
-            {
-                tmp_addr = address - rv_soc->mem_access_cbs[i].addr_start;
-                rv_soc->mem_access_cbs[i].write(rv_soc->mem_access_cbs[i].priv, tmp_addr, value, nr_bytes);
-                return;
-            }
+            tmp_addr = address - rv_soc->mem_access_cbs[i].addr_start;
+            rv_soc->mem_access_cbs[i].write(rv_soc->mem_access_cbs[i].priv, tmp_addr, value, nr_bytes);
+            return;
         }
     }
 

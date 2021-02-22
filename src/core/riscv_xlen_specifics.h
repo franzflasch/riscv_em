@@ -5,7 +5,6 @@
 #include <stdarg.h>
 #include <stdint.h>
 
-#include <riscv_config.h>
 #include <riscv_types.h>
 
 #ifdef RISCV_EM_DEBUG

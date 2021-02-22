@@ -24,11 +24,12 @@ set(INC_HELPER
 
 set(SRC_CORE 
     src/core/core.c
-    src/core/csr.c
+    src/core/csr/csr.c
 )
 
 set(INC_CORE
     src/core
+    src/core/csr
 )
 
 set(SRC_PERIPH
