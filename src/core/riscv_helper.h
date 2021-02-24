@@ -89,6 +89,7 @@ static inline void mulhsu32wide (int32_t a, uint32_t b, int32_t *hi, int32_t *lo
 #define CLEAR_BIT(_out_var,_nbit) ((_out_var) &= ~(1<<(_nbit)))
 #define FLIP_BIT(_out_var,_nbit)  ((_out_var) ^=  (1<<(_nbit)))
 #define CHECK_BIT(_out_var,_nbit) ((_out_var) &   (1<<(_nbit)))
+#define FIND_FIRST_BIT_SET(_var) (__builtin_ffsl(_var))
 
 static inline void assign_u8_bit(uint8_t *out_var, uint8_t nbit, uint8_t bit_value)
 {
