@@ -11,10 +11,11 @@
 #define PMP_DEBUG(...) do{ } while ( 0 )
 #endif
 
-int pmp_write_csr(pmp_td *pmp, privilege_level curr_priv, unsigned int reg_index, rv_uint_xlen cfg)
+int pmp_write_csr(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
 {
     uint8_t i = 0;
-    uint8_t *cfg_ptr = (uint8_t *)&pmp->cfg[reg_index];
+    pmp_td *pmp = priv;
+    uint8_t *cfg_ptr = (uint8_t *)&pmp->regs[reg_index];
 
     /* All PMP cfgs can only be changed in machine mode */
     if(curr_priv != machine_mode)
@@ -34,7 +35,7 @@ int pmp_write_csr(pmp_td *pmp, privilege_level curr_priv, unsigned int reg_index
     PMP_DEBUG("Access mask: " PRINTF_FMT "\n", access_mask);
 
     /* OK now we can savely update the config */
-    pmp->cfg[reg_index] |= cfg & access_mask;
+    pmp->regs[reg_index] |= csr_val & access_mask;
 
     return RV_MEM_ACCESS_OK;
 }
@@ -98,6 +99,8 @@ int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr)
                     addr_start = (pmp->addr[j] << 2);
                     addr_size = 4;
                 break;
+                default:
+                break;
             }
 
             PMP_DEBUG("addr: " PRINTF_FMT "\n", addr_start);
@@ -121,6 +124,7 @@ void pmp_dump_cfg_regs(pmp_td *pmp)
     uint8_t j = 0;
     uint8_t cnt = 0;
     uint8_t *cfg_ptr = NULL;
+    (void) cfg_ptr;
 
     PMP_DEBUG("===== CFG REG DUMP =====\n");
 

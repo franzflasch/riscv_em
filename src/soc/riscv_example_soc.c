@@ -177,12 +177,7 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
     write_mem_from_file(fw_file_name, soc_ram, sizeof(soc_ram));
 
     /* initialize one core with a csr table */
-    #ifdef CSR_SUPPORT
-        RV_CORE_INSTANTIATE_CSR_REGS_FOR_CORE(csr_regs_core0);
-        rv_core_init(&rv_soc->rv_core0, rv_soc, rv_soc_read_mem, rv_soc_write_mem, &csr_regs_core0_desc);
-    #else
-        rv_core_init(&rv_soc->rv_core0, rv_soc, rv_soc_read_mem, rv_soc_write_mem, NULL);
-    #endif
+    rv_core_init(&rv_soc->rv_core0, rv_soc, rv_soc_read_mem, rv_soc_write_mem);
 
     #ifdef USE_SIMPLE_UART
         simple_uart_init(&rv_soc->uart);

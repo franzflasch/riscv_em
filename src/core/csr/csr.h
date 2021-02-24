@@ -90,28 +90,28 @@
 #define CSR_MIE_MIP_MTI_BIT 7
 #define CSR_MIE_MIP_MEI_BIT 11
 
+typedef int (*csr_read_cb)(void *priv, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val);
+typedef int (*csr_write_cb)(void *priv, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val);
+
 typedef struct csr_reg_struct {
     uint16_t access_flags;
     rv_uint_xlen value;
     rv_uint_xlen write_mask;
 
+    /* used if special handling is needed for e.g. pmp */
+    void *priv;
+    csr_read_cb read_cb;
+    csr_write_cb write_cb;
+    int internal_reg;
+
 } csr_reg_td;
 
-typedef struct csr_reg_desc_struct {
-    unsigned int reg_size;
-    csr_reg_td *regs;
+rv_uint_xlen *csr_get_reg_reference(csr_reg_td *csr_regs, uint16_t address);
 
-} csr_reg_desc_td;
-#define INIT_CSR_REG_DESC(_csr_reg_table) \
-    static csr_reg_desc_td  _csr_reg_table##_desc = \
-    { sizeof(_csr_reg_table)/sizeof(_csr_reg_table[0]), _csr_reg_table }
+void csr_read_reg_internal(csr_reg_td *csr_regs, uint16_t address, rv_uint_xlen *out_val);
+void csr_write_reg_internal(csr_reg_td *csr_regs, uint16_t address, rv_uint_xlen val);
 
-rv_uint_xlen *csr_get_reg_reference(csr_reg_desc_td *reg_table, uint16_t address);
-
-void csr_read_reg_internal(csr_reg_desc_td *reg_table, uint16_t address, rv_uint_xlen *out_val);
-void csr_write_reg_internal(csr_reg_desc_td *reg_table, uint16_t address, rv_uint_xlen val);
-
-int csr_read_reg(csr_reg_desc_td *reg_table, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val);
-int csr_write_reg(csr_reg_desc_td *reg_table, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val);
+int csr_read_reg(csr_reg_td *csr_regs, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val);
+int csr_write_reg(csr_reg_td *csr_regs, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val);
 
 #endif /* RISCV_CSR_H */

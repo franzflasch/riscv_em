@@ -25,11 +25,13 @@ set(INC_HELPER
 set(SRC_CORE 
     src/core/core.c
     src/core/csr/csr.c
+    src/core/pmp/pmp.c
 )
 
 set(INC_CORE
     src/core
     src/core/csr
+    src/core/pmp
 )
 
 set(SRC_PERIPH

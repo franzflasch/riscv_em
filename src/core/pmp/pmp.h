@@ -34,12 +34,17 @@ typedef enum
 
 typedef struct pmp_struct
 {
-    rv_uint_xlen cfg[PMP_NR_CFG_REGS];
-    rv_uint_xlen addr[PMP_NR_ADDR_REGS];
+    union {
+        struct {
+            rv_uint_xlen cfg[PMP_NR_CFG_REGS];
+            rv_uint_xlen addr[PMP_NR_ADDR_REGS];
+        };
+        rv_uint_xlen regs[PMP_NR_CFG_REGS+PMP_NR_ADDR_REGS];
+    };
 
 } pmp_td;
 
-int pmp_write_csr(pmp_td *pmp, privilege_level curr_priv, unsigned int reg_index, rv_uint_xlen cfg);
+int pmp_write_csr(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
 int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr);
 void pmp_dump_cfg_regs(pmp_td *pmp);
 
