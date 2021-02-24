@@ -14,44 +14,44 @@
 #define RV_CORE_INSTANTIATE_CSR_REGS_FOR_CORE(_name) \
     static csr_reg_td _name[] = { \
         /* Machine Information Registers */ \
-        { CSR_ADDR_MVENDORID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO }, \
-        { CSR_ADDR_MARCHID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO }, \
-        { CSR_ADDR_MIMPID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO }, \
-        { CSR_ADDR_MHARTID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO }, \
+        [CSR_ADDR_MVENDORID] = { CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO}, \
+        [CSR_ADDR_MARCHID] = { CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO }, \
+        [CSR_ADDR_MIMPID] = { CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO }, \
+        [CSR_ADDR_MHARTID] = { CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO }, \
         /* Machine Trap Setup */ \
-        { CSR_ADDR_MSTATUS, CSR_ACCESS_RW(machine_mode), 0, CSR_MSTATUS_WR_MASK }, \
-        { CSR_ADDR_MISA, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO }, \
-        { CSR_ADDR_MEDELEG, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO }, \
-        { CSR_ADDR_MIDELEG, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO }, \
-        { CSR_ADDR_MIE, CSR_ACCESS_RW(machine_mode), 0, CSR_MIP_MIE_WR_MASK }, \
-        { CSR_ADDR_MTVEC, CSR_ACCESS_RW(machine_mode), 0, CSR_MTVEC_WR_MASK }, \
+        [CSR_ADDR_MSTATUS] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MSTATUS_WR_MASK }, \
+        [CSR_ADDR_MISA] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO }, \
+        [CSR_ADDR_MEDELEG] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO }, \
+        [CSR_ADDR_MIDELEG] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO }, \
+        [CSR_ADDR_MIE] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MIP_MIE_WR_MASK }, \
+        [CSR_ADDR_MTVEC] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MTVEC_WR_MASK }, \
         /* Machine Trap Handling */ \
-        { CSR_ADDR_MSCRATCH, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_ADDR_MEPC, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_ADDR_MCAUSE, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_ADDR_MTVAL, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_ADDR_MIP, CSR_ACCESS_RW(machine_mode), 0, CSR_MIP_MIE_WR_MASK }, \
+        [CSR_ADDR_MSCRATCH] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_ADDR_MEPC] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_ADDR_MCAUSE] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_ADDR_MTVAL] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_ADDR_MIP] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MIP_MIE_WR_MASK }, \
         /* Machine Protection and Translation */ \
-        { CSR_PMPCFG0, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPCFG1, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPCFG2, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPCFG3, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPADDR0, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPADDR1, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPADDR2, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPADDR3, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPADDR4, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPADDR5, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPADDR6, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPADDR7, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPADDR8, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPADDR9, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPADDR10, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPADDR11, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPADDR12, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPADDR13, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPADDR14, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
-        { CSR_PMPADDR15, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPCFG0] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPCFG1] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPCFG2] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPCFG3] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPADDR0] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPADDR1] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPADDR2] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPADDR3] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPADDR4] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPADDR5] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPADDR6] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPADDR7] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPADDR8] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPADDR9] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPADDR10] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPADDR11] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPADDR12] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPADDR13] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPADDR14] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
+        [CSR_PMPADDR15] = { CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL }, \
     }; \
     INIT_CSR_REG_DESC(_name);
 
@@ -91,7 +91,7 @@ typedef struct rv_core_struct
     void (*write_mem)(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes);
 
     csr_reg_desc_td *csr_table;
-    /* for fast access */
+    /* for fast and easy access */
     rv_uint_xlen *mstatus;
     rv_uint_xlen *mcause;
     rv_uint_xlen *mepc;

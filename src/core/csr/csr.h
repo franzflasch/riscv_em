@@ -67,6 +67,8 @@
 #define CSR_PMPADDR14         0x3BE
 #define CSR_PMPADDR15         0x3BF
 
+#define CSR_ADDR_MAX          0xFFF
+
 #define CSR_MCAUSE_INSTR_ADDR_MISALIGNED 0x0
 #define CSR_MCAUSE_INSTR_ACCESS_FAULT 0x1
 #define CSR_MCAUSE_ILLEGAL_INSTR 0x2
@@ -89,7 +91,6 @@
 #define CSR_MIE_MIP_MEI_BIT 11
 
 typedef struct csr_reg_struct {
-    uint16_t address;
     uint16_t access_flags;
     rv_uint_xlen value;
     rv_uint_xlen write_mask;
@@ -107,8 +108,8 @@ typedef struct csr_reg_desc_struct {
 
 rv_uint_xlen *csr_get_reg_reference(csr_reg_desc_td *reg_table, uint16_t address);
 
-int csr_read_reg_internal(csr_reg_desc_td *reg_table, uint16_t address, rv_uint_xlen *out_val);
-int csr_write_reg_internal(csr_reg_desc_td *reg_table, uint16_t address, rv_uint_xlen val);
+void csr_read_reg_internal(csr_reg_desc_td *reg_table, uint16_t address, rv_uint_xlen *out_val);
+void csr_write_reg_internal(csr_reg_desc_td *reg_table, uint16_t address, rv_uint_xlen val);
 
 int csr_read_reg(csr_reg_desc_td *reg_table, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val);
 int csr_write_reg(csr_reg_desc_td *reg_table, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val);
