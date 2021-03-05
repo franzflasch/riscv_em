@@ -24,6 +24,9 @@
 
 #define ADDR_MISALIGNED(addr) (addr & 0x3)
 
+/*
+ * Functions for internal use
+ */
 static inline void prepare_sync_trap(rv_core_td *rv_core, rv_uint_xlen cause)
 {
     if(!rv_core->sync_trap_pending)
@@ -33,32 +36,61 @@ static inline void prepare_sync_trap(rv_core_td *rv_core, rv_uint_xlen cause)
     }
 }
 
-static inline rv_uint_xlen checked_read_mem(rv_core_td *rv_core, rv_uint_xlen addr, int *err, rv_uint_xlen trap_cause)
+static inline privilege_level check_mprv_override(rv_core_td *rv_core)
 {
+    int mprv = extract32(rv_core->csr_regs[CSR_ADDR_MSTATUS].value, CSR_MSTATUS_MPRV_BIT, 1);
+    return mprv ? extract32(rv_core->csr_regs[CSR_ADDR_MSTATUS].value, CSR_MSTATUS_MPP_BIT, 2) : rv_core->curr_priv_mode;
+}
+
+static inline rv_uint_xlen checked_instr_fetch(rv_core_td *rv_core, rv_uint_xlen addr, int *err, rv_uint_xlen trap_cause)
+{
+    /* 
+     * according to the privilege spec 
+     * instruction fetches are unaffected by the mprv bit 
+     * "Instruction address-translation and protection are unaffected."
+     */
     if(pmp_mem_check(&rv_core->pmp, rv_core->curr_priv_mode, addr))
     {
         prepare_sync_trap(rv_core, trap_cause);
         *err = RV_ACCESS_PMP_ACCESS_ERR;
         return 0;
     }
-    
+
+    *err = RV_ACCESS_OK;
+    return rv_core->read_mem(rv_core->priv, addr, err);
+}
+
+static inline rv_uint_xlen checked_read_mem(rv_core_td *rv_core, rv_uint_xlen addr, int *err, rv_uint_xlen trap_cause)
+{
+    privilege_level internal_priv_level = check_mprv_override(rv_core);
+    if(pmp_mem_check(&rv_core->pmp, internal_priv_level, addr))
+    {
+        prepare_sync_trap(rv_core, trap_cause);
+        *err = RV_ACCESS_PMP_ACCESS_ERR;
+        return 0;
+    }
+
     *err = RV_ACCESS_OK;
     return rv_core->read_mem(rv_core->priv, addr, err);
 }
 
 static inline void checked_write_mem(rv_core_td *rv_core, rv_uint_xlen addr, rv_uint_xlen value, uint8_t nr_bytes, int *err, rv_uint_xlen trap_cause)
 {
-    if(pmp_mem_check(&rv_core->pmp, rv_core->curr_priv_mode, addr))
+    privilege_level internal_priv_level = check_mprv_override(rv_core);
+    if(pmp_mem_check(&rv_core->pmp, internal_priv_level, addr))
     {
         prepare_sync_trap(rv_core, trap_cause);
         *err = RV_ACCESS_PMP_ACCESS_ERR;
         return;
     }
-    
+
     *err = RV_ACCESS_OK;
     rv_core->write_mem(rv_core->priv, addr, value, nr_bytes);
 }
 
+/*
+ * Implementations of the RISCV instructions
+ */
 static void instr_NOP(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
@@ -337,7 +369,7 @@ static void instr_SLTU(rv_core_td *rv_core)
     }
     else
     {
-        if(rv_core->x[rv_core->rs1] < rv_core->x[rv_core->rs2]) 
+        if(rv_core->x[rv_core->rs1] < rv_core->x[rv_core->rs2])
             rv_core->x[rv_core->rd] = 1;
         else
             rv_core->x[rv_core->rd] = 0;
@@ -673,7 +705,7 @@ static void instr_SW(rv_core_td *rv_core)
 
         if(csr_write_reg(rv_core->csr_regs, rv_core->curr_priv_mode, rv_core->immediate, csr_val & ~rv_core->rs1))
             DEBUG_PRINT("Error writing CSR - readonly? "PRINTF_FMT"\n", rv_core->immediate);
-        
+
         rv_core->x[rv_core->rd] = csr_val;
     }
 
@@ -736,7 +768,7 @@ static void instr_SW(rv_core_td *rv_core)
         {
             rv_core->x[rv_core->rd] = 1;
         }
-        
+
         rv_core->lr_valid = 0;
         rv_core->lr_address = 0;
     }
@@ -908,7 +940,7 @@ static void instr_SW(rv_core_td *rv_core)
             {
                 rv_core->x[rv_core->rd] = 1;
             }
-            
+
             rv_core->lr_valid = 0;
             rv_core->lr_address = 0;
         }
@@ -1074,7 +1106,7 @@ static void instr_SW(rv_core_td *rv_core)
             rv_core->x[rv_core->rd] = -1;
             return;
         }
-        
+
         /* overflow */
         if(((rv_uint_xlen)signed_rs == XLEN_INT_MIN) && (signed_rs2 == -1))
         {
@@ -1197,7 +1229,7 @@ static void instr_SW(rv_core_td *rv_core)
                 rv_core->x[rv_core->rd] = -1;
                 return;
             }
-            
+
             /* overflow */
             if((signed_rs == INT32_MIN) && (signed_rs2 == -1))
             {
@@ -1658,12 +1690,12 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
     unsigned int list_size = opcode_list_desc->instruction_hook_list_size;
     instruction_hook_td *opcode_list = opcode_list_desc->instruction_hook_list;
 
-    if( (opcode_list[opcode].preparation_cb == NULL) && 
-        (opcode_list[opcode].execution_cb == NULL) && 
+    if( (opcode_list[opcode].preparation_cb == NULL) &&
+        (opcode_list[opcode].execution_cb == NULL) &&
         (opcode_list[opcode].next == NULL) )
         die_msg("Unknown instruction: %08x PC: "PRINTF_FMT" Cycle: %016ld\n", rv_core->instruction, rv_core->pc, rv_core->curr_cycle);
 
-    if(opcode >= list_size) 
+    if(opcode >= list_size)
         die_msg("Unknown instruction: %08x PC: "PRINTF_FMT" Cycle: %016ld\n", rv_core->instruction, rv_core->pc, rv_core->curr_cycle);
 
     if(opcode_list[opcode].preparation_cb != NULL)
@@ -1770,7 +1802,7 @@ static inline rv_uint_xlen rv_core_fetch(rv_core_td *rv_core)
     int err = RV_ACCESS_ERR;
     rv_uint_xlen addr = rv_core->pc;
 
-    rv_core->instruction = checked_read_mem(rv_core, addr, &err, CSR_MCAUSE_INSTR_ACCESS_FAULT);
+    rv_core->instruction = checked_instr_fetch(rv_core, addr, &err, CSR_MCAUSE_INSTR_ACCESS_FAULT);
 
     return err;
 }
@@ -1809,7 +1841,7 @@ void rv_core_run(rv_core_td *rv_core)
     if(rv_core_fetch(rv_core) == RV_ACCESS_OK)
     {
         rv_core_decode(rv_core);
-        rv_core_execute(rv_core);        
+        rv_core_execute(rv_core);
     }
 
     /* increase program counter here */

@@ -97,6 +97,7 @@ int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr)
     pmp_addr_matching addr_mode = pmp_a_off;
     rv_uint_xlen addr_start = 0;
     rv_uint_xlen addr_size = 0;
+    int at_least_one_active = 0;
 
     /* We don't have to do any check if we are in machine mode */
     if(curr_priv == machine_mode)
@@ -112,6 +113,8 @@ int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr)
             addr_mode = extract8(cfg_ptr[j], PMP_CFG_A_BIT_OFFS, 2);
             if(!addr_mode)
                 continue;
+
+            at_least_one_active = 1;
 
             switch(addr_mode)
             {
@@ -161,8 +164,13 @@ int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr)
         }
     }
 
-    PMP_DEBUG("No PMP match found!\n");
-    return RV_ACCESS_ERR;
+    if(at_least_one_active)
+    {
+        PMP_DEBUG("No PMP match found!\n");
+        return RV_ACCESS_ERR;
+    }
+
+    return RV_ACCESS_OK;
 }
 
 void pmp_dump_cfg_regs(pmp_td *pmp)
