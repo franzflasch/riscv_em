@@ -44,7 +44,10 @@ typedef struct pmp_struct
 
 } pmp_td;
 
-int pmp_write_csr(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
+int pmp_write_csr_cfg(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
+int pmp_read_csr_cfg(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val);
+int pmp_write_csr_addr(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
+int pmp_read_csr_addr(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val);
 int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr);
 void pmp_dump_cfg_regs(pmp_td *pmp);
 

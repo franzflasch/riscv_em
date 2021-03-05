@@ -22,27 +22,35 @@ void csr_write_reg_internal(csr_reg_td *csr_regs, uint16_t address, rv_uint_xlen
 int csr_read_reg(csr_reg_td *csr_regs, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val)
 {
     if(address>CSR_ADDR_MAX)
-        return CSR_ACCESS_ERR;
+        return RV_ACCESS_ERR;
 
     if(CSR_ACCESS_READ_GRANTED(curr_priv_mode, csr_regs[address].access_flags))
     {
+        if(csr_regs[address].read_cb)
+            return csr_regs[address].read_cb(csr_regs[address].priv, curr_priv_mode, csr_regs[address].internal_reg, out_val);
+
         *out_val = csr_regs[address].value;
-        return CSR_ACCESS_OK;
+        return RV_ACCESS_OK;
     }
 
-    return CSR_ACCESS_ERR;
+    return RV_ACCESS_ERR;
 }
 
 int csr_write_reg(csr_reg_td *csr_regs, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val)
 {
     if(address>CSR_ADDR_MAX)
-        return CSR_ACCESS_ERR;
+        return RV_ACCESS_ERR;
 
     if(CSR_ACCESS_WRITE_GRANTED(curr_priv_mode, csr_regs[address].access_flags))
     {
+        if(csr_regs[address].write_cb)
+        {
+            return csr_regs[address].write_cb(csr_regs[address].priv, curr_priv_mode, csr_regs[address].internal_reg, val);
+        }
+        
         csr_regs[address].value = val & csr_regs[address].write_mask;
-        return CSR_ACCESS_OK;
+        return RV_ACCESS_OK;
     }
 
-    return CSR_ACCESS_ERR;
+    return RV_ACCESS_ERR;
 }

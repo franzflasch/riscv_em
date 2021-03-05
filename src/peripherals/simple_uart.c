@@ -58,7 +58,7 @@ int simple_uart_write(void *priv, rv_uint_xlen address_internal, rv_uint_xlen va
 
     pthread_mutex_unlock(&uart->lock);
 
-    return RV_MEM_ACCESS_OK;
+    return RV_ACCESS_OK;
 }
 
 int simple_uart_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
@@ -87,7 +87,7 @@ int simple_uart_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *ou
 
     pthread_mutex_unlock(&uart->lock);
 
-    return RV_MEM_ACCESS_OK;
+    return RV_ACCESS_OK;
 }
 
 uint8_t simple_uart_update(void *priv)

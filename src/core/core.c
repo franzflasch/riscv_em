@@ -33,6 +33,32 @@ static inline void prepare_sync_trap(rv_core_td *rv_core, rv_uint_xlen cause)
     }
 }
 
+static inline rv_uint_xlen checked_read_mem(rv_core_td *rv_core, rv_uint_xlen addr, int *err, rv_uint_xlen trap_cause)
+{
+    if(pmp_mem_check(&rv_core->pmp, rv_core->curr_priv_mode, addr))
+    {
+        prepare_sync_trap(rv_core, trap_cause);
+        *err = RV_ACCESS_PMP_ACCESS_ERR;
+        return 0;
+    }
+    
+    *err = RV_ACCESS_OK;
+    return rv_core->read_mem(rv_core->priv, addr, err);
+}
+
+static inline void checked_write_mem(rv_core_td *rv_core, rv_uint_xlen addr, rv_uint_xlen value, uint8_t nr_bytes, int *err, rv_uint_xlen trap_cause)
+{
+    if(pmp_mem_check(&rv_core->pmp, rv_core->curr_priv_mode, addr))
+    {
+        prepare_sync_trap(rv_core, trap_cause);
+        *err = RV_ACCESS_PMP_ACCESS_ERR;
+        return;
+    }
+    
+    *err = RV_ACCESS_OK;
+    rv_core->write_mem(rv_core->priv, addr, value, nr_bytes);
+}
+
 static void instr_NOP(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
@@ -352,85 +378,98 @@ static void instr_SRA(rv_core_td *rv_core)
 static void instr_LB(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    int err = RV_CORE_E_ERR;
+    int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint8_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
-    rv_core->x[rv_core->rd] = SIGNEX_BIT_7(tmp_load_val);
+    uint8_t tmp_load_val = checked_read_mem(rv_core, address, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
+
+    if(!err)
+        rv_core->x[rv_core->rd] = SIGNEX_BIT_7(tmp_load_val);
 }
 
 static void instr_LH(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    int err = RV_CORE_E_ERR;
+    int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint16_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
-    rv_core->x[rv_core->rd] = SIGNEX_BIT_15(tmp_load_val);
+    uint16_t tmp_load_val = checked_read_mem(rv_core, address, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
+
+    if(!err)
+        rv_core->x[rv_core->rd] = SIGNEX_BIT_15(tmp_load_val);
 }
 
 static void instr_LW(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    int err = RV_CORE_E_ERR;
+    int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    int32_t tmp_load_val = (int32_t)rv_core->read_mem(rv_core->priv, address, &err);
-    rv_core->x[rv_core->rd] = tmp_load_val;
+    int32_t tmp_load_val = checked_read_mem(rv_core, address, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
+
+    if(!err)
+        rv_core->x[rv_core->rd] = tmp_load_val;
 }
 
 static void instr_LBU(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    int err = RV_CORE_E_ERR;
+    int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint8_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
-    rv_core->x[rv_core->rd] = tmp_load_val;
+    uint8_t tmp_load_val = checked_read_mem(rv_core, address, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
+
+    if(!err)
+        rv_core->x[rv_core->rd] = tmp_load_val;
 }
 
 static void instr_LHU(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-    int err = RV_CORE_E_ERR;
+    int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint16_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
-    rv_core->x[rv_core->rd] = tmp_load_val;
+    uint16_t tmp_load_val = checked_read_mem(rv_core, address, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
+
+    if(!err)
+        rv_core->x[rv_core->rd] = tmp_load_val;
 }
 
 static void instr_SB(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+    int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     uint8_t value_to_write = (uint8_t)rv_core->x[rv_core->rs2];
-    rv_core->write_mem(rv_core->priv, address, value_to_write, 1);
+    checked_write_mem(rv_core, address, value_to_write, 1, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
 }
 
 static void instr_SH(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+    int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     uint16_t value_to_write = (uint16_t)rv_core->x[rv_core->rs2];
-    rv_core->write_mem(rv_core->priv, address, value_to_write, 2);
+    checked_write_mem(rv_core, address, value_to_write, 2, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
 }
 
 static void instr_SW(rv_core_td *rv_core)
 {
     CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+    int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     rv_uint_xlen value_to_write = (rv_uint_xlen)rv_core->x[rv_core->rs2];
-    rv_core->write_mem(rv_core->priv, address, value_to_write, 4);
+    checked_write_mem(rv_core, address, value_to_write, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
 }
 
 #ifdef RV64
     static void instr_LWU(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-        int err = RV_CORE_E_ERR;
+        int err = RV_ACCESS_ERR;
         rv_uint_xlen unsigned_offset = SIGNEX_BIT_11(rv_core->immediate);
         rv_uint_xlen address = rv_core->x[rv_core->rs1] + unsigned_offset;
         uint32_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
@@ -440,7 +479,7 @@ static void instr_SW(rv_core_td *rv_core)
     static void instr_LD(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-        int err = RV_CORE_E_ERR;
+        int err = RV_ACCESS_ERR;
         rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
         rv_int_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
         CORE_DBG("%s: %lx %lx %lx %x\n", __func__, rv_core->x[rv_core->rs1], address, rv_core->immediate, rv_core->rs1);
@@ -450,11 +489,12 @@ static void instr_SW(rv_core_td *rv_core)
     static void instr_SD(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+        int err = RV_ACCESS_ERR;
         rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
         rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
         rv_uint_xlen value_to_write = (rv_uint_xlen)rv_core->x[rv_core->rs2];
         CORE_DBG("%s: %lx %lx %lx %x\n", __func__, rv_core->x[rv_core->rs1], address, rv_core->immediate, rv_core->rs1);
-        rv_core->write_mem(rv_core->priv, address, value_to_write, 8);
+        checked_write_mem(rv_core, address, value_to_write, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
     }
 
     static void instr_SRAIW(rv_core_td *rv_core)
@@ -704,6 +744,7 @@ static void instr_SW(rv_core_td *rv_core)
     static void instr_AMOSWAP_W(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+        int err = RV_ACCESS_ERR;
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
         uint32_t result = 0;
@@ -711,12 +752,13 @@ static void instr_SW(rv_core_td *rv_core)
         instr_LW(rv_core);
         result = rs2_val;
 
-        rv_core->write_mem(rv_core->priv, address, result, 4);
+        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
     }
 
     static void instr_AMOADD_W(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+        int err = RV_ACCESS_ERR;
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         uint32_t rd_val = 0;
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
@@ -726,12 +768,13 @@ static void instr_SW(rv_core_td *rv_core)
         rd_val = rv_core->x[rv_core->rd];
         result = rd_val + rs2_val;
 
-        rv_core->write_mem(rv_core->priv, address, result, 4);
+        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
     }
 
     static void instr_AMOXOR_W(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+        int err = RV_ACCESS_ERR;
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         uint32_t rd_val = 0;
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
@@ -741,12 +784,13 @@ static void instr_SW(rv_core_td *rv_core)
         rd_val = rv_core->x[rv_core->rd];
         result = rd_val ^ rs2_val;
 
-        rv_core->write_mem(rv_core->priv, address, result, 4);
+        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
     }
 
     static void instr_AMOAND_W(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+        int err = RV_ACCESS_ERR;
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         uint32_t rd_val = 0;
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
@@ -756,12 +800,13 @@ static void instr_SW(rv_core_td *rv_core)
         rd_val = rv_core->x[rv_core->rd];
         result = rd_val & rs2_val;
 
-        rv_core->write_mem(rv_core->priv, address, result, 4);
+        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
     }
 
     static void instr_AMOOR_W(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+        int err = RV_ACCESS_ERR;
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         uint32_t rd_val = 0;
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
@@ -771,12 +816,13 @@ static void instr_SW(rv_core_td *rv_core)
         rd_val = rv_core->x[rv_core->rd];
         result = rd_val | rs2_val;
 
-        rv_core->write_mem(rv_core->priv, address, result, 4);
+        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
     }
 
     static void instr_AMOMIN_W(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+        int err = RV_ACCESS_ERR;
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         int32_t rd_val = 0;
         int32_t rs2_val = rv_core->x[rv_core->rs2];
@@ -787,12 +833,13 @@ static void instr_SW(rv_core_td *rv_core)
         rd_val = rv_core->x[rv_core->rd];
         result = ASSIGN_MIN(rd_val, rs2_val);
 
-        rv_core->write_mem(rv_core->priv, address, result, 4);
+        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
     }
 
     static void instr_AMOMAX_W(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+        int err = RV_ACCESS_ERR;
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         int32_t rd_val = 0;
         int32_t rs2_val = rv_core->x[rv_core->rs2];
@@ -803,12 +850,13 @@ static void instr_SW(rv_core_td *rv_core)
         rd_val = rv_core->x[rv_core->rd];
         result = ASSIGN_MAX(rd_val, rs2_val);
 
-        rv_core->write_mem(rv_core->priv, address, result, 4);
+        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
     }
 
     static void instr_AMOMINU_W(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+        int err = RV_ACCESS_ERR;
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         uint32_t rd_val = 0;
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
@@ -819,12 +867,13 @@ static void instr_SW(rv_core_td *rv_core)
         rd_val = rv_core->x[rv_core->rd];
         result = ASSIGN_MIN(rd_val, rs2_val);
 
-        rv_core->write_mem(rv_core->priv, address, result, 4);
+        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
     }
 
     static void instr_AMOMAXU_W(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+        int err = RV_ACCESS_ERR;
         rv_uint_xlen address = rv_core->x[rv_core->rs1];
         uint32_t rd_val = 0;
         uint32_t rs2_val = rv_core->x[rv_core->rs2];
@@ -835,7 +884,7 @@ static void instr_SW(rv_core_td *rv_core)
         rd_val = rv_core->x[rv_core->rd];
         result = ASSIGN_MAX(rd_val, rs2_val);
 
-        rv_core->write_mem(rv_core->priv, address, result, 4);
+        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
     }
 
     #ifdef RV64
@@ -867,6 +916,7 @@ static void instr_SW(rv_core_td *rv_core)
         static void instr_AMOSWAP_D(rv_core_td *rv_core)
         {
             CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+            int err = RV_ACCESS_ERR;
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
             rv_uint_xlen result = 0;
@@ -874,12 +924,13 @@ static void instr_SW(rv_core_td *rv_core)
             instr_LD(rv_core);
             result = rs2_val;
 
-            rv_core->write_mem(rv_core->priv, address, result, 8);
+            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
         }
 
         static void instr_AMOADD_D(rv_core_td *rv_core)
         {
             CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+            int err = RV_ACCESS_ERR;
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_uint_xlen rd_val = 0;
             rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
@@ -889,12 +940,13 @@ static void instr_SW(rv_core_td *rv_core)
             rd_val = rv_core->x[rv_core->rd];
             result = rd_val + rs2_val;
 
-            rv_core->write_mem(rv_core->priv, address, result, 8);
+            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
         }
 
         static void instr_AMOXOR_D(rv_core_td *rv_core)
         {
             CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+            int err = RV_ACCESS_ERR;
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_uint_xlen rd_val = 0;
             rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
@@ -904,12 +956,13 @@ static void instr_SW(rv_core_td *rv_core)
             rd_val = rv_core->x[rv_core->rd];
             result = rd_val ^ rs2_val;
 
-            rv_core->write_mem(rv_core->priv, address, result, 8);
+            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
         }
 
         static void instr_AMOAND_D(rv_core_td *rv_core)
         {
             CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+            int err = RV_ACCESS_ERR;
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_uint_xlen rd_val = 0;
             rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
@@ -919,12 +972,13 @@ static void instr_SW(rv_core_td *rv_core)
             rd_val = rv_core->x[rv_core->rd];
             result = rd_val & rs2_val;
 
-            rv_core->write_mem(rv_core->priv, address, result, 8);
+            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
         }
 
         static void instr_AMOOR_D(rv_core_td *rv_core)
         {
             CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+            int err = RV_ACCESS_ERR;
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_uint_xlen rd_val = 0;
             rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
@@ -934,12 +988,13 @@ static void instr_SW(rv_core_td *rv_core)
             rd_val = rv_core->x[rv_core->rd];
             result = rd_val | rs2_val;
 
-            rv_core->write_mem(rv_core->priv, address, result, 8);
+            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
         }
 
         static void instr_AMOMIN_D(rv_core_td *rv_core)
         {
             CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+            int err = RV_ACCESS_ERR;
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_int_xlen rd_val = 0;
             rv_int_xlen rs2_val = rv_core->x[rv_core->rs2];
@@ -950,12 +1005,13 @@ static void instr_SW(rv_core_td *rv_core)
             rd_val = rv_core->x[rv_core->rd];
             result = ASSIGN_MIN(rd_val, rs2_val);
 
-            rv_core->write_mem(rv_core->priv, address, result, 8);
+            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
         }
 
         static void instr_AMOMAX_D(rv_core_td *rv_core)
         {
             CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+            int err = RV_ACCESS_ERR;
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_int_xlen rd_val = 0;
             rv_int_xlen rs2_val = rv_core->x[rv_core->rs2];
@@ -966,12 +1022,13 @@ static void instr_SW(rv_core_td *rv_core)
             rd_val = rv_core->x[rv_core->rd];
             result = ASSIGN_MAX(rd_val, rs2_val);
 
-            rv_core->write_mem(rv_core->priv, address, result, 8);
+            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
         }
 
         static void instr_AMOMINU_D(rv_core_td *rv_core)
         {
             CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+            int err = RV_ACCESS_ERR;
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_uint_xlen rd_val = 0;
             rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
@@ -982,12 +1039,13 @@ static void instr_SW(rv_core_td *rv_core)
             rd_val = rv_core->x[rv_core->rd];
             result = ASSIGN_MIN(rd_val, rs2_val);
 
-            rv_core->write_mem(rv_core->priv, address, result, 8);
+            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
         }
 
         static void instr_AMOMAXU_D(rv_core_td *rv_core)
         {
             CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+            int err = RV_ACCESS_ERR;
             rv_uint_xlen address = rv_core->x[rv_core->rs1];
             rv_uint_xlen rd_val = 0;
             rv_uint_xlen rs2_val = rv_core->x[rv_core->rs2];
@@ -998,7 +1056,7 @@ static void instr_SW(rv_core_td *rv_core)
             rd_val = rv_core->x[rv_core->rd];
             result = ASSIGN_MAX(rd_val, rs2_val);
 
-            rv_core->write_mem(rv_core->priv, address, result, 8);
+            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
         }
     #endif
 #endif
@@ -1709,10 +1767,10 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
 
 static inline rv_uint_xlen rv_core_fetch(rv_core_td *rv_core)
 {
-    int err = RV_CORE_E_ERR;
+    int err = RV_ACCESS_ERR;
     rv_uint_xlen addr = rv_core->pc;
 
-    rv_core->instruction = rv_core->read_mem(rv_core->priv, addr, &err);
+    rv_core->instruction = checked_read_mem(rv_core, addr, &err, CSR_MCAUSE_INSTR_ACCESS_FAULT);
 
     return err;
 }
@@ -1748,14 +1806,10 @@ void rv_core_run(rv_core_td *rv_core)
 {
     rv_core->next_pc = 0;
 
-    if(rv_core_fetch(rv_core))
-    {
-        prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ACCESS_FAULT);
-    }
-    else
+    if(rv_core_fetch(rv_core) == RV_ACCESS_OK)
     {
         rv_core_decode(rv_core);
-        rv_core_execute(rv_core);
+        rv_core_execute(rv_core);        
     }
 
     /* increase program counter here */
@@ -1825,6 +1879,8 @@ void rv_core_reg_dump_more_regs(rv_core_td *rv_core)
 static void rv_core_init_csr_regs(rv_core_td *rv_core)
 {
     uint16_t i = 0;
+
+    /* Machine Information Registers */
     INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MVENDORID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO);
     INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MARCHID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO);
     INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MIMPID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO);
@@ -1846,17 +1902,16 @@ static void rv_core_init_csr_regs(rv_core_td *rv_core)
     INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MIP, CSR_ACCESS_RW(machine_mode), 0, CSR_MIP_MIE_WR_MASK);
 
     /* Machine Protection and Translation */
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_PMPCFG0, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, &rv_core->pmp, NULL, pmp_write_csr, CSR_PMPCFG0);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_PMPCFG1, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, &rv_core->pmp, NULL, pmp_write_csr, CSR_PMPCFG1);
-
-    #ifndef RV64
-        INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_PMPCFG2, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, &rv_core->pmp, NULL, pmp_write_csr, CSR_PMPCFG2);
-        INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_PMPCFG3, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, &rv_core->pmp, NULL, pmp_write_csr, CSR_PMPCFG3);
-    #endif
-
-    for(i=0;i<15;i++)
+    for(i=0;i<PMP_NR_CFG_REGS;i++)
     {
-        INIT_CSR_REG_SPECIAL(rv_core->csr_regs, (CSR_PMPADDR0+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, &rv_core->pmp, NULL, pmp_write_csr, (CSR_PMPADDR0+i));
+        INIT_CSR_REG_SPECIAL(rv_core->csr_regs, (CSR_PMPCFG0+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, &rv_core->pmp, pmp_read_csr_cfg, pmp_write_csr_cfg, i);
+        // printf("CSR init! %x\n", rv_core->csr_regs[CSR_PMPCFG0+i].internal_reg);
+        // printf("CSR init! %x\n", rv_core->csr_regs[CSR_PMPCFG0+i].access_flags);
+    }
+
+    for(i=0;i<PMP_NR_ADDR_REGS;i++)
+    {
+        INIT_CSR_REG_SPECIAL(rv_core->csr_regs, (CSR_PMPADDR0+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, &rv_core->pmp, pmp_read_csr_addr, pmp_write_csr_addr, i);
     }
 }
 

@@ -23,14 +23,14 @@ static int memory_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *
     uint8_t *mem_ptr = priv;
     rv_uint_xlen *xlen_ptr = (rv_uint_xlen *)&mem_ptr[address_internal];
     *outval = *xlen_ptr;
-    return RV_MEM_ACCESS_OK;
+    return RV_ACCESS_OK;
 }
 
 static int memory_write(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint8_t nr_bytes)
 {
     uint8_t *mem_ptr = priv;
     memcpy(&mem_ptr[address_internal], &val, nr_bytes);
-    return RV_MEM_ACCESS_OK;
+    return RV_ACCESS_OK;
 }
 
 static void rv_soc_init_mem_acces_cbs(rv_soc_td *rv_soc)
@@ -54,7 +54,7 @@ static rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address, int *err)
     rv_uint_xlen read_val = 0;
     size_t i = 0;
 
-    *err = RV_CORE_E_ERR;
+    *err = RV_ACCESS_ERR;
 
     for(i=0;i<(sizeof(rv_soc->mem_access_cbs)/sizeof(rv_soc->mem_access_cbs[0]));i++)
     {
@@ -62,7 +62,7 @@ static rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address, int *err)
         {
             tmp_addr = address - rv_soc->mem_access_cbs[i].addr_start;
             rv_soc->mem_access_cbs[i].read(rv_soc->mem_access_cbs[i].priv, tmp_addr, &read_val);
-            *err = RV_CORE_E_OK;
+            *err = RV_ACCESS_OK;
             return read_val;
         }
     }

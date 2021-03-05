@@ -4,40 +4,74 @@
 #include <pmp.h>
 #include <riscv_helper.h>
 
-// #define PMP_DEBUG
-#ifdef PMP_DEBUG
+// #define PMP_DEBUG_ENABLE
+#ifdef PMP_DEBUG_ENABLE
 #define PMP_DEBUG(...) do{ printf( __VA_ARGS__ ); } while( 0 )
 #else
 #define PMP_DEBUG(...) do{ } while ( 0 )
 #endif
 
-int pmp_write_csr(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
+int pmp_write_csr_cfg(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
 {
     uint8_t i = 0;
     pmp_td *pmp = priv;
-    uint8_t *cfg_ptr = (uint8_t *)&pmp->regs[reg_index];
+    uint8_t *cfg_ptr = (uint8_t *)&pmp->cfg[reg_index];
+    uint8_t *new_val_ptr = (uint8_t *)&csr_val;
 
     /* All PMP cfgs can only be changed in machine mode */
     if(curr_priv != machine_mode)
-        return RV_MEM_ACCESS_ERR;
-
-    /* assume all writable at first */
-    rv_uint_xlen access_mask = -1;
-    uint8_t *access_mask_ptr = (uint8_t *)&access_mask;
+        return RV_ACCESS_ERR;
 
     for(i=0;i<sizeof(rv_uint_xlen);i++)
     {
         /* check if it is locked, this can only be cleared by a reset */
-        if(CHECK_BIT(cfg_ptr[i], PMP_CFG_L_BIT))
-            access_mask_ptr[i] = 0;
+        if(!CHECK_BIT(cfg_ptr[i], PMP_CFG_L_BIT))
+        {
+            cfg_ptr[i] = new_val_ptr[i];
+        }
     }
 
-    PMP_DEBUG("Access mask: " PRINTF_FMT "\n", access_mask);
+    return RV_ACCESS_OK;
+}
 
-    /* OK now we can savely update the config */
-    pmp->regs[reg_index] |= csr_val & access_mask;
+int pmp_read_csr_cfg(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val)
+{
+    (void) curr_priv_mode;
 
-    return RV_MEM_ACCESS_OK;
+    pmp_td *pmp = priv;
+    *out_val = pmp->cfg[reg_index];
+    return RV_ACCESS_OK;
+}
+
+int pmp_write_csr_addr(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
+{
+    pmp_td *pmp = priv;
+    uint8_t *cfg_ptr = (uint8_t *)&pmp->cfg[reg_index/sizeof(rv_uint_xlen)];
+
+    /* All PMP cfgs can only be changed in machine mode */
+    if(curr_priv != machine_mode)
+        return RV_ACCESS_ERR;
+
+    /* updating the reg is only permitted if it is not locked 
+       do nothing and return with OK if it is locked
+    */
+    if(CHECK_BIT(cfg_ptr[reg_index%sizeof(rv_uint_xlen)], PMP_CFG_L_BIT))
+    {
+        return RV_ACCESS_OK;
+    }
+
+    pmp->addr[reg_index] = csr_val;
+
+    return RV_ACCESS_OK;
+}
+
+int pmp_read_csr_addr(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val)
+{
+    (void) curr_priv_mode;
+
+    pmp_td *pmp = priv;
+    *out_val = pmp->addr[reg_index];
+    return RV_ACCESS_OK;
 }
 
 static inline rv_uint_xlen get_pmp_napot_size_from_pmpaddr(rv_uint_xlen addr)
@@ -66,10 +100,12 @@ int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr)
 
     /* We don't have to do any check if we are in machine mode */
     if(curr_priv == machine_mode)
-        return RV_MEM_ACCESS_OK;
+        return RV_ACCESS_OK;
 
     for(i=0;i<PMP_NR_CFG_REGS;i++)
     {
+        PMP_DEBUG("pmpcfg: %lx\n", pmp->cfg[i]);
+        PMP_DEBUG("pmpaddr: %lx\n", pmp->addr[0]);
         cfg_ptr = (uint8_t *)&pmp->cfg[i];
         for(j=0;j<sizeof(pmp->cfg[0]);j++)
         {
@@ -92,8 +128,19 @@ int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr)
                     }
                 break;
                 case pmp_a_napot:
-                    addr_size = get_pmp_napot_size_from_pmpaddr(pmp->addr[j]);
-                    addr_start = get_pmp_napot_addr_from_pmpaddr(pmp->addr[j]);
+                    /* I couldn't find this case in the spec, but qemu seems to do it in a similar fashion
+                     * https://github.com/qemu/qemu/blob/master/target/riscv/pmp.c
+                     */
+                    if(pmp->addr[j] == (rv_uint_xlen)-1)
+                    {
+                        addr_size = -1;
+                        addr_start = 0;
+                    }
+                    else
+                    {
+                        addr_size = get_pmp_napot_size_from_pmpaddr(pmp->addr[j]);
+                        addr_start = get_pmp_napot_addr_from_pmpaddr(pmp->addr[j]);
+                    }
                 break;
                 case pmp_a_na4:
                     addr_start = (pmp->addr[j] << 2);
@@ -109,13 +156,13 @@ int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr)
             if(ADDR_WITHIN(addr, addr_start, addr_size))
             {
                 PMP_DEBUG("Address OK!\n");
-                return RV_MEM_ACCESS_OK;
+                return RV_ACCESS_OK;
             }
         }
     }
 
     PMP_DEBUG("No PMP match found!\n");
-    return RV_MEM_ACCESS_ERR;
+    return RV_ACCESS_ERR;
 }
 
 void pmp_dump_cfg_regs(pmp_td *pmp)

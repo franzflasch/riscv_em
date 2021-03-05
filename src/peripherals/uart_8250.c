@@ -163,7 +163,7 @@ int uart_write(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint
 
     pthread_mutex_unlock(&uart->lock);
 
-    return RV_MEM_ACCESS_OK;
+    return RV_ACCESS_OK;
 }
 
 int uart_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
@@ -264,7 +264,7 @@ int uart_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
 
     pthread_mutex_unlock(&uart->lock);
 
-    return RV_MEM_ACCESS_OK;
+    return RV_ACCESS_OK;
 }
 
 uint8_t uart_update(void *priv)

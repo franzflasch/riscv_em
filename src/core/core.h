@@ -9,9 +9,6 @@
 
 #define NR_RVI_REGS 32
 
-#define RV_CORE_E_OK 0
-#define RV_CORE_E_ERR 1
-
 typedef struct rv_core_struct rv_core_td;
 typedef struct rv_core_struct
 {

@@ -164,10 +164,10 @@ int plic_read_reg(void *priv, rv_uint_xlen address, rv_uint_xlen *out_val)
                 assign_u32_bit(&plic->claimed_bits[irq_reg], irq_bit, 1);
         }
 
-        return RV_MEM_ACCESS_OK;
+        return RV_ACCESS_OK;
     }
 
-    return RV_MEM_ACCESS_ERR;
+    return RV_ACCESS_ERR;
 }
 
 int plic_write_reg(void *priv, rv_uint_xlen address, rv_uint_xlen val, uint8_t nr_bytes)
@@ -193,8 +193,8 @@ int plic_write_reg(void *priv, rv_uint_xlen address, rv_uint_xlen val, uint8_t n
 
         /* be sure that all updated values are sane */
         plic_check_sanity(plic);
-        return RV_MEM_ACCESS_OK;
+        return RV_ACCESS_OK;
     }
 
-    return RV_MEM_ACCESS_ERR;
+    return RV_ACCESS_ERR;
 }
