@@ -40,6 +40,24 @@ static void pmp_set_cfg_r_flag(pmp_td *pmp, unsigned int cfg_reg_index)
     SET_BIT(cfg_ptr[cfg_reg_index], PMP_CFG_R_BIT);
 }
 
+static void pmp_clear_cfg_x_flag(pmp_td *pmp, unsigned int cfg_reg_index)
+{
+    uint8_t *cfg_ptr = (uint8_t *)&pmp->cfg[0];
+    CLEAR_BIT(cfg_ptr[cfg_reg_index], PMP_CFG_X_BIT);
+}
+
+static void pmp_clear_cfg_w_flag(pmp_td *pmp, unsigned int cfg_reg_index)
+{
+    uint8_t *cfg_ptr = (uint8_t *)&pmp->cfg[0];
+    CLEAR_BIT(cfg_ptr[cfg_reg_index], PMP_CFG_W_BIT);
+}
+
+static void pmp_clear_cfg_r_flag(pmp_td *pmp, unsigned int cfg_reg_index)
+{
+    uint8_t *cfg_ptr = (uint8_t *)&pmp->cfg[0];
+    CLEAR_BIT(cfg_ptr[cfg_reg_index], PMP_CFG_R_BIT);
+}
+
 static void pmp_set_napot_addr(pmp_td *pmp, unsigned int cfg_reg_index, rv_uint_xlen base, rv_uint_xlen size)
 {
     rv_uint_xlen napot_size = ((size/2)-1);
@@ -120,20 +138,56 @@ void test_PMP_napot_memcheck(void)
     */
     pmp_set_cfg_a_mode(&tmp_pmp, 0, pmp_a_napot);
     pmp_set_napot_addr(&tmp_pmp, 0, 0x40000000, 0x1000);
+    pmp_set_cfg_r_flag(&tmp_pmp, 0);
 
     int mem_check_result = 0;
 
     /* now check mem */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
 
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000fff);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000fff, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
 
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x3fffffff);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x3fffffff, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
 
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40001000);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40001000, 1, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+}
+
+void test_PMP_napot_outofbounds_memcheck(void)
+{
+    /*  testcase 2: 
+    
+    */
+    pmp_set_cfg_a_mode(&tmp_pmp, 0, pmp_a_napot);
+    pmp_set_napot_addr(&tmp_pmp, 0, 0x40000000, 0x1000);
+    pmp_set_cfg_r_flag(&tmp_pmp, 0);
+    pmp_set_cfg_w_flag(&tmp_pmp, 0);
+    pmp_set_cfg_x_flag(&tmp_pmp, 0);
+
+    int mem_check_result = 0;
+
+    /* now check mem */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000, 4, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    /* This here should fail, as we want to read 2 bytes but the valid area ends at 0x40000fff */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000fff, 2, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+
+    /* this shouls work again */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000ffe, 2, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000ffc, 4, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x3fffffff, 4, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40001000, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
 }
 
@@ -144,20 +198,21 @@ void test_PMP_na4_memcheck(void)
     */
     pmp_set_cfg_a_mode(&tmp_pmp, 0, pmp_a_na4);
     pmp_set_na4_tor_addr(&tmp_pmp, 0, 0x40000000);
+    pmp_set_cfg_r_flag(&tmp_pmp, 0);
 
     int mem_check_result = 0;
 
     /* now check mem */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
 
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000003);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000003, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
 
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x3fffffff);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x3fffffff, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
 
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000004);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000004, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
 }
 
@@ -168,26 +223,27 @@ void test_PMP_tor_first_entry_memcheck(void)
     */
     pmp_set_cfg_a_mode(&tmp_pmp, 0, pmp_a_tor);
     pmp_set_na4_tor_addr(&tmp_pmp, 0, 0x80087000);
+    pmp_set_cfg_r_flag(&tmp_pmp, 0);
 
     int mem_check_result = 0;
 
     /* first valid */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x0);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x0, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
 
     /* last valid */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x80086FFF);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x80086FFF, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
 
     /* test in the middle */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
 
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x80080000);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x80080000, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
 
     /* Test first invalid */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x80087000);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x80087000, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
 
     // printf("%lx\n", tmp_pmp.cfg[0]);
@@ -202,23 +258,24 @@ void test_PMP_tor_memcheck(void)
     pmp_set_cfg_a_mode(&tmp_pmp, 1, pmp_a_tor);
     pmp_set_na4_tor_addr(&tmp_pmp, 0, 0x40000000);
     pmp_set_na4_tor_addr(&tmp_pmp, 1, 0x80000000);
+    pmp_set_cfg_r_flag(&tmp_pmp, 1);
 
     int mem_check_result = 0;
 
     /* first valid */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
 
     /* last valid */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x7fffffff);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x7fffffff, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
 
     /* test invalid */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x3fffffff);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x3fffffff, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
 
     /* test invalid */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x80000000);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x80000000, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
 }
 
@@ -231,27 +288,152 @@ void test_PMP_tor_higher_cfg_memcheck(void)
     pmp_set_cfg_a_mode(&tmp_pmp, 6, pmp_a_tor);
     pmp_set_na4_tor_addr(&tmp_pmp, 5, 0x40000000);
     pmp_set_na4_tor_addr(&tmp_pmp, 6, 0x80000000);
+    pmp_set_cfg_r_flag(&tmp_pmp, 6);
 
     int mem_check_result = 0;
 
     /* first valid */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
 
     /* last valid */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x7fffffff);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x7fffffff, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
 
     /* test invalid */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x3fffffff);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x3fffffff, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
 
     /* test invalid */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x80000000);
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x80000000, 1, pmp_read_access);
     TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
 }
 
-void test_PMP_read_write_csr(void)
+void test_PMP_tor_memcheck_r_flag(void)
+{
+    /*  testcase 3: 
+    
+    */
+    pmp_set_cfg_a_mode(&tmp_pmp, 0, pmp_a_off);
+    pmp_set_cfg_a_mode(&tmp_pmp, 1, pmp_a_tor);
+    pmp_set_cfg_r_flag(&tmp_pmp, 1);
+    pmp_set_na4_tor_addr(&tmp_pmp, 0, 0x40000000);
+    pmp_set_na4_tor_addr(&tmp_pmp, 1, 0x80000000);
+
+    int mem_check_result = 0;
+
+    /* first valid */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000, 1, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    /* first valid but try write access */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000, 1, pmp_write_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+
+    /* first valid but try instruction access */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000, 1, pmp_instr_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+
+    /* last valid */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x7fffffff, 1, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    /* test invalid */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x3fffffff, 1, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+
+    /* test invalid */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x80000000, 1, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+}
+
+void test_PMP_tor_memcheck_rwx_flags(void)
+{
+    /*  testcase 3: 
+    
+    */
+    pmp_set_cfg_a_mode(&tmp_pmp, 0, pmp_a_off);
+    pmp_set_cfg_a_mode(&tmp_pmp, 1, pmp_a_tor);
+    pmp_set_cfg_w_flag(&tmp_pmp, 1);
+    pmp_set_na4_tor_addr(&tmp_pmp, 0, 0x40000000);
+    pmp_set_na4_tor_addr(&tmp_pmp, 1, 0x80000000);
+
+    int mem_check_result = 0;
+
+    /* first valid */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000, 1, pmp_write_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    /* first valid but try read access */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000, 1, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+
+    /* first valid but try instruction access */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000, 1, pmp_instr_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+
+    /* last valid */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x7fffffff, 1, pmp_write_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    /* test invalid */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x3fffffff, 1, pmp_write_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+
+    /* test invalid */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x80000000, 1, pmp_write_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+
+    /* now set various rwx combinations */
+    pmp_set_cfg_r_flag(&tmp_pmp, 1);
+    pmp_clear_cfg_w_flag(&tmp_pmp, 1);
+    pmp_set_cfg_x_flag(&tmp_pmp, 1);
+
+    /* last valid */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x7fffffff, 1, pmp_write_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x7fffffff, 1, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x7fffffff, 1, pmp_instr_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    pmp_clear_cfg_r_flag(&tmp_pmp, 1);
+    pmp_set_cfg_w_flag(&tmp_pmp, 1);
+    pmp_set_cfg_x_flag(&tmp_pmp, 1);
+
+    /* last valid */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x7fffffff, 1, pmp_write_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x7fffffff, 1, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x7fffffff, 1, pmp_instr_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    pmp_set_cfg_r_flag(&tmp_pmp, 1);
+    pmp_set_cfg_w_flag(&tmp_pmp, 1);
+    pmp_clear_cfg_x_flag(&tmp_pmp, 1);
+
+    /* last valid */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x7fffffff, 1, pmp_write_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x7fffffff, 1, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x7fffffff, 1, pmp_instr_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+}
+
+/* 
+ *
+ * As there are some RV32/RV64 specifics, we also need to adapt some tests here 
+ * 
+ * */
+void test_PMP_read_write_csr_RV64(void)
 {
     pmp_set_cfg_a_mode(&tmp_pmp, 5, pmp_a_off);
     pmp_set_cfg_a_mode(&tmp_pmp, 6, pmp_a_tor);
@@ -281,6 +463,39 @@ void test_PMP_read_write_csr(void)
     TEST_ASSERT_EQUAL_HEX64(0x0000000020000000, read_val);
 }
 
+void test_PMP_read_write_csr_RV32(void)
+{
+    pmp_set_cfg_a_mode(&tmp_pmp, 5, pmp_a_off);
+    pmp_set_cfg_a_mode(&tmp_pmp, 6, pmp_a_tor);
+    pmp_set_na4_tor_addr(&tmp_pmp, 5, 0x40000000);
+    pmp_set_na4_tor_addr(&tmp_pmp, 6, 0x80000000);
+
+    pmp_write_csr_cfg(&real_pmp, machine_mode, 1, tmp_pmp.cfg[1]);
+    pmp_write_csr_addr(&real_pmp, machine_mode, 5, tmp_pmp.addr[5]);
+    pmp_write_csr_addr(&real_pmp, machine_mode, 6, tmp_pmp.addr[6]);
+
+    pmp_dump_cfg_regs(&tmp_pmp);
+
+    uint8_t *real_cfg_ptr = (uint8_t *)&real_pmp.cfg[0];
+
+    // printf("%lx\n", real_pmp.cfg[0]);
+    // printf("%lx\n", real_cfg_ptr[6]);
+    pmp_dump_cfg_regs(&real_pmp);
+
+    /* Ensure, that the register was not overwritten */
+    TEST_ASSERT_EQUAL_HEX8(0x08, real_cfg_ptr[6]);
+
+    rv_uint_xlen read_val = 0;
+    pmp_read_csr_cfg(&real_pmp, machine_mode, 1, &read_val);
+    TEST_ASSERT_EQUAL_HEX64(0x0000000000080000, read_val);
+
+    pmp_read_csr_addr(&real_pmp, machine_mode, 5, &read_val);
+    TEST_ASSERT_EQUAL_HEX64(0x0000000010000000, read_val);
+
+    pmp_read_csr_addr(&real_pmp, machine_mode, 6, &read_val);
+    TEST_ASSERT_EQUAL_HEX64(0x0000000020000000, read_val);
+}
+
 int main() 
 {
     UnityBegin("pmp/unit_tests.c");
@@ -290,7 +505,16 @@ int main()
     RUN_TEST(test_PMP_tor_first_entry_memcheck, __LINE__);
     RUN_TEST(test_PMP_tor_memcheck, __LINE__);
     RUN_TEST(test_PMP_tor_higher_cfg_memcheck, __LINE__);
-    RUN_TEST(test_PMP_read_write_csr, __LINE__);
+
+    RUN_TEST(test_PMP_tor_memcheck_r_flag, __LINE__);
+    RUN_TEST(test_PMP_tor_memcheck_rwx_flags, __LINE__);
+    RUN_TEST(test_PMP_napot_outofbounds_memcheck, __LINE__);
+
+    #ifdef RV64
+        RUN_TEST(test_PMP_read_write_csr_RV64, __LINE__);
+    #else
+        RUN_TEST(test_PMP_read_write_csr_RV32, __LINE__);
+    #endif
 
     return (UnityEnd());
 }

@@ -87,17 +87,20 @@ static inline rv_uint_xlen get_pmp_napot_addr_from_pmpaddr(rv_uint_xlen addr)
     return (addr - mask) << 2;
 }
 
-int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr)
+int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr, uint8_t len, pmp_access_type access_type)
 {
     /* check if the address matches any enabled config */
     /* lower cfgs have precedence over higher ones */
     uint8_t i = 0;
     uint8_t j = 0;
+    uint8_t addr_count = 0;
     uint8_t *cfg_ptr = NULL;
     pmp_addr_matching addr_mode = pmp_a_off;
     rv_uint_xlen addr_start = 0;
     rv_uint_xlen addr_size = 0;
     int at_least_one_active = 0;
+    uint8_t curr_access_flags = (1 << access_type);
+    uint8_t allowed_access = 0;
 
     /* We don't have to do any check if we are in machine mode */
     if(curr_priv == machine_mode)
@@ -105,59 +108,72 @@ int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr)
 
     for(i=0;i<PMP_NR_CFG_REGS;i++)
     {
-        PMP_DEBUG("pmpcfg: %lx\n", pmp->cfg[i]);
-        PMP_DEBUG("pmpaddr: %lx\n", pmp->addr[0]);
         cfg_ptr = (uint8_t *)&pmp->cfg[i];
         for(j=0;j<sizeof(pmp->cfg[0]);j++)
         {
+            addr_count = (i*sizeof(pmp->cfg[0])) + j;
+            PMP_DEBUG("pmpaddr: "PRINTF_FMT"\n", pmp->addr[addr_count]);
             addr_mode = extract8(cfg_ptr[j], PMP_CFG_A_BIT_OFFS, 2);
+
+            PMP_DEBUG("id: %d addr_mode: %x\n", j, addr_mode);
+
             if(!addr_mode)
                 continue;
+
+            allowed_access = cfg_ptr[j] & 0x7;
 
             at_least_one_active = 1;
 
             switch(addr_mode)
             {
                 case pmp_a_tor:
-                    if(j==0)
+                    if(addr_count==0)
                     {
                         addr_start = 0;
-                        addr_size = (pmp->addr[j] << 2);
+                        addr_size = (pmp->addr[addr_count] << 2);
                     }
                     else
                     {
-                        addr_start = (pmp->addr[j-1] << 2);
-                        addr_size = (pmp->addr[j-1] << 2);
+                        addr_start = (pmp->addr[addr_count-1] << 2);
+                        addr_size = (pmp->addr[addr_count] << 2) - addr_start;
                     }
                 break;
                 case pmp_a_napot:
                     /* I couldn't find this case in the spec, but qemu seems to do it in a similar fashion
                      * https://github.com/qemu/qemu/blob/master/target/riscv/pmp.c
                      */
-                    if(pmp->addr[j] == (rv_uint_xlen)-1)
+                    if(pmp->addr[addr_count] == (rv_uint_xlen)-1)
                     {
                         addr_size = -1;
                         addr_start = 0;
                     }
                     else
                     {
-                        addr_size = get_pmp_napot_size_from_pmpaddr(pmp->addr[j]);
-                        addr_start = get_pmp_napot_addr_from_pmpaddr(pmp->addr[j]);
+                        addr_size = get_pmp_napot_size_from_pmpaddr(pmp->addr[addr_count]);
+                        addr_start = get_pmp_napot_addr_from_pmpaddr(pmp->addr[addr_count]);
                     }
                 break;
                 case pmp_a_na4:
-                    addr_start = (pmp->addr[j] << 2);
+                    addr_start = (pmp->addr[addr_count] << 2);
                     addr_size = 4;
                 break;
                 default:
                 break;
             }
 
-            PMP_DEBUG("addr: " PRINTF_FMT "\n", addr_start);
+            PMP_DEBUG("addr: " PRINTF_FMT "\n", addr);
+            PMP_DEBUG("addr_start: " PRINTF_FMT "\n", addr_start);
             PMP_DEBUG("size: " PRINTF_FMT "\n", addr_size);
 
-            if(ADDR_WITHIN(addr, addr_start, addr_size))
+            if(ADDR_WITHIN_LEN(addr, len, addr_start, addr_size))
             {
+                PMP_DEBUG("Addr match found!\n");
+                if(!(curr_access_flags & allowed_access))
+                {
+                    PMP_DEBUG("Access type in match not allowed! curr_access_flags: %x allowed_access: %x\n", curr_access_flags, allowed_access);
+                    return RV_ACCESS_ERR;
+                }
+
                 PMP_DEBUG("Address OK!\n");
                 return RV_ACCESS_OK;
             }

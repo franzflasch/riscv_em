@@ -47,7 +47,7 @@ static void rv_soc_init_mem_acces_cbs(rv_soc_td *rv_soc)
     INIT_MEM_ACCESS_STRUCT(rv_soc, count++, memory_read, memory_write, rv_soc->mrom, MROM_BASE_ADDR, MROM_SIZE_BYTES);
 }
 
-static rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address, int *err)
+static rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address, uint8_t len, int *err)
 {
     rv_soc_td *rv_soc = priv;
     rv_uint_xlen tmp_addr = 0;
@@ -58,7 +58,7 @@ static rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address, int *err)
 
     for(i=0;i<(sizeof(rv_soc->mem_access_cbs)/sizeof(rv_soc->mem_access_cbs[0]));i++)
     {
-        if(ADDR_WITHIN(address, rv_soc->mem_access_cbs[i].addr_start, rv_soc->mem_access_cbs[i].mem_size))
+        if(ADDR_WITHIN_LEN(address, len, rv_soc->mem_access_cbs[i].addr_start, rv_soc->mem_access_cbs[i].mem_size))
         {
             tmp_addr = address - rv_soc->mem_access_cbs[i].addr_start;
             rv_soc->mem_access_cbs[i].read(rv_soc->mem_access_cbs[i].priv, tmp_addr, &read_val);
@@ -67,11 +67,11 @@ static rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address, int *err)
         }
     }
 
-    die_msg("Invalid Address, or no valid read pointer found, read not executed!: Addr: "PRINTF_FMT"  Cycle: %ld  PC: "PRINTF_FMT"\n", address, rv_soc->rv_core0.curr_cycle, rv_soc->rv_core0.pc);
+    die_msg("Invalid Address, or no valid read pointer found, read not executed!: Addr: "PRINTF_FMT" Len: %d Cycle: %ld  PC: "PRINTF_FMT"\n", address, len, rv_soc->rv_core0.curr_cycle, rv_soc->rv_core0.pc);
     return 0;
 }
 
-static void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes)
+static void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t len)
 {
     rv_soc_td *rv_soc = priv;
     rv_uint_xlen tmp_addr = 0;
@@ -79,38 +79,55 @@ static void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen valu
 
     for(i=0;i<(sizeof(rv_soc->mem_access_cbs)/sizeof(rv_soc->mem_access_cbs[0]));i++)
     {
-        if(ADDR_WITHIN(address, rv_soc->mem_access_cbs[i].addr_start, rv_soc->mem_access_cbs[i].mem_size))
+        if(ADDR_WITHIN_LEN(address, len, rv_soc->mem_access_cbs[i].addr_start, rv_soc->mem_access_cbs[i].mem_size))
         {
             tmp_addr = address - rv_soc->mem_access_cbs[i].addr_start;
-            rv_soc->mem_access_cbs[i].write(rv_soc->mem_access_cbs[i].priv, tmp_addr, value, nr_bytes);
+            rv_soc->mem_access_cbs[i].write(rv_soc->mem_access_cbs[i].priv, tmp_addr, value, len);
             return;
         }
     }
 
-    die_msg("Invalid Address, or no valid write pointer found, write not executed!: Addr: "PRINTF_FMT"  Cycle: %ld  PC: "PRINTF_FMT"\n", address, rv_soc->rv_core0.curr_cycle, rv_soc->rv_core0.pc);
+    die_msg("Invalid Address, or no valid write pointer found, write not executed!: Addr: "PRINTF_FMT" Len: %d Cycle: %ld  PC: "PRINTF_FMT"\n", address, len, rv_soc->rv_core0.curr_cycle, rv_soc->rv_core0.pc);
     return;
 }
 
-static void write_mem_from_file(char *file_name, uint8_t *memory, rv_uint_xlen mem_size)
+static rv_uint_xlen get_file_size(char *file_name)
 {
     FILE * p_fw_file = NULL;
-    unsigned long lsize = 0;
-    size_t result = 0;
-
+    rv_uint_xlen lsize = 0;
     p_fw_file = fopen(file_name, "rb");
     if(p_fw_file == NULL)
     {
         printf("Could not open fw file!\n");
         exit(-1);
-    }
+    }    
 
     fseek(p_fw_file, 0, SEEK_END);
     lsize = ftell(p_fw_file);
-    rewind(p_fw_file);
+
+    fclose(p_fw_file);
+
+    return lsize;
+}
+
+static rv_uint_xlen write_mem_from_file(char *file_name, uint8_t *memory, rv_uint_xlen mem_size)
+{
+    FILE * p_fw_file = NULL;
+    rv_uint_xlen lsize = 0;
+    size_t result = 0;
+
+    lsize = get_file_size(file_name);
 
     if(lsize > mem_size)
     {
         printf("Not able to load fw file of size %lu, mem space is " PRINTF_FMTU "\n", lsize, mem_size);
+        exit(-1);
+    }
+
+    p_fw_file = fopen(file_name, "rb");
+    if(p_fw_file == NULL)
+    {
+        printf("Could not open fw file!\n");
         exit(-2);
     }
 
@@ -122,6 +139,8 @@ static void write_mem_from_file(char *file_name, uint8_t *memory, rv_uint_xlen m
     }
 
     fclose(p_fw_file);
+
+    return lsize;
 }
 
 void rv_soc_dump_mem(rv_soc_td *rv_soc)
@@ -136,29 +155,61 @@ void rv_soc_dump_mem(rv_soc_td *rv_soc)
 
 void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
 {
+    #define RESET_VEC_SIZE 10
+    #define MiB 0x100000
+
     uint64_t i;
     uint64_t start_addr = RAM_BASE_ADDR;
+    uint64_t ram_addr_end = (RAM_BASE_ADDR + RAM_SIZE_BYTES);
+    uint64_t fdt_addr = 0;
+    uint64_t fdt_size = 0;
+    uint64_t tmp = 0;
 
     static uint8_t __attribute__((aligned (4))) soc_mrom[MROM_SIZE_BYTES] = { 0 };
     static uint8_t __attribute__((aligned (4))) soc_ram[RAM_SIZE_BYTES] = { 0 };
 
-    /* this is the reset vector, taken from qemu v4.2 */
-    uint32_t reset_vec[8] = {
-        0x00000297,                  /* 1:  auipc  t0, %pcrel_hi(dtb) */
-        0x02028593,                  /*     addi   a1, t0, %pcrel_lo(1b) */
+    /* Init everything to zero */
+    memset(rv_soc, 0, sizeof(rv_soc_td));
+    rv_soc->mrom = soc_mrom;
+    rv_soc->ram = soc_ram;
+
+    /* Copy dtb and firmware */
+    if(dtb_file_name != NULL)
+    {
+        fdt_size = get_file_size(dtb_file_name);
+
+        /*
+         * This is a little annoying: qemu keeps changing this stuff 
+         * from time to time and I need to do it the same, otherwise the 
+         * tests would fail as they won't match with qemu's results anymore
+         * Be Aware: 2 * MiB was taken from qemu 5.2 but it seems
+         * they already changed this again in later versions to 16 * MiB
+         */
+        fdt_addr = ADDR_ALIGN_DOWN(ram_addr_end - fdt_size, 2 * MiB);
+        tmp = fdt_addr - RAM_BASE_ADDR;
+        write_mem_from_file(dtb_file_name, &soc_ram[tmp], RAM_SIZE_BYTES-tmp);
+    }
+
+    write_mem_from_file(fw_file_name, soc_ram, sizeof(soc_ram));
+
+    /* this is the reset vector, taken from qemu v5.2 */
+    uint32_t reset_vec[RESET_VEC_SIZE] = {
+        0x00000297,                  /* 1:  auipc  t0, %pcrel_hi(fw_dyn) */
+        0x02828613,                  /*     addi   a2, t0, %pcrel_lo(1b) */
         0xf1402573,                  /*     csrr   a0, mhartid  */
-
         #ifdef RV64
-                0x0182b283,          /*     ld     t0, 24(t0) */
+            0x0202b583,              /*     ld     a1, 32(t0) */
+            0x0182b283,              /*     ld     t0, 24(t0) */
         #else
-                0x0182a283,          /*     lw     t0, 24(t0) */
+            0x0202a583,              /*     lw     a1, 32(t0) */
+            0x0182a283,              /*     lw     t0, 24(t0) */
         #endif
-
         0x00028067,                  /*     jr     t0 */
-        0x00000000,
         start_addr,                  /* start: .dword */
         0x00000000,
-                                     /* dtb: */
+        fdt_addr,                    /* fdt_laddr: .dword */
+        0x00000000,
+                                     /* fw_dyn: */
     };
 
     uint32_t *tmp_ptr = (uint32_t *)soc_mrom;
@@ -166,15 +217,6 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
     {
         tmp_ptr[i] = reset_vec[i];
     }
-
-    memset(rv_soc, 0, sizeof(rv_soc_td));
-    rv_soc->mrom = soc_mrom;
-    rv_soc->ram = soc_ram;
-
-    if(dtb_file_name != NULL)
-        write_mem_from_file(dtb_file_name, &soc_mrom[8*sizeof(uint32_t)], sizeof(soc_mrom)-(8*sizeof(uint32_t)));
-
-    write_mem_from_file(fw_file_name, soc_ram, sizeof(soc_ram));
 
     /* initialize one core with a csr table */
     rv_core_init(&rv_soc->rv_core0, rv_soc, rv_soc_read_mem, rv_soc_write_mem);
@@ -222,7 +264,7 @@ void rv_soc_run(rv_soc_td *rv_soc, rv_uint_xlen success_pc, uint64_t num_cycles)
         rv_core_reg_dump(&rv_soc->rv_core0);
         // rv_core_reg_internal_after_exec(&rv_soc.rv_core);
 
-        if((rv_soc->rv_core0.pc == (success_pc)))
+        if(rv_soc->rv_core0.pc == success_pc)
             break;
 
         if((num_cycles != 0) && (rv_soc->rv_core0.curr_cycle >= num_cycles))

@@ -15,7 +15,10 @@
 
 #define die_msg(...) { printf(__VA_ARGS__); exit(-1); }
 
-#define ADDR_WITHIN(_addr, _start, _size) ( (_addr >= _start) && (_addr < _start + _size) )
+#define ADDR_WITHIN(_addr, _start, _size) ( (_addr >= _start) && (_addr < (_start + _size)) )
+#define ADDR_WITHIN_LEN(_addr, _len, _start, _size) ( (_addr >= _start) && ((_addr + _len) <= (_start + _size)) )
+
+#define ADDR_ALIGN_DOWN(n, m) ((n) / (m) * (m))
 
 #define ASSIGN_MIN(a,b) (((a)<(b))?(a):(b))
 #define ASSIGN_MAX(a,b) (((a)>(b))?(a):(b))

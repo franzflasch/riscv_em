@@ -49,7 +49,7 @@ static inline rv_uint_xlen checked_instr_fetch(rv_core_td *rv_core, rv_uint_xlen
      * instruction fetches are unaffected by the mprv bit 
      * "Instruction address-translation and protection are unaffected."
      */
-    if(pmp_mem_check(&rv_core->pmp, rv_core->curr_priv_mode, addr))
+    if(pmp_mem_check(&rv_core->pmp, rv_core->curr_priv_mode, addr, 4, pmp_instr_access))
     {
         prepare_sync_trap(rv_core, trap_cause);
         *err = RV_ACCESS_PMP_ACCESS_ERR;
@@ -57,13 +57,14 @@ static inline rv_uint_xlen checked_instr_fetch(rv_core_td *rv_core, rv_uint_xlen
     }
 
     *err = RV_ACCESS_OK;
-    return rv_core->read_mem(rv_core->priv, addr, err);
+    return rv_core->read_mem(rv_core->priv, addr, 4, err);
 }
 
-static inline rv_uint_xlen checked_read_mem(rv_core_td *rv_core, rv_uint_xlen addr, int *err, rv_uint_xlen trap_cause)
+static inline rv_uint_xlen checked_read_mem(rv_core_td *rv_core, rv_uint_xlen addr, uint8_t len, int *err, rv_uint_xlen trap_cause)
 {
+    (void) len;
     privilege_level internal_priv_level = check_mprv_override(rv_core);
-    if(pmp_mem_check(&rv_core->pmp, internal_priv_level, addr))
+    if(pmp_mem_check(&rv_core->pmp, internal_priv_level, addr, len, pmp_read_access))
     {
         prepare_sync_trap(rv_core, trap_cause);
         *err = RV_ACCESS_PMP_ACCESS_ERR;
@@ -71,13 +72,13 @@ static inline rv_uint_xlen checked_read_mem(rv_core_td *rv_core, rv_uint_xlen ad
     }
 
     *err = RV_ACCESS_OK;
-    return rv_core->read_mem(rv_core->priv, addr, err);
+    return rv_core->read_mem(rv_core->priv, addr, len, err);
 }
 
-static inline void checked_write_mem(rv_core_td *rv_core, rv_uint_xlen addr, rv_uint_xlen value, uint8_t nr_bytes, int *err, rv_uint_xlen trap_cause)
+static inline void checked_write_mem(rv_core_td *rv_core, rv_uint_xlen addr, rv_uint_xlen value, uint8_t len, int *err, rv_uint_xlen trap_cause)
 {
     privilege_level internal_priv_level = check_mprv_override(rv_core);
-    if(pmp_mem_check(&rv_core->pmp, internal_priv_level, addr))
+    if(pmp_mem_check(&rv_core->pmp, internal_priv_level, addr, len, pmp_write_access))
     {
         prepare_sync_trap(rv_core, trap_cause);
         *err = RV_ACCESS_PMP_ACCESS_ERR;
@@ -85,7 +86,7 @@ static inline void checked_write_mem(rv_core_td *rv_core, rv_uint_xlen addr, rv_
     }
 
     *err = RV_ACCESS_OK;
-    rv_core->write_mem(rv_core->priv, addr, value, nr_bytes);
+    rv_core->write_mem(rv_core->priv, addr, value, len);
 }
 
 /*
@@ -413,7 +414,7 @@ static void instr_LB(rv_core_td *rv_core)
     int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint8_t tmp_load_val = checked_read_mem(rv_core, address, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
+    uint8_t tmp_load_val = checked_read_mem(rv_core, address, 1, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
 
     if(!err)
         rv_core->x[rv_core->rd] = SIGNEX_BIT_7(tmp_load_val);
@@ -425,7 +426,7 @@ static void instr_LH(rv_core_td *rv_core)
     int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint16_t tmp_load_val = checked_read_mem(rv_core, address, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
+    uint16_t tmp_load_val = checked_read_mem(rv_core, address, 2, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
 
     if(!err)
         rv_core->x[rv_core->rd] = SIGNEX_BIT_15(tmp_load_val);
@@ -437,7 +438,7 @@ static void instr_LW(rv_core_td *rv_core)
     int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    int32_t tmp_load_val = checked_read_mem(rv_core, address, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
+    int32_t tmp_load_val = checked_read_mem(rv_core, address, 4, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
 
     if(!err)
         rv_core->x[rv_core->rd] = tmp_load_val;
@@ -449,7 +450,7 @@ static void instr_LBU(rv_core_td *rv_core)
     int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint8_t tmp_load_val = checked_read_mem(rv_core, address, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
+    uint8_t tmp_load_val = checked_read_mem(rv_core, address, 1, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
 
     if(!err)
         rv_core->x[rv_core->rd] = tmp_load_val;
@@ -461,7 +462,7 @@ static void instr_LHU(rv_core_td *rv_core)
     int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint16_t tmp_load_val = checked_read_mem(rv_core, address, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
+    uint16_t tmp_load_val = checked_read_mem(rv_core, address, 2, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
 
     if(!err)
         rv_core->x[rv_core->rd] = tmp_load_val;
@@ -504,7 +505,7 @@ static void instr_SW(rv_core_td *rv_core)
         int err = RV_ACCESS_ERR;
         rv_uint_xlen unsigned_offset = SIGNEX_BIT_11(rv_core->immediate);
         rv_uint_xlen address = rv_core->x[rv_core->rs1] + unsigned_offset;
-        uint32_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, &err);
+        uint32_t tmp_load_val = rv_core->read_mem(rv_core->priv, address, 4, &err);
         rv_core->x[rv_core->rd] = tmp_load_val;
     }
 
@@ -515,7 +516,7 @@ static void instr_SW(rv_core_td *rv_core)
         rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
         rv_int_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
         CORE_DBG("%s: %lx %lx %lx %x\n", __func__, rv_core->x[rv_core->rs1], address, rv_core->immediate, rv_core->rs1);
-        rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address, &err);
+        rv_core->x[rv_core->rd] = rv_core->read_mem(rv_core->priv, address, 8, &err);
     }
 
     static void instr_SD(rv_core_td *rv_core)
@@ -1937,8 +1938,6 @@ static void rv_core_init_csr_regs(rv_core_td *rv_core)
     for(i=0;i<PMP_NR_CFG_REGS;i++)
     {
         INIT_CSR_REG_SPECIAL(rv_core->csr_regs, (CSR_PMPCFG0+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, &rv_core->pmp, pmp_read_csr_cfg, pmp_write_csr_cfg, i);
-        // printf("CSR init! %x\n", rv_core->csr_regs[CSR_PMPCFG0+i].internal_reg);
-        // printf("CSR init! %x\n", rv_core->csr_regs[CSR_PMPCFG0+i].access_flags);
     }
 
     for(i=0;i<PMP_NR_ADDR_REGS;i++)
@@ -1949,8 +1948,8 @@ static void rv_core_init_csr_regs(rv_core_td *rv_core)
 
 void rv_core_init(rv_core_td *rv_core,
                   void *priv,
-                  rv_uint_xlen (*read_mem)(void *priv, rv_uint_xlen address, int *err),
-                  void (*write_mem)(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t nr_bytes)
+                  rv_core_read_mem read_mem,
+                  rv_core_write_mem write_mem
                   )
 {
     memset(rv_core, 0, sizeof(rv_core_td));
