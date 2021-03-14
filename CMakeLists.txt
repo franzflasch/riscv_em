@@ -16,6 +16,7 @@ endif()
 
 set(SRC_HELPER 
     src/helpers/fifo.c
+    src/helpers/file_helper.c
 )
 
 set(INC_HELPER

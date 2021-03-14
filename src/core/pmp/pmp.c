@@ -11,6 +11,7 @@
 #define PMP_DEBUG(...) do{ } while ( 0 )
 #endif
 
+#ifdef PMP_SUPPORT
 int pmp_write_csr_cfg(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
 {
     uint8_t i = 0;
@@ -46,16 +47,30 @@ int pmp_read_csr_cfg(void *priv, privilege_level curr_priv_mode, uint16_t reg_in
 int pmp_write_csr_addr(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
 {
     pmp_td *pmp = priv;
-    uint8_t *cfg_ptr = (uint8_t *)&pmp->cfg[reg_index/sizeof(rv_uint_xlen)];
+    uint8_t cfg_reg_idx = reg_index/sizeof(rv_uint_xlen);
+    uint8_t cfg_idx = reg_index%sizeof(rv_uint_xlen);
+    uint8_t *cfg_ptr = (uint8_t *)&pmp->cfg[cfg_reg_idx];
+    pmp_addr_matching addr_mode_next_entry = pmp_a_off;
 
     /* All PMP cfgs can only be changed in machine mode */
     if(curr_priv != machine_mode)
         return RV_ACCESS_ERR;
 
+    /* check if the next index is locked and set to tor */
+    if(cfg_idx < (PMP_NR_ADDR_REGS-1))
+    {
+        addr_mode_next_entry = extract8(cfg_ptr[cfg_idx+1], PMP_CFG_A_BIT_OFFS, 2);
+        if( (addr_mode_next_entry == pmp_a_tor) &&
+            CHECK_BIT(cfg_ptr[cfg_idx+1], PMP_CFG_L_BIT) )
+        {
+            return RV_ACCESS_OK;
+        }
+    }
+
     /* updating the reg is only permitted if it is not locked 
        do nothing and return with OK if it is locked
     */
-    if(CHECK_BIT(cfg_ptr[reg_index%sizeof(rv_uint_xlen)], PMP_CFG_L_BIT))
+    if(CHECK_BIT(cfg_ptr[cfg_idx], PMP_CFG_L_BIT))
     {
         return RV_ACCESS_OK;
     }
@@ -96,21 +111,27 @@ int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr, uin
     uint8_t addr_count = 0;
     uint8_t *cfg_ptr = NULL;
     pmp_addr_matching addr_mode = pmp_a_off;
-    rv_uint_xlen addr_start = 0;
-    rv_uint_xlen addr_size = 0;
+    rv_uint_xlen addr_end = 0;
+    rv_uint_xlen pmp_addr_start = 0;
+    rv_uint_xlen pmp_addr_size = 0;
     int at_least_one_active = 0;
     uint8_t curr_access_flags = (1 << access_type);
     uint8_t allowed_access = 0;
-
-    /* We don't have to do any check if we are in machine mode */
-    if(curr_priv == machine_mode)
-        return RV_ACCESS_OK;
+    uint8_t lower_addr_match = 0;
+    uint8_t upper_addr_match = 0;
 
     for(i=0;i<PMP_NR_CFG_REGS;i++)
     {
         cfg_ptr = (uint8_t *)&pmp->cfg[i];
         for(j=0;j<sizeof(pmp->cfg[0]);j++)
         {
+            lower_addr_match = 0;
+            upper_addr_match = 0;
+
+            /* We only have to check the locked regions in machine mode */
+            if( (curr_priv == machine_mode) && !CHECK_BIT(cfg_ptr[j], PMP_CFG_L_BIT) )
+                continue;
+
             addr_count = (i*sizeof(pmp->cfg[0])) + j;
             PMP_DEBUG("pmpaddr: "PRINTF_FMT"\n", pmp->addr[addr_count]);
             addr_mode = extract8(cfg_ptr[j], PMP_CFG_A_BIT_OFFS, 2);
@@ -129,13 +150,13 @@ int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr, uin
                 case pmp_a_tor:
                     if(addr_count==0)
                     {
-                        addr_start = 0;
-                        addr_size = (pmp->addr[addr_count] << 2);
+                        pmp_addr_start = 0;
+                        pmp_addr_size = (pmp->addr[addr_count] << 2);
                     }
                     else
                     {
-                        addr_start = (pmp->addr[addr_count-1] << 2);
-                        addr_size = (pmp->addr[addr_count] << 2) - addr_start;
+                        pmp_addr_start = (pmp->addr[addr_count-1] << 2);
+                        pmp_addr_size = (pmp->addr[addr_count] << 2) - pmp_addr_start;
                     }
                 break;
                 case pmp_a_napot:
@@ -144,48 +165,60 @@ int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr, uin
                      */
                     if(pmp->addr[addr_count] == (rv_uint_xlen)-1)
                     {
-                        addr_size = -1;
-                        addr_start = 0;
+                        pmp_addr_size = -1;
+                        pmp_addr_start = 0;
                     }
                     else
                     {
-                        addr_size = get_pmp_napot_size_from_pmpaddr(pmp->addr[addr_count]);
-                        addr_start = get_pmp_napot_addr_from_pmpaddr(pmp->addr[addr_count]);
+                        pmp_addr_size = get_pmp_napot_size_from_pmpaddr(pmp->addr[addr_count]);
+                        pmp_addr_start = get_pmp_napot_addr_from_pmpaddr(pmp->addr[addr_count]);
                     }
                 break;
                 case pmp_a_na4:
-                    addr_start = (pmp->addr[addr_count] << 2);
-                    addr_size = 4;
+                    pmp_addr_start = (pmp->addr[addr_count] << 2);
+                    pmp_addr_size = 4;
                 break;
                 default:
                 break;
             }
 
+            addr_end = addr + (len - 1);
+
             PMP_DEBUG("addr: " PRINTF_FMT "\n", addr);
-            PMP_DEBUG("addr_start: " PRINTF_FMT "\n", addr_start);
-            PMP_DEBUG("size: " PRINTF_FMT "\n", addr_size);
+            PMP_DEBUG("pmp_addr_start: " PRINTF_FMT "\n", pmp_addr_start);
+            PMP_DEBUG("addr_end: " PRINTF_FMT "\n", addr_end);
+            PMP_DEBUG("size: " PRINTF_FMT "\n", pmp_addr_size);
 
-            if(ADDR_WITHIN_LEN(addr, len, addr_start, addr_size))
-            {
-                PMP_DEBUG("Addr match found!\n");
-                if(!(curr_access_flags & allowed_access))
-                {
-                    PMP_DEBUG("Access type in match not allowed! curr_access_flags: %x allowed_access: %x\n", curr_access_flags, allowed_access);
-                    return RV_ACCESS_ERR;
-                }
+            /* Check if the access partially overlaps with configured mem regions */
+            lower_addr_match = ADDR_WITHIN(addr, pmp_addr_start, pmp_addr_size);
+            upper_addr_match = ADDR_WITHIN(addr_end, pmp_addr_start, pmp_addr_size);
 
-                PMP_DEBUG("Address OK!\n");
-                return RV_ACCESS_OK;
-            }
+            /* lower addr is within, but upper not, so access not granted, except when we are in machine mode and RWX flags match */
+            if(lower_addr_match && !upper_addr_match)
+                return ( (curr_priv == machine_mode) && (curr_access_flags & allowed_access)) ? RV_ACCESS_OK : RV_ACCESS_ERR;
+            
+            /* upper addr is within, but lower not, so access not granted, except when we are in machine mode and RWX flags match */
+            if(upper_addr_match && !lower_addr_match)
+                return ( (curr_priv == machine_mode) && (curr_access_flags & allowed_access)) ? RV_ACCESS_OK : RV_ACCESS_ERR;
+
+            /* Both are within the range, return with OK */
+            if(upper_addr_match && lower_addr_match)
+                return (curr_access_flags & allowed_access) ? RV_ACCESS_OK : RV_ACCESS_ERR;
         }
     }
 
+    /* If we get here in machine mode, access is granted */
+    if(curr_priv == machine_mode)
+        return RV_ACCESS_OK;
+
+    /* If at least one config is active and we are not in machine mode access is not granted */
     if(at_least_one_active)
     {
         PMP_DEBUG("No PMP match found!\n");
         return RV_ACCESS_ERR;
     }
 
+    /* No config seems to be active and therefore PMP is not used so access is granted */
     return RV_ACCESS_OK;
 }
 
@@ -213,3 +246,14 @@ void pmp_dump_cfg_regs(pmp_td *pmp)
 
     PMP_DEBUG("\n");
 }
+#else
+int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr, uint8_t len, pmp_access_type access_type)
+{
+    (void)pmp;
+    (void)curr_priv;
+    (void)addr;
+    (void)len;
+    (void)access_type;
+    return RV_ACCESS_OK;
+}
+#endif

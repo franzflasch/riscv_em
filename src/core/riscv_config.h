@@ -4,6 +4,7 @@
 #define CSR_SUPPORT /* This is currently mandatory, because of the qemu reset-vector */
 #define ATOMIC_SUPPORT
 #define MULTIPLY_SUPPORT
+#define PMP_SUPPORT
 
 // #define USE_SIMPLE_UART
 

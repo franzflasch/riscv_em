@@ -156,41 +156,6 @@ void test_PMP_napot_memcheck(void)
     TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
 }
 
-void test_PMP_napot_outofbounds_memcheck(void)
-{
-    /*  testcase 2: 
-    
-    */
-    pmp_set_cfg_a_mode(&tmp_pmp, 0, pmp_a_napot);
-    pmp_set_napot_addr(&tmp_pmp, 0, 0x40000000, 0x1000);
-    pmp_set_cfg_r_flag(&tmp_pmp, 0);
-    pmp_set_cfg_w_flag(&tmp_pmp, 0);
-    pmp_set_cfg_x_flag(&tmp_pmp, 0);
-
-    int mem_check_result = 0;
-
-    /* now check mem */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000, 4, pmp_read_access);
-    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
-
-    /* This here should fail, as we want to read 2 bytes but the valid area ends at 0x40000fff */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000fff, 2, pmp_read_access);
-    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
-
-    /* this shouls work again */
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000ffe, 2, pmp_read_access);
-    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
-
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000ffc, 4, pmp_read_access);
-    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
-
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x3fffffff, 4, pmp_read_access);
-    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
-
-    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40001000, 1, pmp_read_access);
-    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
-}
-
 void test_PMP_na4_memcheck(void)
 {
     /*  testcase 3: 
@@ -428,6 +393,135 @@ void test_PMP_tor_memcheck_rwx_flags(void)
     TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
 }
 
+void test_PMP_napot_outofbounds_memcheck(void)
+{
+    /*  testcase 2: 
+    
+    */
+    pmp_set_cfg_a_mode(&tmp_pmp, 0, pmp_a_napot);
+    pmp_set_napot_addr(&tmp_pmp, 0, 0x40000000, 0x1000);
+    pmp_set_cfg_r_flag(&tmp_pmp, 0);
+    pmp_set_cfg_w_flag(&tmp_pmp, 0);
+    pmp_set_cfg_x_flag(&tmp_pmp, 0);
+
+    int mem_check_result = 0;
+
+    /* now check mem */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000000, 4, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    /* This here should fail, as we want to read 2 bytes but the valid area ends at 0x40000fff */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000fff, 2, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+
+    /* this shouls work again */
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000ffe, 2, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40000ffc, 4, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x3fffffff, 4, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+
+    mem_check_result = pmp_mem_check(&tmp_pmp, supervisor_mode, 0x40001000, 1, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+}
+
+void test_PMP_napot_m_mode_locked_memcheck(void)
+{
+    /*
+     * If the locked bit is set, mem accesses in a configured PMP
+     * region are not permitted even in machine mode.
+     */
+    pmp_set_cfg_a_mode(&tmp_pmp, 0, pmp_a_napot);
+    pmp_set_napot_addr(&tmp_pmp, 0, 0x40000000, 0x1000);
+
+    /* memchecks in machine mode are only performed for regions where the lock bit is set */
+    pmp_set_cfg_l_flag(&tmp_pmp, 0);
+
+    /* Only allow write and execute */
+    pmp_set_cfg_w_flag(&tmp_pmp, 0);
+    pmp_set_cfg_x_flag(&tmp_pmp, 0);
+
+    int mem_check_result = 0;
+
+    /* reads should now fail */
+    mem_check_result = pmp_mem_check(&tmp_pmp, machine_mode, 0x40000000, 4, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+
+    // FIXME: this edge case is currently not supported (includes overlapping mem-region access, which actually should not succeed, but currently does):
+    mem_check_result = pmp_mem_check(&tmp_pmp, machine_mode, 0x40000fff, 2, pmp_read_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_ERR, mem_check_result);
+
+    /* writes should succeed */
+    mem_check_result = pmp_mem_check(&tmp_pmp, machine_mode, 0x40000000, 4, pmp_write_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    mem_check_result = pmp_mem_check(&tmp_pmp, machine_mode, 0x40000fff, 2, pmp_write_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    /* executes should also succeed */
+    mem_check_result = pmp_mem_check(&tmp_pmp, machine_mode, 0x40000000, 4, pmp_instr_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+
+    mem_check_result = pmp_mem_check(&tmp_pmp, machine_mode, 0x40000fff, 2, pmp_instr_access);
+    TEST_ASSERT_EQUAL(RV_ACCESS_OK, mem_check_result);
+}
+
+void test_PMP_tor_check_locked_csr_write(void)
+{
+    /*
+     * From the spec: "Additionally, if pmpicfg.A is set to TOR, writes to pmpaddri-1 are ignored."
+     */
+    pmp_set_cfg_a_mode(&tmp_pmp, 0, pmp_a_off);
+    pmp_set_cfg_a_mode(&tmp_pmp, 1, pmp_a_tor);
+    pmp_set_na4_tor_addr(&tmp_pmp, 1, 0x4000);
+    pmp_set_cfg_l_flag(&tmp_pmp, 1);
+
+    uint8_t *cfg_ptr = (uint8_t *)&tmp_pmp.cfg[0];
+    TEST_ASSERT_EQUAL_HEX8(0x88, cfg_ptr[1]);
+
+    /* Should still be 0x88 after this */
+    pmp_write_csr_cfg(&tmp_pmp, machine_mode, 0, (0xFF << 8));
+    TEST_ASSERT_EQUAL_HEX8(0x88, cfg_ptr[1]);
+
+    /* Also writes to addr[1] should be not possible */
+    pmp_write_csr_addr(&tmp_pmp, machine_mode, 1, 0x1234);
+    TEST_ASSERT_EQUAL_HEX(0x1000, tmp_pmp.addr[1]);
+
+    /* If set to tor writes to addr[0] should also be prohibited */
+    pmp_write_csr_addr(&tmp_pmp, machine_mode, 0, 0x4321);
+    TEST_ASSERT_EQUAL_HEX(0x00, tmp_pmp.addr[0]);
+}
+
+void test_PMP_tor_check_locked_csr_write_edge_case(void)
+{
+    /*
+     * From the spec: "Additionally, if pmpicfg.A is set to TOR, writes to pmpaddri-1 are ignored."
+     */
+    pmp_set_cfg_a_mode(&tmp_pmp, 7, pmp_a_off);
+    pmp_set_cfg_a_mode(&tmp_pmp, 8, pmp_a_tor);
+    pmp_set_na4_tor_addr(&tmp_pmp, 8, 0x4000);
+    pmp_set_cfg_l_flag(&tmp_pmp, 8);
+
+    uint8_t *cfg_ptr = (uint8_t *)&tmp_pmp.cfg[0];
+    TEST_ASSERT_EQUAL_HEX8(0x88, cfg_ptr[8]);
+
+    /* Should still be 0x88 after this */
+    pmp_write_csr_cfg(&tmp_pmp, machine_mode, 1, 0xFF);
+    TEST_ASSERT_EQUAL_HEX8(0x88, cfg_ptr[8]);
+
+    /* Also writes to addr[1] should be not possible */
+    pmp_write_csr_addr(&tmp_pmp, machine_mode, 8, 0x1234);
+    TEST_ASSERT_EQUAL_HEX(0x1000, tmp_pmp.addr[8]);
+
+    /* If set to tor writes to addr[0] should also be prohibited */
+    pmp_write_csr_addr(&tmp_pmp, machine_mode, 7, 0x4321);
+    TEST_ASSERT_EQUAL_HEX(0x00, tmp_pmp.addr[7]);
+}
+
+
 /* 
  *
  * As there are some RV32/RV64 specifics, we also need to adapt some tests here 
@@ -505,6 +599,9 @@ int main()
     RUN_TEST(test_PMP_tor_first_entry_memcheck, __LINE__);
     RUN_TEST(test_PMP_tor_memcheck, __LINE__);
     RUN_TEST(test_PMP_tor_higher_cfg_memcheck, __LINE__);
+    RUN_TEST(test_PMP_napot_m_mode_locked_memcheck, __LINE__);
+    RUN_TEST(test_PMP_tor_check_locked_csr_write, __LINE__);
+    RUN_TEST(test_PMP_tor_check_locked_csr_write_edge_case, __LINE__);
 
     RUN_TEST(test_PMP_tor_memcheck_r_flag, __LINE__);
     RUN_TEST(test_PMP_tor_memcheck_rwx_flags, __LINE__);

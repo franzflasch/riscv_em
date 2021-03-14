@@ -6,6 +6,8 @@
 #include <riscv_helper.h>
 #include <riscv_example_soc.h>
 
+#include <file_helper.h>
+
 #define INIT_MEM_ACCESS_STRUCT(_ref_rv_soc, _entry, _read_func, _write_func, _priv, _addr_start, _mem_size) \
 { \
     size_t _tmp_count = _entry; \
@@ -89,58 +91,6 @@ static void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen valu
 
     die_msg("Invalid Address, or no valid write pointer found, write not executed!: Addr: "PRINTF_FMT" Len: %d Cycle: %ld  PC: "PRINTF_FMT"\n", address, len, rv_soc->rv_core0.curr_cycle, rv_soc->rv_core0.pc);
     return;
-}
-
-static rv_uint_xlen get_file_size(char *file_name)
-{
-    FILE * p_fw_file = NULL;
-    rv_uint_xlen lsize = 0;
-    p_fw_file = fopen(file_name, "rb");
-    if(p_fw_file == NULL)
-    {
-        printf("Could not open fw file!\n");
-        exit(-1);
-    }    
-
-    fseek(p_fw_file, 0, SEEK_END);
-    lsize = ftell(p_fw_file);
-
-    fclose(p_fw_file);
-
-    return lsize;
-}
-
-static rv_uint_xlen write_mem_from_file(char *file_name, uint8_t *memory, rv_uint_xlen mem_size)
-{
-    FILE * p_fw_file = NULL;
-    rv_uint_xlen lsize = 0;
-    size_t result = 0;
-
-    lsize = get_file_size(file_name);
-
-    if(lsize > mem_size)
-    {
-        printf("Not able to load fw file of size %lu, mem space is " PRINTF_FMTU "\n", lsize, mem_size);
-        exit(-1);
-    }
-
-    p_fw_file = fopen(file_name, "rb");
-    if(p_fw_file == NULL)
-    {
-        printf("Could not open fw file!\n");
-        exit(-2);
-    }
-
-    result = fread(memory, sizeof(uint8_t), lsize, p_fw_file);
-    if(result != lsize)
-    {
-        printf("Error while reading file!\n");
-        exit(-3);
-    }
-
-    fclose(p_fw_file);
-
-    return lsize;
 }
 
 void rv_soc_dump_mem(rv_soc_td *rv_soc)
@@ -262,7 +212,6 @@ void rv_soc_run(rv_soc_td *rv_soc, rv_uint_xlen success_pc, uint64_t num_cycles)
         rv_core_process_interrupts(&rv_soc->rv_core0, mei, msi, mti);
 
         rv_core_reg_dump(&rv_soc->rv_core0);
-        // rv_core_reg_internal_after_exec(&rv_soc.rv_core);
 
         if(rv_soc->rv_core0.pc == success_pc)
             break;

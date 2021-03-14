@@ -1937,12 +1937,20 @@ static void rv_core_init_csr_regs(rv_core_td *rv_core)
     /* Machine Protection and Translation */
     for(i=0;i<PMP_NR_CFG_REGS;i++)
     {
-        INIT_CSR_REG_SPECIAL(rv_core->csr_regs, (CSR_PMPCFG0+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, &rv_core->pmp, pmp_read_csr_cfg, pmp_write_csr_cfg, i);
+        #ifdef PMP_SUPPORT
+            INIT_CSR_REG_SPECIAL(rv_core->csr_regs, (CSR_PMPCFG0+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, &rv_core->pmp, pmp_read_csr_cfg, pmp_write_csr_cfg, i);
+        #else
+            INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_PMPCFG0+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL);
+        #endif
     }
 
     for(i=0;i<PMP_NR_ADDR_REGS;i++)
     {
-        INIT_CSR_REG_SPECIAL(rv_core->csr_regs, (CSR_PMPADDR0+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, &rv_core->pmp, pmp_read_csr_addr, pmp_write_csr_addr, i);
+        #ifdef PMP_SUPPORT
+            INIT_CSR_REG_SPECIAL(rv_core->csr_regs, (CSR_PMPADDR0+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, &rv_core->pmp, pmp_read_csr_addr, pmp_write_csr_addr, i);
+        #else
+            INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_PMPADDR0+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL);
+        #endif
     }
 }
 
