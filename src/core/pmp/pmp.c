@@ -12,8 +12,9 @@
 #endif
 
 #ifdef PMP_SUPPORT
-int pmp_write_csr_cfg(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
+int pmp_write_csr_cfg(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val, rv_uint_xlen mask)
 {
+    (void) mask;
     uint8_t i = 0;
     pmp_td *pmp = priv;
     uint8_t *cfg_ptr = (uint8_t *)&pmp->cfg[reg_index];
@@ -44,7 +45,7 @@ int pmp_read_csr_cfg(void *priv, privilege_level curr_priv_mode, uint16_t reg_in
     return RV_ACCESS_OK;
 }
 
-int pmp_write_csr_addr(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
+int pmp_write_csr_addr(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val, rv_uint_xlen mask)
 {
     pmp_td *pmp = priv;
     uint8_t cfg_reg_idx = reg_index/sizeof(rv_uint_xlen);
@@ -75,7 +76,7 @@ int pmp_write_csr_addr(void *priv, privilege_level curr_priv, uint16_t reg_index
         return RV_ACCESS_OK;
     }
 
-    pmp->addr[reg_index] = csr_val;
+    pmp->addr[reg_index] = csr_val & mask;
 
     return RV_ACCESS_OK;
 }

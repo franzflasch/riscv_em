@@ -27,12 +27,14 @@ set(SRC_CORE
     src/core/core.c
     src/core/csr/csr.c
     src/core/pmp/pmp.c
+    src/core/trap/trap.c
 )
 
 set(INC_CORE
     src/core
     src/core/csr
     src/core/pmp
+    src/core/trap
 )
 
 set(SRC_PERIPH

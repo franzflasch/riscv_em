@@ -5,6 +5,8 @@
 
 #include <riscv_config.h>
 
+#define __PACKED __attribute__((__packed__)) 
+
 #ifdef RV64
     #define XLEN 64
     typedef uint64_t rv_uint_xlen;
@@ -21,10 +23,12 @@
 
 typedef enum  
 {
+    priv_level_unknown = -1, /* This just ensures that the enum is signed, which might be needed in down counting for loops */
     user_mode = 0,
     supervisor_mode = 1,
     reserved_mode = 2, /* Hypervisor ?? */
     machine_mode = 3,
+    priv_level_max = 4
 
 } privilege_level;
 

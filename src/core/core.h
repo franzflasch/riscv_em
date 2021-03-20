@@ -5,6 +5,7 @@
 
 #include <csr.h>
 #include <pmp.h>
+#include <trap.h>
 #include <clint.h>
 
 #define NR_RVI_REGS 32
@@ -49,6 +50,7 @@ typedef struct rv_core_struct
 
     csr_reg_td csr_regs[CSR_ADDR_MAX];
     pmp_td pmp;
+    trap_td trap;
 
     int lr_valid;
     rv_uint_xlen lr_address;

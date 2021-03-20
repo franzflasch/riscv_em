@@ -111,7 +111,7 @@ void test_PMP_lock_bit(void)
     // printf("Tmp PMP:\n");
     // pmp_dump_cfg_regs(&tmp_pmp);
 
-    pmp_write_csr_cfg(&real_pmp, machine_mode, 1, tmp_pmp.cfg[1]);
+    pmp_write_csr_cfg(&real_pmp, machine_mode, 1, tmp_pmp.cfg[1], -1);
     // printf("%lx\n", real_pmp.cfg[1]);
 
     uint8_t *real_cfg_ptr = (uint8_t *)&real_pmp.cfg[0];
@@ -123,11 +123,11 @@ void test_PMP_lock_bit(void)
     pmp_dump_cfg_regs(&real_pmp);
 
     /* Now try to set an address on pmpaddr11, this should also not be possible */
-    pmp_write_csr_addr(&real_pmp, machine_mode, 11, 0x1234);
+    pmp_write_csr_addr(&real_pmp, machine_mode, 11, 0x1234, -1);
     TEST_ASSERT_EQUAL_HEX(0x00, real_pmp.addr[11]);
 
     /* Also try to set something on a addr which is not locked */
-    pmp_write_csr_addr(&real_pmp, machine_mode, 10, 0x1234);
+    pmp_write_csr_addr(&real_pmp, machine_mode, 10, 0x1234, -1);
     TEST_ASSERT_EQUAL_HEX(0x1234, real_pmp.addr[10]);
 }
 
@@ -483,15 +483,15 @@ void test_PMP_tor_check_locked_csr_write(void)
     TEST_ASSERT_EQUAL_HEX8(0x88, cfg_ptr[1]);
 
     /* Should still be 0x88 after this */
-    pmp_write_csr_cfg(&tmp_pmp, machine_mode, 0, (0xFF << 8));
+    pmp_write_csr_cfg(&tmp_pmp, machine_mode, 0, (0xFF << 8), -1);
     TEST_ASSERT_EQUAL_HEX8(0x88, cfg_ptr[1]);
 
     /* Also writes to addr[1] should be not possible */
-    pmp_write_csr_addr(&tmp_pmp, machine_mode, 1, 0x1234);
+    pmp_write_csr_addr(&tmp_pmp, machine_mode, 1, 0x1234, -1);
     TEST_ASSERT_EQUAL_HEX(0x1000, tmp_pmp.addr[1]);
 
     /* If set to tor writes to addr[0] should also be prohibited */
-    pmp_write_csr_addr(&tmp_pmp, machine_mode, 0, 0x4321);
+    pmp_write_csr_addr(&tmp_pmp, machine_mode, 0, 0x4321, -1);
     TEST_ASSERT_EQUAL_HEX(0x00, tmp_pmp.addr[0]);
 }
 
@@ -509,15 +509,15 @@ void test_PMP_tor_check_locked_csr_write_edge_case(void)
     TEST_ASSERT_EQUAL_HEX8(0x88, cfg_ptr[8]);
 
     /* Should still be 0x88 after this */
-    pmp_write_csr_cfg(&tmp_pmp, machine_mode, 1, 0xFF);
+    pmp_write_csr_cfg(&tmp_pmp, machine_mode, 1, 0xFF, -1);
     TEST_ASSERT_EQUAL_HEX8(0x88, cfg_ptr[8]);
 
     /* Also writes to addr[1] should be not possible */
-    pmp_write_csr_addr(&tmp_pmp, machine_mode, 8, 0x1234);
+    pmp_write_csr_addr(&tmp_pmp, machine_mode, 8, 0x1234, -1);
     TEST_ASSERT_EQUAL_HEX(0x1000, tmp_pmp.addr[8]);
 
     /* If set to tor writes to addr[0] should also be prohibited */
-    pmp_write_csr_addr(&tmp_pmp, machine_mode, 7, 0x4321);
+    pmp_write_csr_addr(&tmp_pmp, machine_mode, 7, 0x4321, -1);
     TEST_ASSERT_EQUAL_HEX(0x00, tmp_pmp.addr[7]);
 }
 
@@ -534,9 +534,9 @@ void test_PMP_read_write_csr_RV64(void)
     pmp_set_na4_tor_addr(&tmp_pmp, 5, 0x40000000);
     pmp_set_na4_tor_addr(&tmp_pmp, 6, 0x80000000);
 
-    pmp_write_csr_cfg(&real_pmp, machine_mode, 0, tmp_pmp.cfg[0]);
-    pmp_write_csr_addr(&real_pmp, machine_mode, 5, tmp_pmp.addr[5]);
-    pmp_write_csr_addr(&real_pmp, machine_mode, 6, tmp_pmp.addr[6]);
+    pmp_write_csr_cfg(&real_pmp, machine_mode, 0, tmp_pmp.cfg[0], -1);
+    pmp_write_csr_addr(&real_pmp, machine_mode, 5, tmp_pmp.addr[5], -1);
+    pmp_write_csr_addr(&real_pmp, machine_mode, 6, tmp_pmp.addr[6], -1);
 
     uint8_t *real_cfg_ptr = (uint8_t *)&real_pmp.cfg[0];
 
@@ -564,9 +564,9 @@ void test_PMP_read_write_csr_RV32(void)
     pmp_set_na4_tor_addr(&tmp_pmp, 5, 0x40000000);
     pmp_set_na4_tor_addr(&tmp_pmp, 6, 0x80000000);
 
-    pmp_write_csr_cfg(&real_pmp, machine_mode, 1, tmp_pmp.cfg[1]);
-    pmp_write_csr_addr(&real_pmp, machine_mode, 5, tmp_pmp.addr[5]);
-    pmp_write_csr_addr(&real_pmp, machine_mode, 6, tmp_pmp.addr[6]);
+    pmp_write_csr_cfg(&real_pmp, machine_mode, 1, tmp_pmp.cfg[1], -1);
+    pmp_write_csr_addr(&real_pmp, machine_mode, 5, tmp_pmp.addr[5], -1);
+    pmp_write_csr_addr(&real_pmp, machine_mode, 6, tmp_pmp.addr[6], -1);
 
     pmp_dump_cfg_regs(&tmp_pmp);
 
