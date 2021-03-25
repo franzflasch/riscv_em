@@ -16,12 +16,6 @@
     #define CORE_DBG(...) do{ } while ( 0 )
 #endif
 
-/* Defines */
-#define XREG_STACK_POINTER 2
-#define XREG_T0 5
-
-#define STACK_POINTER_START_VAL 0x0
-
 #define ADDR_MISALIGNED(addr) (addr & 0x3)
 
 /*
@@ -120,7 +114,7 @@ static void instr_JAL(rv_core_td *rv_core)
     if(ADDR_MISALIGNED(rv_core->jump_offset))
     {
         die_msg("Addr misaligned!\n");
-        prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+        prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign);
         return;
     }
 
@@ -139,7 +133,7 @@ static void instr_JALR(rv_core_td *rv_core)
     if(ADDR_MISALIGNED(rv_core->next_pc))
     {
         die_msg("Addr misaligned!\n");
-        prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+        prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign);
         return;
     }
 
@@ -154,7 +148,7 @@ static void instr_BEQ(rv_core_td *rv_core)
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
             die_msg("Addr misaligned!\n");
-            prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign);
             return;
         }
 
@@ -170,7 +164,7 @@ static void instr_BNE(rv_core_td *rv_core)
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
             die_msg("Addr misaligned!\n");
-            prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign);
             return;
         }
 
@@ -189,7 +183,7 @@ static void instr_BLT(rv_core_td *rv_core)
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
             die_msg("Addr misaligned!\n");
-            prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign);
             return;
         }
 
@@ -208,7 +202,7 @@ static void instr_BGE(rv_core_td *rv_core)
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
             die_msg("Addr misaligned!\n");
-            prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign);
             return;
         }
 
@@ -224,7 +218,7 @@ static void instr_BLTU(rv_core_td *rv_core)
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
             die_msg("Addr misaligned!\n");
-            prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign);
             return;
         }
 
@@ -240,7 +234,7 @@ static void instr_BGEU(rv_core_td *rv_core)
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
             die_msg("Addr misaligned!\n");
-            prepare_sync_trap(rv_core, CSR_MCAUSE_INSTR_ADDR_MISALIGNED);
+            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign);
             return;
         }
 
@@ -414,7 +408,7 @@ static void instr_LB(rv_core_td *rv_core)
     int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint8_t tmp_load_val = checked_read_mem(rv_core, address, 1, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
+    uint8_t tmp_load_val = checked_read_mem(rv_core, address, 1, &err, trap_cause_load_access_fault);
 
     if(!err)
         rv_core->x[rv_core->rd] = SIGNEX_BIT_7(tmp_load_val);
@@ -426,7 +420,7 @@ static void instr_LH(rv_core_td *rv_core)
     int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint16_t tmp_load_val = checked_read_mem(rv_core, address, 2, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
+    uint16_t tmp_load_val = checked_read_mem(rv_core, address, 2, &err, trap_cause_load_access_fault);
 
     if(!err)
         rv_core->x[rv_core->rd] = SIGNEX_BIT_15(tmp_load_val);
@@ -438,7 +432,7 @@ static void instr_LW(rv_core_td *rv_core)
     int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    int32_t tmp_load_val = checked_read_mem(rv_core, address, 4, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
+    int32_t tmp_load_val = checked_read_mem(rv_core, address, 4, &err, trap_cause_load_access_fault);
 
     if(!err)
         rv_core->x[rv_core->rd] = tmp_load_val;
@@ -450,7 +444,7 @@ static void instr_LBU(rv_core_td *rv_core)
     int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint8_t tmp_load_val = checked_read_mem(rv_core, address, 1, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
+    uint8_t tmp_load_val = checked_read_mem(rv_core, address, 1, &err, trap_cause_load_access_fault);
 
     if(!err)
         rv_core->x[rv_core->rd] = tmp_load_val;
@@ -462,7 +456,7 @@ static void instr_LHU(rv_core_td *rv_core)
     int err = RV_ACCESS_ERR;
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
-    uint16_t tmp_load_val = checked_read_mem(rv_core, address, 2, &err, CSR_MCAUSE_LOAD_ACCESS_FAULT);
+    uint16_t tmp_load_val = checked_read_mem(rv_core, address, 2, &err, trap_cause_load_access_fault);
 
     if(!err)
         rv_core->x[rv_core->rd] = tmp_load_val;
@@ -475,7 +469,7 @@ static void instr_SB(rv_core_td *rv_core)
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     uint8_t value_to_write = (uint8_t)rv_core->x[rv_core->rs2];
-    checked_write_mem(rv_core, address, value_to_write, 1, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+    checked_write_mem(rv_core, address, value_to_write, 1, &err, trap_cause_store_amo_access_fault);
 }
 
 static void instr_SH(rv_core_td *rv_core)
@@ -485,7 +479,7 @@ static void instr_SH(rv_core_td *rv_core)
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     uint16_t value_to_write = (uint16_t)rv_core->x[rv_core->rs2];
-    checked_write_mem(rv_core, address, value_to_write, 2, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+    checked_write_mem(rv_core, address, value_to_write, 2, &err, trap_cause_store_amo_access_fault);
 }
 
 static void instr_SW(rv_core_td *rv_core)
@@ -495,7 +489,7 @@ static void instr_SW(rv_core_td *rv_core)
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     rv_uint_xlen value_to_write = (rv_uint_xlen)rv_core->x[rv_core->rs2];
-    checked_write_mem(rv_core, address, value_to_write, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+    checked_write_mem(rv_core, address, value_to_write, 4, &err, trap_cause_store_amo_access_fault);
 }
 
 #ifdef RV64
@@ -527,7 +521,7 @@ static void instr_SW(rv_core_td *rv_core)
         rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
         rv_uint_xlen value_to_write = (rv_uint_xlen)rv_core->x[rv_core->rs2];
         CORE_DBG("%s: %lx %lx %lx %x\n", __func__, rv_core->x[rv_core->rs1], address, rv_core->immediate, rv_core->rs1);
-        checked_write_mem(rv_core, address, value_to_write, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+        checked_write_mem(rv_core, address, value_to_write, 8, &err, trap_cause_store_amo_access_fault);
     }
 
     static void instr_SRAIW(rv_core_td *rv_core)
@@ -615,7 +609,7 @@ static void instr_SW(rv_core_td *rv_core)
         if(csr_read_reg(rv_core->csr_regs, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
         {
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
-            prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
+            prepare_sync_trap(rv_core, trap_cause_illegal_instr);
             return;
         }
 
@@ -632,7 +626,7 @@ static void instr_SW(rv_core_td *rv_core)
         if(csr_read_reg(rv_core->csr_regs, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
         {
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
-            prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
+            prepare_sync_trap(rv_core, trap_cause_illegal_instr);
             return;
         }
 
@@ -649,7 +643,7 @@ static void instr_SW(rv_core_td *rv_core)
         if(csr_read_reg(rv_core->csr_regs, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
         {
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
-            prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
+            prepare_sync_trap(rv_core, trap_cause_illegal_instr);
             return;
         }
 
@@ -666,7 +660,7 @@ static void instr_SW(rv_core_td *rv_core)
         if(csr_read_reg(rv_core->csr_regs, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
         {
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
-            prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
+            prepare_sync_trap(rv_core, trap_cause_illegal_instr);
             return;
         }
 
@@ -683,7 +677,7 @@ static void instr_SW(rv_core_td *rv_core)
         if(csr_read_reg(rv_core->csr_regs, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
         {
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
-            prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
+            prepare_sync_trap(rv_core, trap_cause_illegal_instr);
             return;
         }
 
@@ -700,7 +694,7 @@ static void instr_SW(rv_core_td *rv_core)
         if(csr_read_reg(rv_core->csr_regs, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
         {
             die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
-            prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
+            prepare_sync_trap(rv_core, trap_cause_illegal_instr);
             return;
         }
 
@@ -713,7 +707,7 @@ static void instr_SW(rv_core_td *rv_core)
     static void instr_ECALL(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-        prepare_sync_trap(rv_core, CSR_MCAUSE_ECALL_U + rv_core->curr_priv_mode);
+        prepare_sync_trap(rv_core, trap_cause_user_ecall + rv_core->curr_priv_mode);
     }
 
     static void instr_EBREAK(rv_core_td *rv_core)
@@ -725,7 +719,7 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_MRET(rv_core_td *rv_core)
     {
-        // printf("%s: "PRINTF_FMT"\n", __func__, *rv_core->trap.m.regs[trap_reg_ip]);
+        CORE_DBG("%s: "PRINTF_FMT"\n", __func__, *rv_core->trap.m.regs[trap_reg_ip]);
         privilege_level restored_priv_level = trap_restore_irq_settings(&rv_core->trap, rv_core->curr_priv_mode);
         rv_core->curr_priv_mode = restored_priv_level;
         rv_core->next_pc = *rv_core->trap.m.regs[trap_reg_epc];
@@ -784,7 +778,7 @@ static void instr_SW(rv_core_td *rv_core)
         instr_LW(rv_core);
         result = rs2_val;
 
-        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+        checked_write_mem(rv_core, address, result, 4, &err, trap_cause_store_amo_access_fault);
     }
 
     static void instr_AMOADD_W(rv_core_td *rv_core)
@@ -800,7 +794,7 @@ static void instr_SW(rv_core_td *rv_core)
         rd_val = rv_core->x[rv_core->rd];
         result = rd_val + rs2_val;
 
-        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+        checked_write_mem(rv_core, address, result, 4, &err, trap_cause_store_amo_access_fault);
     }
 
     static void instr_AMOXOR_W(rv_core_td *rv_core)
@@ -816,7 +810,7 @@ static void instr_SW(rv_core_td *rv_core)
         rd_val = rv_core->x[rv_core->rd];
         result = rd_val ^ rs2_val;
 
-        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+        checked_write_mem(rv_core, address, result, 4, &err, trap_cause_store_amo_access_fault);
     }
 
     static void instr_AMOAND_W(rv_core_td *rv_core)
@@ -832,7 +826,7 @@ static void instr_SW(rv_core_td *rv_core)
         rd_val = rv_core->x[rv_core->rd];
         result = rd_val & rs2_val;
 
-        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+        checked_write_mem(rv_core, address, result, 4, &err, trap_cause_store_amo_access_fault);
     }
 
     static void instr_AMOOR_W(rv_core_td *rv_core)
@@ -848,7 +842,7 @@ static void instr_SW(rv_core_td *rv_core)
         rd_val = rv_core->x[rv_core->rd];
         result = rd_val | rs2_val;
 
-        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+        checked_write_mem(rv_core, address, result, 4, &err, trap_cause_store_amo_access_fault);
     }
 
     static void instr_AMOMIN_W(rv_core_td *rv_core)
@@ -865,7 +859,7 @@ static void instr_SW(rv_core_td *rv_core)
         rd_val = rv_core->x[rv_core->rd];
         result = ASSIGN_MIN(rd_val, rs2_val);
 
-        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+        checked_write_mem(rv_core, address, result, 4, &err, trap_cause_store_amo_access_fault);
     }
 
     static void instr_AMOMAX_W(rv_core_td *rv_core)
@@ -882,7 +876,7 @@ static void instr_SW(rv_core_td *rv_core)
         rd_val = rv_core->x[rv_core->rd];
         result = ASSIGN_MAX(rd_val, rs2_val);
 
-        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+        checked_write_mem(rv_core, address, result, 4, &err, trap_cause_store_amo_access_fault);
     }
 
     static void instr_AMOMINU_W(rv_core_td *rv_core)
@@ -899,7 +893,7 @@ static void instr_SW(rv_core_td *rv_core)
         rd_val = rv_core->x[rv_core->rd];
         result = ASSIGN_MIN(rd_val, rs2_val);
 
-        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+        checked_write_mem(rv_core, address, result, 4, &err, trap_cause_store_amo_access_fault);
     }
 
     static void instr_AMOMAXU_W(rv_core_td *rv_core)
@@ -916,7 +910,7 @@ static void instr_SW(rv_core_td *rv_core)
         rd_val = rv_core->x[rv_core->rd];
         result = ASSIGN_MAX(rd_val, rs2_val);
 
-        checked_write_mem(rv_core, address, result, 4, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+        checked_write_mem(rv_core, address, result, 4, &err, trap_cause_store_amo_access_fault);
     }
 
     #ifdef RV64
@@ -956,7 +950,7 @@ static void instr_SW(rv_core_td *rv_core)
             instr_LD(rv_core);
             result = rs2_val;
 
-            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+            checked_write_mem(rv_core, address, result, 8, &err, trap_cause_store_amo_access_fault);
         }
 
         static void instr_AMOADD_D(rv_core_td *rv_core)
@@ -972,7 +966,7 @@ static void instr_SW(rv_core_td *rv_core)
             rd_val = rv_core->x[rv_core->rd];
             result = rd_val + rs2_val;
 
-            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+            checked_write_mem(rv_core, address, result, 8, &err, trap_cause_store_amo_access_fault);
         }
 
         static void instr_AMOXOR_D(rv_core_td *rv_core)
@@ -988,7 +982,7 @@ static void instr_SW(rv_core_td *rv_core)
             rd_val = rv_core->x[rv_core->rd];
             result = rd_val ^ rs2_val;
 
-            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+            checked_write_mem(rv_core, address, result, 8, &err, trap_cause_store_amo_access_fault);
         }
 
         static void instr_AMOAND_D(rv_core_td *rv_core)
@@ -1004,7 +998,7 @@ static void instr_SW(rv_core_td *rv_core)
             rd_val = rv_core->x[rv_core->rd];
             result = rd_val & rs2_val;
 
-            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+            checked_write_mem(rv_core, address, result, 8, &err, trap_cause_store_amo_access_fault);
         }
 
         static void instr_AMOOR_D(rv_core_td *rv_core)
@@ -1020,7 +1014,7 @@ static void instr_SW(rv_core_td *rv_core)
             rd_val = rv_core->x[rv_core->rd];
             result = rd_val | rs2_val;
 
-            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+            checked_write_mem(rv_core, address, result, 8, &err, trap_cause_store_amo_access_fault);
         }
 
         static void instr_AMOMIN_D(rv_core_td *rv_core)
@@ -1037,7 +1031,7 @@ static void instr_SW(rv_core_td *rv_core)
             rd_val = rv_core->x[rv_core->rd];
             result = ASSIGN_MIN(rd_val, rs2_val);
 
-            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+            checked_write_mem(rv_core, address, result, 8, &err, trap_cause_store_amo_access_fault);
         }
 
         static void instr_AMOMAX_D(rv_core_td *rv_core)
@@ -1054,7 +1048,7 @@ static void instr_SW(rv_core_td *rv_core)
             rd_val = rv_core->x[rv_core->rd];
             result = ASSIGN_MAX(rd_val, rs2_val);
 
-            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+            checked_write_mem(rv_core, address, result, 8, &err, trap_cause_store_amo_access_fault);
         }
 
         static void instr_AMOMINU_D(rv_core_td *rv_core)
@@ -1071,7 +1065,7 @@ static void instr_SW(rv_core_td *rv_core)
             rd_val = rv_core->x[rv_core->rd];
             result = ASSIGN_MIN(rd_val, rs2_val);
 
-            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+            checked_write_mem(rv_core, address, result, 8, &err, trap_cause_store_amo_access_fault);
         }
 
         static void instr_AMOMAXU_D(rv_core_td *rv_core)
@@ -1088,7 +1082,7 @@ static void instr_SW(rv_core_td *rv_core)
             rd_val = rv_core->x[rv_core->rd];
             result = ASSIGN_MAX(rd_val, rs2_val);
 
-            checked_write_mem(rv_core, address, result, 8, &err, CSR_MCAUSE_STORE_AMO_ACCESS_FAULT);
+            checked_write_mem(rv_core, address, result, 8, &err, trap_cause_store_amo_access_fault);
         }
     #endif
 #endif
@@ -1743,7 +1737,7 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
         {
             serving_priv_level = trap_check_exception_delegation(&rv_core->trap, rv_core->curr_priv_mode, rv_core->sync_trap_cause);
 
-            // printf("exception! %x %x "PRINTF_FMT"\n", serving_priv_level, rv_core->sync_trap_pending, rv_core->sync_trap_cause);
+            CORE_DBG("exception! %x %x "PRINTF_FMT"\n", serving_priv_level, rv_core->sync_trap_pending, rv_core->sync_trap_cause);
             trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 0, rv_core->sync_trap_cause, &rv_core->pc);
             rv_core->curr_priv_mode = serving_priv_level;
             rv_core->sync_trap_pending = 0;
@@ -1760,7 +1754,7 @@ static inline rv_uint_xlen rv_core_fetch(rv_core_td *rv_core)
     int err = RV_ACCESS_ERR;
     rv_uint_xlen addr = rv_core->pc;
 
-    rv_core->instruction = checked_instr_fetch(rv_core, addr, &err, CSR_MCAUSE_INSTR_ACCESS_FAULT);
+    rv_core->instruction = checked_instr_fetch(rv_core, addr, &err, trap_cause_instr_access_fault);
 
     return err;
 }

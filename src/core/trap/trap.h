@@ -60,12 +60,12 @@ typedef enum
 
 typedef enum
 {
-    trap_cause_instr_misalign = 0,
-    trap_cause_access_fault,
+    trap_cause_instr_addr_misalign = 0,
+    trap_cause_instr_access_fault,
     trap_cause_illegal_instr,
-    trap_cause_break,
-    trap_cause_load_misalign,
-    trap_cause_load_fault,
+    trap_cause_breakpoint,
+    trap_cause_load_addr_misalign,
+    trap_cause_load_access_fault,
     trap_cause_store_amo_addr_fault,
     trap_cause_store_amo_access_fault,
     trap_cause_user_ecall,
@@ -73,6 +73,7 @@ typedef enum
     trap_cause_rsvd_3,
     trap_cause_machine_ecall,
     trap_cause_instr_page_fault,
+    trap_cause_load_page_fault,
     trap_cause_rsvd_4,
     trap_cause_store_amo_page_fault
 

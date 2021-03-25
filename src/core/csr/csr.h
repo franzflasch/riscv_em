@@ -74,43 +74,6 @@
 
 #define CSR_ADDR_MAX          0xFFF
 
-/* Machine Mode CSR bits and masks */
-/* Interrupt MCAUSE */
-#define CSR_MCAUSE_MSI 3
-#define CSR_MCAUSE_MTI 7
-#define CSR_MCAUSE_MEI 11
-
-/* Sync MCAUSE */
-#define CSR_MCAUSE_INSTR_ADDR_MISALIGNED 0
-#define CSR_MCAUSE_INSTR_ACCESS_FAULT 1
-#define CSR_MCAUSE_ILLEGAL_INSTR 2
-#define CSR_MCAUSE_LOAD_ACCESS_FAULT 5
-#define CSR_MCAUSE_STORE_AMO_ACCESS_FAULT 7
-#define CSR_MCAUSE_ECALL_U 8
-#define CSR_MCAUSE_ECALL_S 9
-#define CSR_MCAUSE_ECALL_RSVD 10
-#define CSR_MCAUSE_ECALL_M 11
-
-// /* MSTATUS */
-// #define CSR_MSTATUS_MIE_BIT 3
-// #define CSR_MSTATUS_MIE_MASK 0x1
-// #define CSR_MSTATUS_MPIE_BIT 7
-// #define CSR_MSTATUS_SPP_BIT 8
-// #define CSR_MSTATUS_MPP_BIT 11 /* and 12 */
-// #define CSR_MSTATUS_MPP_MASK 0x3
-// #define CSR_MSTATUS_MPRV_BIT 17
-
-#define CSR_MIE_MIP_MSI_BIT 3
-#define CSR_MIE_MIP_MTI_BIT 7
-#define CSR_MIE_MIP_MEI_BIT 11
-
-// /* Supervisor CSR bits and masks */
-// #define CSR_SSTATUS_SPP_BIT 8
-// #define CSR_SSTATUS_SPIE_BIT 5
-// #define CSR_SSTATUS_SIE_BIT 1
-// #define CSR_SSTATUS_SIE_MASK 0x1
-
-
 /* CSR WRITE MASKS */
 #ifdef RV64
     #define CSR_MASK_WR_ALL 0xFFFFFFFFFFFFFFFF
