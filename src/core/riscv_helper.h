@@ -109,6 +109,11 @@ static inline void assign_xlen_bit(rv_uint_xlen *out_var, rv_uint_xlen nbit, rv_
     *out_var = (*out_var & ~(1UL << nbit)) | ((bit_value & 1) << nbit);
 }
 
+static inline void assign_xlen_value_within_reg(rv_uint_xlen *out_var, rv_uint_xlen nbit, rv_uint_xlen value, rv_uint_xlen mask)
+{
+    *out_var = (*out_var & ~(mask << (nbit))) | ((value & mask) << (nbit));
+}
+
 static inline uint8_t extract8(uint8_t value, int start, int length)
 {
     return (value >> start) & (0xFF >> (8 - length));
@@ -117,6 +122,11 @@ static inline uint8_t extract8(uint8_t value, int start, int length)
 static inline uint32_t extract32(uint32_t value, int start, int length)
 {
     return (value >> start) & (0xFFFFFFFF >> (32 - length));
+}
+
+static inline rv_uint_xlen extractxlen(rv_uint_xlen value, int start, int length)
+{
+    return (value >> start) & (((rv_uint_xlen)-1) >> ((sizeof(rv_uint_xlen)*8) - length));
 }
 
 #endif /* RISCV_HELPER_H */

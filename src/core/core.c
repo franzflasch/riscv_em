@@ -38,8 +38,9 @@ static inline void prepare_sync_trap(rv_core_td *rv_core, rv_uint_xlen cause)
 
 static inline privilege_level check_mprv_override(rv_core_td *rv_core)
 {
-    int mprv = extract32(rv_core->trap.regs[TRAP_REG_STATUS], TRAP_XSTATUS_MPRV_BIT, 1);
-    return mprv ? extract32(rv_core->trap.regs[TRAP_REG_STATUS], TRAP_XSTATUS_MPP_BIT, 2) : rv_core->curr_priv_mode;
+    int mprv = extractxlen(*rv_core->trap.m.regs[trap_reg_status], TRAP_XSTATUS_MPRV_BIT, 1);
+    privilege_level ret_val = extractxlen(*rv_core->trap.m.regs[trap_reg_status], TRAP_XSTATUS_MPP_BIT, 2);
+    return mprv ? ret_val : rv_core->curr_priv_mode;
 }
 
 static inline rv_uint_xlen checked_instr_fetch(rv_core_td *rv_core, rv_uint_xlen addr, int *err, rv_uint_xlen trap_cause)
@@ -87,38 +88,6 @@ static inline void checked_write_mem(rv_core_td *rv_core, rv_uint_xlen addr, rv_
     *err = RV_ACCESS_OK;
     rv_core->write_mem(rv_core->priv, addr, value, len);
 }
-
-// static int write_csr_mstatus_cb(void *priv, privilege_level curr_priv, uint16_t reg, rv_uint_xlen csr_val)
-// {
-//     (void) curr_priv;
-//     rv_core_td *rv_core = priv;
-
-//     rv_core->csr_regs[reg].value = csr_val & rv_core->csr_regs[reg].write_mask;
-
-//     /* some bits are mirrored in mstatus and sstatus*/
-//     uint8_t spp_bit = CHECK_BIT(csr_val, CSR_MSTATUS_SPP_BIT) >> CSR_MSTATUS_SPP_BIT;
-
-//     // printf("csr %x csr val %x spp %x sspp %x\n", reg, rv_core->csr_regs[reg].value, mstatus_spp_bit, sstatus_spp_bit);
-//     assign_xlen_bit(&rv_core->csr_regs[CSR_ADDR_SSTATUS].value, CSR_SSTATUS_SPP_BIT, spp_bit);
-    
-//     return RV_ACCESS_OK;
-// }
-
-// static int write_csr_sstatus_cb(void *priv, privilege_level curr_priv, uint16_t reg, rv_uint_xlen csr_val)
-// {
-//     (void) curr_priv;
-//     rv_core_td *rv_core = priv;
-
-//     rv_core->csr_regs[reg].value = csr_val & rv_core->csr_regs[reg].write_mask;
-
-//     /* some bits are mirrored in mstatus and sstatus*/
-//     uint8_t spp_bit = CHECK_BIT(csr_val, CSR_SSTATUS_SPP_BIT) >> CSR_SSTATUS_SPP_BIT;
-
-//     // printf("csr %x csr val %x spp %x sspp %x\n", reg, rv_core->csr_regs[reg].value, mstatus_spp_bit, sstatus_spp_bit);
-//     assign_xlen_bit(&rv_core->csr_regs[CSR_ADDR_MSTATUS].value, CSR_MSTATUS_SPP_BIT, spp_bit);
-    
-//     return RV_ACCESS_OK;
-// }
 
 /*
  * Implementations of the RISCV instructions
@@ -645,7 +614,7 @@ static void instr_SW(rv_core_td *rv_core)
 
         if(csr_read_reg(rv_core->csr_regs, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
         {
-            // die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+            die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
             prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
             return;
         }
@@ -662,7 +631,7 @@ static void instr_SW(rv_core_td *rv_core)
         rv_uint_xlen csr_val = 0;
         if(csr_read_reg(rv_core->csr_regs, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
         {
-            // die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+            die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
             prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
             return;
         }
@@ -679,7 +648,7 @@ static void instr_SW(rv_core_td *rv_core)
         rv_uint_xlen csr_val = 0;
         if(csr_read_reg(rv_core->csr_regs, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
         {
-            // die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+            die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
             prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
             return;
         }
@@ -696,7 +665,7 @@ static void instr_SW(rv_core_td *rv_core)
         rv_uint_xlen csr_val = 0;
         if(csr_read_reg(rv_core->csr_regs, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
         {
-            // die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+            die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
             prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
             return;
         }
@@ -713,7 +682,7 @@ static void instr_SW(rv_core_td *rv_core)
         rv_uint_xlen csr_val = 0;
         if(csr_read_reg(rv_core->csr_regs, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
         {
-            // die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+            die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
             prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
             return;
         }
@@ -730,7 +699,7 @@ static void instr_SW(rv_core_td *rv_core)
         rv_uint_xlen csr_val = 0;
         if(csr_read_reg(rv_core->csr_regs, rv_core->curr_priv_mode, rv_core->immediate, &csr_val))
         {
-            // die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
+            die_msg("Error reading CSR "PRINTF_FMT"\n", rv_core->immediate);
             prepare_sync_trap(rv_core, CSR_MCAUSE_ILLEGAL_INSTR);
             return;
         }
@@ -756,22 +725,18 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_MRET(rv_core_td *rv_core)
     {
-        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-        rv_core->next_pc = rv_core->csr_regs[CSR_ADDR_MEPC].value;
-
-        /* Restore MPP and MIE */
-        rv_core->curr_priv_mode = extract32(rv_core->trap.regs[TRAP_REG_STATUS], TRAP_XSTATUS_MPP_BIT, 2);
-        assign_xlen_bit(&rv_core->trap.regs[TRAP_REG_STATUS], TRAP_XSTATUS_MIE_BIT, (rv_core->trap.regs[TRAP_REG_STATUS] >> TRAP_XSTATUS_MPIE_BIT) & 1);
+        // printf("%s: "PRINTF_FMT"\n", __func__, *rv_core->trap.m.regs[trap_reg_ip]);
+        privilege_level restored_priv_level = trap_restore_irq_settings(&rv_core->trap, rv_core->curr_priv_mode);
+        rv_core->curr_priv_mode = restored_priv_level;
+        rv_core->next_pc = *rv_core->trap.m.regs[trap_reg_epc];
     }
 
     static void instr_SRET(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-        rv_core->next_pc = rv_core->csr_regs[CSR_ADDR_SEPC].value;
-
-        /* Restore SPP and SIE */
-        rv_core->curr_priv_mode = extract32(rv_core->trap.regs[TRAP_REG_STATUS], TRAP_XSTATUS_SPP_BIT, 1);
-        assign_xlen_bit(&rv_core->trap.regs[TRAP_REG_STATUS], TRAP_XSTATUS_SIE_BIT, (rv_core->trap.regs[TRAP_REG_STATUS] >> TRAP_XSTATUS_SPIE_BIT) & 1);
+        privilege_level restored_priv_level = trap_restore_irq_settings(&rv_core->trap, rv_core->curr_priv_mode);
+        rv_core->curr_priv_mode = restored_priv_level;
+        rv_core->next_pc = *rv_core->trap.s.regs[trap_reg_epc];
     }
 
     static void instr_URET(rv_core_td *rv_core)
@@ -1744,93 +1709,9 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
 }
 
 #ifdef CSR_SUPPORT
-    static inline void rv_core_do_irq(rv_core_td *rv_core, rv_uint_xlen epc, rv_uint_xlen cause)
-    {
-        /* check if it is an interrupt or an exception */
-        rv_uint_xlen is_interrupt = ( cause & (1UL<<(XLEN-1)) );
-        // rv_uint_xlen delegate_to_lower_priv = 0;
-        rv_uint_xlen tmp_cause = (cause & ~(1UL<<(XLEN-1)));
-        uint16_t curr_status_reg = CSR_ADDR_MSTATUS;
-        uint16_t curr_cause_reg = CSR_ADDR_MCAUSE;
-        uint16_t curr_epc_reg = CSR_ADDR_MEPC;
-        uint16_t curr_tvec_reg = CSR_ADDR_MTVEC;
-        uint16_t curr_edeleg_reg = CSR_ADDR_MEDELEG;
-        privilege_level priv_index = 0;
-
-        if(!is_interrupt)
-        {
-            for(priv_index=machine_mode;priv_index>0;priv_index--)
-            {
-                /* we will not got down to a lower priv level if the current one
-                 * is higher than the one specified in the deleg register.
-                 */
-                if(rv_core->curr_priv_mode >= priv_index)
-                    break;
-
-                if(priv_index == reserved_mode)
-                    continue;
-
-                /* medeleg: 0x302
-                 * sedeleg: 0x102
-                 */
-                curr_edeleg_reg = (priv_index << 8) | EDELEG_REG;
-
-                // printf("curr deleg reg %x %x\n", curr_edeleg_reg, rv_core->csr_regs[curr_edeleg_reg].value);
-
-                /* Check if anything should be delegated */
-                if( !(rv_core->csr_regs[curr_edeleg_reg].value & (1<<tmp_cause)) )
-                    break;                    
-            }
-        }
-
-        curr_status_reg = (priv_index << 8) | STATUS_REG;
-        curr_cause_reg = (priv_index << 8) | CAUSE_REG;
-        curr_epc_reg = (priv_index << 8) | EPC_REG;
-        curr_tvec_reg = (priv_index << 8) | TVEC_REG;
-
-        rv_core->csr_regs[curr_cause_reg].value = cause;
-        rv_core->csr_regs[curr_epc_reg].value = epc;
-        rv_core->pc = rv_core->csr_regs[curr_tvec_reg].value;
-
-        /* A bit ugly for now, a general solution would be better, but currently nothing comes to my mind... */
-        if(priv_index == machine_mode)
-        {
-            /* "When a trap is taken from privilege mode y into privilege mode x, xPIE is set to the value of x IE; x IE is set to 0; and xPP is set to y."*/
-            /* Save MPP and MIE */
-            rv_core->trap.regs[TRAP_REG_STATUS] |= rv_core->curr_priv_mode << TRAP_XSTATUS_MPP_BIT;
-            assign_xlen_bit(&rv_core->trap.regs[TRAP_REG_STATUS], TRAP_XSTATUS_MPIE_BIT, (rv_core->trap.regs[TRAP_REG_STATUS] >> TRAP_XSTATUS_MIE_BIT) & TRAP_XSTATUS_MIE_MASK);
-
-            /* now clear MIE (disables all interrupts) */
-            CLEAR_BIT(rv_core->trap.regs[TRAP_REG_STATUS], TRAP_XSTATUS_MIE_BIT);
-        }
-        else
-        {
-            /* supervisor */
-            rv_core->trap.regs[TRAP_REG_STATUS] |= rv_core->curr_priv_mode << TRAP_XSTATUS_SPP_BIT;
-            assign_xlen_bit(&rv_core->trap.regs[TRAP_REG_STATUS], TRAP_XSTATUS_SPIE_BIT, (rv_core->trap.regs[TRAP_REG_STATUS] >> TRAP_XSTATUS_SIE_BIT) & TRAP_XSTATUS_SIE_MASK);
-
-            /* now clear MIE (disables all interrupts) */
-            CLEAR_BIT(rv_core->trap.regs[TRAP_REG_STATUS], TRAP_XSTATUS_SIE_BIT);
-        }
-        
-
-        /* Elevate privilege mode */
-        rv_core->curr_priv_mode = priv_index;
-    }
-
     static inline void rv_core_update_interrupts(rv_core_td *rv_core, uint8_t mei, uint8_t msi, uint8_t mti)
     {
-        /* map msip register to the CSR */
-        if(CHECK_BIT(rv_core->csr_regs[CSR_ADDR_MIE].value, CSR_MIE_MIP_MEI_BIT))
-            assign_xlen_bit(&rv_core->csr_regs[CSR_ADDR_MIP].value, CSR_MIE_MIP_MEI_BIT, mei);
-
-        /* map msip register to the CSR */
-        if(CHECK_BIT(rv_core->csr_regs[CSR_ADDR_MIE].value, CSR_MIE_MIP_MSI_BIT))
-            assign_xlen_bit(&rv_core->csr_regs[CSR_ADDR_MIP].value, CSR_MIE_MIP_MSI_BIT, msi);
-
-        /* map timer interrupt */
-        if(CHECK_BIT(rv_core->csr_regs[CSR_ADDR_MIE].value, CSR_MIE_MIP_MTI_BIT))
-            assign_xlen_bit(&rv_core->csr_regs[CSR_ADDR_MIP].value, CSR_MIE_MIP_MTI_BIT, mti);
+        trap_set_pending_bits_all_levels(&rv_core->trap, mei, msi, mti);
     }
 
     /* Interrupts are prioritized as follows, in decreasing order of priority:
@@ -1840,71 +1721,31 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
     */
     static inline uint8_t rv_core_prepare_interrupts(rv_core_td *rv_core)
     {
-        // /* First get the target privilege level of the interrupt */
-        // for(priv_index=machine_mode;priv_index>0;priv_index--)
-        // {
-        //     /* we will not got down to a lower priv level if the current one
-        //         * is higher than the one specified in the deleg register.
-        //         */
-        //     if(rv_core->curr_priv_mode >= priv_index)
-        //         break;
+        trap_irq_type irq_type = 0;
+        trap_ret trap_retval = 0;
+        privilege_level serving_priv_level = machine_mode;
+        rv_uint_xlen cause = 0;
 
-        //     if(priv_index == reserved_mode)
-        //         continue;
-
-        //     /* medeleg: 0x302
-        //         * sedeleg: 0x102
-        //         */
-        //     curr_edeleg_reg = (priv_index << 8) | EDELEG_REG;
-
-        //     // printf("curr deleg reg %x %x\n", curr_edeleg_reg, rv_core->csr_regs[curr_edeleg_reg].value);
-
-        //     /* Check if anything should be delegated */
-        //     if( !(rv_core->csr_regs[curr_edeleg_reg].value & (1<<tmp_cause)) )
-        //         break;                    
-        // }
-
-
-        /* check if interrupts are globally enabled */
-        if(CHECK_BIT(rv_core->trap.regs[TRAP_REG_STATUS], TRAP_XSTATUS_MIE_BIT))
+        /* First get the target privilege level of the interrupt */
+        for(irq_type=trap_type_exti;irq_type>=trap_type_swi;irq_type--)
         {
-            /* check if MEI interrupt is enabled */
-            if(CHECK_BIT(rv_core->csr_regs[CSR_ADDR_MIE].value, CSR_MIE_MIP_MEI_BIT))
+            trap_retval = trap_check_interrupt_level(&rv_core->trap, rv_core->curr_priv_mode, irq_type, &serving_priv_level);
+            if(trap_retval)
             {
-                /* check if interrupt pending */
-                if(CHECK_BIT(rv_core->csr_regs[CSR_ADDR_MIP].value, CSR_MIE_MIP_MEI_BIT))
-                {
-                    rv_core_do_irq(rv_core, rv_core->pc, (1UL<<(XLEN-1)) | CSR_MCAUSE_MEI);
-                    return 1;
-                }
-            }
-
-            /* check if MSI interrupt is enabled */
-            if(CHECK_BIT(rv_core->csr_regs[CSR_ADDR_MIE].value, CSR_MIE_MIP_MSI_BIT))
-            {
-                /* check if interrupt pending */
-                if(CHECK_BIT(rv_core->csr_regs[CSR_ADDR_MIP].value, CSR_MIE_MIP_MSI_BIT))
-                {
-                    rv_core_do_irq(rv_core, rv_core->pc, (1UL<<(XLEN-1)) | CSR_MCAUSE_MSI);
-                    return 1;
-                }
-            }
-
-            /* Timer interrupt */
-            if(CHECK_BIT(rv_core->csr_regs[CSR_ADDR_MIE].value, CSR_MIE_MIP_MTI_BIT))
-            {
-                /* check if interrupt pending */
-                if(CHECK_BIT(rv_core->csr_regs[CSR_ADDR_MIP].value, CSR_MIE_MIP_MTI_BIT))
-                {
-                    rv_core_do_irq(rv_core, rv_core->pc, (1UL<<(XLEN-1)) | CSR_MCAUSE_MTI);
-                    return 1;
-                }
+                cause = (irq_type*priv_level_max) + serving_priv_level;
+                trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 1, cause, &rv_core->pc);
+                rv_core->curr_priv_mode = serving_priv_level;
+                return 1;
             }
         }
 
         if(rv_core->sync_trap_pending)
         {
-            rv_core_do_irq(rv_core, rv_core->pc - 4, rv_core->sync_trap_cause);
+            serving_priv_level = trap_check_exception_delegation(&rv_core->trap, rv_core->curr_priv_mode, rv_core->sync_trap_cause);
+
+            // printf("exception! %x %x "PRINTF_FMT"\n", serving_priv_level, rv_core->sync_trap_pending, rv_core->sync_trap_cause);
+            trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 0, rv_core->sync_trap_cause, &rv_core->pc);
+            rv_core->curr_priv_mode = serving_priv_level;
             rv_core->sync_trap_pending = 0;
             rv_core->sync_trap_cause = 0;
             return 1;
@@ -2029,6 +1870,8 @@ static void rv_core_init_csr_regs(rv_core_td *rv_core)
 {
     uint16_t i = 0;
 
+    trap_init(&rv_core->trap);
+
     /* Machine Information Registers */
     INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MVENDORID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO);
     INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MARCHID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO);
@@ -2036,19 +1879,19 @@ static void rv_core_init_csr_regs(rv_core_td *rv_core)
     INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MHARTID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO);
 
     /* Machine Trap Setup */
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MSTATUS, CSR_ACCESS_RW(machine_mode), 0, CSR_MSTATUS_WR_MASK, &rv_core->trap, trap_read, trap_write, CSR_ADDR_MSTATUS);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MISA, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MEDELEG, CSR_ACCESS_RW(machine_mode), 0, CSR_MEDELEG_MASK);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MIDELEG, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MIE, CSR_ACCESS_RW(machine_mode), 0, CSR_MIP_MIE_WR_MASK, &rv_core->trap, trap_read, trap_write, CSR_ADDR_MIE);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MTVEC, CSR_ACCESS_RW(machine_mode), 0, CSR_MTVEC_WR_MASK);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MSTATUS, CSR_ACCESS_RW(machine_mode), 0, CSR_MSTATUS_WR_MASK, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_status);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MISA, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_isa);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MEDELEG, CSR_ACCESS_RW(machine_mode), 0, CSR_MEDELEG_MASK, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_edeleg);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MIDELEG, CSR_ACCESS_RW(machine_mode), 0, CSR_MIDELEG_WR_MASK, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_ideleg);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MIE, CSR_ACCESS_RW(machine_mode), 0, CSR_MIP_MIE_WR_MASK, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_ie);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MTVEC, CSR_ACCESS_RW(machine_mode), 0, CSR_MTVEC_WR_MASK, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_tvec);
 
     /* Machine Trap Handling */
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MSCRATCH, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MEPC, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MCAUSE, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MTVAL, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MIP, CSR_ACCESS_RW(machine_mode), 0, CSR_MIP_MIE_WR_MASK);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MSCRATCH, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_scratch);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MEPC, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_epc);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MCAUSE, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_cause);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MTVAL, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_tval);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MIP, CSR_ACCESS_RW(machine_mode), 0, CSR_MIP_MIE_WR_MASK, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_ip);
 
     /* Machine Protection and Translation */
     for(i=0;i<PMP_NR_CFG_REGS;i++)
@@ -2069,13 +1912,19 @@ static void rv_core_init_csr_regs(rv_core_td *rv_core)
         #endif
     }
 
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SSTATUS, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_SSTATUS_WR_MASK, &rv_core->trap, trap_read, trap_write, CSR_ADDR_SSTATUS);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SIE, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_SIP_SIE_WR_MASK, &rv_core->trap, trap_read, trap_write, CSR_ADDR_SIE);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_STVEC, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_STVEC_WR_MASK);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_SEPC, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_MASK_WR_ALL);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_SCAUSE, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_MASK_WR_ALL);
+    /* Supervisor Trap Setup */
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SSTATUS, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_SSTATUS_WR_MASK, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_status);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SEDELEG, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_SEDELEG_WR_MASK, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_edeleg);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SIDELEG, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_SIDELEG_WR_MASK, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_ideleg);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SIE, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_SIP_SIE_WR_MASK, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_ie);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_STVEC, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_STVEC_WR_MASK, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_tvec);
 
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SIP, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_SIP_SIE_WR_MASK, &rv_core->trap, trap_read, trap_write, CSR_ADDR_SIP);
+    /* Supervisor Trap Setup */
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SSCRATCH, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_MASK_WR_ALL, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_scratch);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SEPC, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_MASK_WR_ALL, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_epc);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SCAUSE, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_MASK_WR_ALL, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_cause);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_STVAL, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_MASK_WR_ALL, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_tval);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SIP, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_SIP_SIE_WR_MASK, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_ip);
 }
 
 void rv_core_init(rv_core_td *rv_core,

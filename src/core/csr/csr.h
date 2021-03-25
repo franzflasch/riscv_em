@@ -60,11 +60,16 @@
 
 /* Supervisor CSRs */
 #define CSR_ADDR_SSTATUS      0x100
+#define CSR_ADDR_SEDELEG      0x102
+#define CSR_ADDR_SIDELEG      0x103
 #define CSR_ADDR_SIE          0x104
 #define CSR_ADDR_STVEC        0x105
+#define CSR_ADDR_SCOUNTEREN   0x106
+
+#define CSR_ADDR_SSCRATCH     0x140
 #define CSR_ADDR_SEPC         0x141
 #define CSR_ADDR_SCAUSE       0x142
-
+#define CSR_ADDR_STVAL        0x143
 #define CSR_ADDR_SIP          0x144
 
 #define CSR_ADDR_MAX          0xFFF
@@ -111,6 +116,7 @@
     #define CSR_MASK_WR_ALL 0xFFFFFFFFFFFFFFFF
     #define CSR_MSTATUS_WR_MASK 0x8000000F007FF9BB
     #define CSR_MTVEC_WR_MASK 0xFFFFFFFFFFFFFFFC
+
     #define CSR_SSTATUS_WR_MASK 0x80000003000DE133
 #else
     #define CSR_MASK_WR_ALL 0xFFFFFFFF
@@ -121,10 +127,15 @@
 #endif
 #define CSR_MASK_ZERO 0
 #define CSR_MIP_MIE_WR_MASK 0xBBB
-#define CSR_MEDELEG_MASK ( (1<<CSR_MCAUSE_ECALL_S) | (1<<CSR_MCAUSE_ECALL_U) )
+#define CSR_MIDELEG_WR_MASK CSR_MIP_MIE_WR_MASK
+/* In particular, medeleg[11] are hardwired to zero. */
+#define CSR_MEDELEG_MASK 0xF3FF
 
 #define CSR_STVEC_WR_MASK CSR_MTVEC_WR_MASK
-#define CSR_SIP_SIE_WR_MASK 0x393
+#define CSR_SIP_SIE_WR_MASK 0x333
+#define CSR_SIDELEG_WR_MASK CSR_SIP_SIE_WR_MASK
+/* In particular, sedeleg[11:9] are all hardwired to zero. */
+#define CSR_SEDELEG_WR_MASK 0xF1FF
 
 typedef int (*csr_read_cb)(void *priv, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val);
 typedef int (*csr_write_cb)(void *priv, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val, rv_uint_xlen mask);
