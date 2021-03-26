@@ -1727,7 +1727,7 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
             if(trap_retval)
             {
                 cause = (irq_type*priv_level_max) + serving_priv_level;
-                trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 1, cause, &rv_core->pc);
+                rv_core->pc = trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 1, cause, rv_core->pc);
                 rv_core->curr_priv_mode = serving_priv_level;
                 return 1;
             }
@@ -1738,7 +1738,7 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
             serving_priv_level = trap_check_exception_delegation(&rv_core->trap, rv_core->curr_priv_mode, rv_core->sync_trap_cause);
 
             CORE_DBG("exception! %x %x "PRINTF_FMT"\n", serving_priv_level, rv_core->sync_trap_pending, rv_core->sync_trap_cause);
-            trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 0, rv_core->sync_trap_cause, &rv_core->pc);
+            rv_core->pc = trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 0, rv_core->sync_trap_cause, rv_core->pc);
             rv_core->curr_priv_mode = serving_priv_level;
             rv_core->sync_trap_pending = 0;
             rv_core->sync_trap_cause = 0;

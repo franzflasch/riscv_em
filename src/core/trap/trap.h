@@ -195,12 +195,12 @@ void trap_clear_pending_bits_all_levels(trap_td *trap, uint8_t ext_int, uint8_t 
 trap_ret trap_check_interrupt_pending(trap_td *trap, privilege_level curr_priv_mode, privilege_level target_priv_mode, trap_irq_type type);
 trap_ret trap_check_interrupt_level(trap_td *trap, privilege_level curr_priv_mode, trap_irq_type type, privilege_level *ret_priv_mode);
 privilege_level trap_check_exception_delegation(trap_td *trap, privilege_level curr_priv_mode, trap_cause_exception cause);
-void trap_serve_interrupt(trap_td *trap, 
-                          privilege_level serving_priv_mode, 
-                          privilege_level previous_priv_mode, 
-                          rv_uint_xlen is_interrupt,
-                          rv_uint_xlen cause,
-                          rv_uint_xlen *pc);
+rv_uint_xlen trap_serve_interrupt(trap_td *trap, 
+                                  privilege_level serving_priv_mode, 
+                                  privilege_level previous_priv_mode, 
+                                  rv_uint_xlen is_interrupt,
+                                  rv_uint_xlen cause,
+                                  rv_uint_xlen curr_pc);
 
 privilege_level trap_restore_irq_settings(trap_td *trap, privilege_level serving_priv_mode);
 

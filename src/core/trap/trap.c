@@ -86,7 +86,6 @@ int trap_m_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_u
     trap_td *trap = priv;
     *trap->m.regs[reg_index] = csr_val & mask;
     // printf("val written %d "PRINTF_FMT"\n", reg_index, *trap->m.regs[reg_index]);
-
     return RV_ACCESS_OK;
 }
 
@@ -246,19 +245,18 @@ privilege_level trap_check_exception_delegation(trap_td *trap, privilege_level c
     return priv_index;
 }
 
-void trap_serve_interrupt(trap_td *trap, 
-                          privilege_level serving_priv_mode, 
-                          privilege_level previous_priv_mode, 
-                          rv_uint_xlen is_interrupt,
-                          rv_uint_xlen cause,
-                          rv_uint_xlen *pc)
+rv_uint_xlen trap_serve_interrupt(trap_td *trap, 
+                                  privilege_level serving_priv_mode, 
+                                  privilege_level previous_priv_mode, 
+                                  rv_uint_xlen is_interrupt,
+                                  rv_uint_xlen cause,
+                                  rv_uint_xlen curr_pc)
 {
     rv_uint_xlen ie = 0;
     trap_regs_p_td *x = get_priv_regs(trap, serving_priv_mode);
 
-    *x->regs[trap_reg_epc] = is_interrupt ? *pc : (*pc - 4);
+    *x->regs[trap_reg_epc] = is_interrupt ? curr_pc : (curr_pc - 4);
     *x->regs[trap_reg_cause] = ( (is_interrupt<<(XLEN-1)) | cause );
-    *pc = *x->regs[trap_reg_tvec];
 
     /* "When a trap is taken from privilege mode y into privilege mode x, xPIE is set to the value of x IE; x IE is set to 0; and xPP is set to y."*/
     /* Save MPP and MIE */
@@ -275,6 +273,8 @@ void trap_serve_interrupt(trap_td *trap,
     assign_xlen_bit(x->regs[trap_reg_status], TRAP_XSTATUS_UPIE_BIT + serving_priv_mode, ie);
 
     CLEAR_BIT(*x->regs[trap_reg_status], serving_priv_mode);
+
+    return *x->regs[trap_reg_tvec];
 }
 
 privilege_level trap_restore_irq_settings(trap_td *trap, privilege_level serving_priv_mode)
