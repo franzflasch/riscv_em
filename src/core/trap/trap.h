@@ -178,19 +178,19 @@ typedef struct trap_struct
 
 void trap_init(trap_td *trap);
 
-int trap_m_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val, rv_uint_xlen mask);
+int trap_m_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
 int trap_m_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val);
 
-int trap_s_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val, rv_uint_xlen mask);
+int trap_s_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
 int trap_s_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val);
 
-int trap_u_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val, rv_uint_xlen mask);
+int trap_u_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
 int trap_u_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val);
 
-void trap_set_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t ext_int, uint8_t sw_int, uint8_t tim_int);
-void trap_set_pending_bits_all_levels(trap_td *trap, uint8_t ext_int, uint8_t sw_int, uint8_t tim_int);
-void trap_clear_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t ext_int, uint8_t sw_int, uint8_t tim_int);
-void trap_clear_pending_bits_all_levels(trap_td *trap, uint8_t ext_int, uint8_t sw_int, uint8_t tim_int);
+void trap_set_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int);
+void trap_set_pending_bits_all_levels(trap_td *trap, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int);
+void trap_clear_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int);
+void trap_clear_pending_bits_all_levels(trap_td *trap, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int);
 
 trap_ret trap_check_interrupt_pending(trap_td *trap, privilege_level curr_priv_mode, privilege_level target_priv_mode, trap_irq_type type);
 trap_ret trap_check_interrupt_level(trap_td *trap, privilege_level curr_priv_mode, trap_irq_type type, privilege_level *ret_priv_mode);

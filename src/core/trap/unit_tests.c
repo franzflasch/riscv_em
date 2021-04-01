@@ -293,7 +293,7 @@ void test_TRAP_get_exception_level(void)
     TEST_ASSERT_EQUAL(supervisor_mode, serving_priv_level);
 
     /* any other exception should be served by machine mode */
-    serving_priv_level = trap_check_exception_delegation(&trap, supervisor_mode, trap_cause_load_fault);
+    serving_priv_level = trap_check_exception_delegation(&trap, supervisor_mode, trap_cause_load_access_fault);
     TEST_ASSERT_EQUAL(machine_mode, serving_priv_level);
 
     /* serving level should be supervisor */
@@ -332,7 +332,7 @@ void test_TRAP_interrupt_enable_priv_level(void)
     // printf("status initial: %x\n", *trap.m.regs[trap_reg_status]);
 
     TEST_ASSERT_EQUAL_HEX32(0xb, *trap.m.regs[trap_reg_status]);
-    trap_serve_interrupt(&trap, machine_mode, user_mode);
+    trap_serve_interrupt(&trap, machine_mode, user_mode, 0, 0, 0);
     TEST_ASSERT_EQUAL_HEX32(0x83, *trap.m.regs[trap_reg_status]);
     // printf("stored status: %x\n", *trap.m.regs[trap_reg_status]);
 
@@ -342,7 +342,7 @@ void test_TRAP_interrupt_enable_priv_level(void)
     // printf("restored status: %x\n", *trap.m.regs[trap_reg_status]);
 
     // TEST_ASSERT_EQUAL_HEX32(0xa, trap.trap_setup.status);
-    trap_serve_interrupt(&trap, machine_mode, supervisor_mode);
+    trap_serve_interrupt(&trap, machine_mode, supervisor_mode, 0, 0, 0);
     TEST_ASSERT_EQUAL_HEX32(0x883, *trap.m.regs[trap_reg_status]);
     // printf("stored status: %x\n", *trap.m.regs[trap_reg_status]);
 
@@ -352,7 +352,7 @@ void test_TRAP_interrupt_enable_priv_level(void)
     // printf("restored status: %x\n", *trap.m.regs[trap_reg_status]);
 
     // TEST_ASSERT_EQUAL_HEX32(0xa, trap.trap_setup.status);
-    trap_serve_interrupt(&trap, machine_mode, machine_mode);
+    trap_serve_interrupt(&trap, machine_mode, machine_mode, 0, 0, 0);
     TEST_ASSERT_EQUAL_HEX32(0x1883, *trap.m.regs[trap_reg_status]);
     // printf("stored status: %x\n", *trap.m.regs[trap_reg_status]);
 
@@ -375,17 +375,17 @@ void test_TRAP_interrupt_nesting_priv_level(void)
     /* set irq pending */
     trap_set_pending_bits_all_levels(&trap, 1, 0, 0);
 
-    // printf("status initial: %x\n", *trap.m.regs[trap_reg_status]);
+    printf("status initial: %x\n", *trap.m.regs[trap_reg_status]);
 
     TEST_ASSERT_EQUAL_HEX32(0xb, *trap.m.regs[trap_reg_status]);
 
     /* assume we are currently in supervisor mode and an irq comes up which shall be served in supervisor mode */
-    trap_serve_interrupt(&trap, supervisor_mode, supervisor_mode);
+    trap_serve_interrupt(&trap, supervisor_mode, supervisor_mode, 0, 0, 0);
     TEST_ASSERT_EQUAL_HEX32(0x129, *trap.m.regs[trap_reg_status]);
     // printf("supervisor_mode stored status: %x\n", *trap.m.regs[trap_reg_status]);
 
     /* ther running irq in supervisor_mode will then be interrupted by an IRQ in machine_mode */
-    trap_serve_interrupt(&trap, machine_mode, supervisor_mode);
+    trap_serve_interrupt(&trap, machine_mode, supervisor_mode, 0, 0, 0);
     TEST_ASSERT_EQUAL_HEX32(0x9a1, *trap.m.regs[trap_reg_status]);
     // printf("machine_mode stored status: %x\n", *trap.m.regs[trap_reg_status]);
 
@@ -403,7 +403,7 @@ void test_TRAP_interrupt_nesting_priv_level(void)
 
 
     /* now test another context: currently running in user_mode and IRQ is served by supervisor */
-    trap_serve_interrupt(&trap, supervisor_mode, user_mode);
+    trap_serve_interrupt(&trap, supervisor_mode, user_mode, 0, 0, 0);
     TEST_ASSERT_EQUAL_HEX32(0x829, *trap.m.regs[trap_reg_status]);
 
     /* restore user mode from supervisor context */

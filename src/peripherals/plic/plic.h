@@ -6,6 +6,9 @@
 #define NR_ENABLE_REGS 8
 #define NR_CLAIMED_BITS_REGS 8
 
+#include <stdint.h>
+#include <riscv_types.h>
+
 typedef struct plic_struct
 {
     /* 0x0C00 0000 - 0x0C00 0400

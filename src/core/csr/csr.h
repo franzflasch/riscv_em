@@ -77,36 +77,54 @@
 /* CSR WRITE MASKS */
 #ifdef RV64
     #define CSR_MASK_WR_ALL 0xFFFFFFFFFFFFFFFF
-    #define CSR_MSTATUS_WR_MASK 0x8000000F007FF9BB
-    #define CSR_MTVEC_WR_MASK 0xFFFFFFFFFFFFFFFC
+    #define CSR_MSTATUS_MASK 0x8000000F007FF9BB
+    #define CSR_MTVEC_MASK 0xFFFFFFFFFFFFFFFC
 
-    #define CSR_SSTATUS_WR_MASK 0x80000003000DE133
+    #define CSR_SSTATUS_MASK 0x80000003000DE133
 #else
     #define CSR_MASK_WR_ALL 0xFFFFFFFF
-    #define CSR_MSTATUS_WR_MASK 0x807FF9BB
-    #define CSR_MTVEC_WR_MASK 0xFFFFFFFC
+    #define CSR_MSTATUS_MASK 0x807FF9BB
+    #define CSR_MTVEC_MASK 0xFFFFFFFC
 
-    #define CSR_SSTATUS_WR_MASK 0x800DE133
+    #define CSR_SSTATUS_MASK 0x800DE133
 #endif
 #define CSR_MASK_ZERO 0
-#define CSR_MIP_MIE_WR_MASK 0xBBB
-#define CSR_MIDELEG_WR_MASK CSR_MIP_MIE_WR_MASK
+#define CSR_MIP_MIE_MASK 0xBBB
+#define CSR_MIDELEG_MASK CSR_MIP_MIE_MASK
 /* In particular, medeleg[11] are hardwired to zero. */
 #define CSR_MEDELEG_MASK 0xF3FF
 
-#define CSR_STVEC_WR_MASK CSR_MTVEC_WR_MASK
-#define CSR_SIP_SIE_WR_MASK 0x333
-#define CSR_SIDELEG_WR_MASK CSR_SIP_SIE_WR_MASK
+#define CSR_STVEC_MASK CSR_MTVEC_MASK
+#define CSR_SIP_SIE_MASK 0x333
+#define CSR_SIDELEG_MASK CSR_SIP_SIE_MASK
 /* In particular, sedeleg[11:9] are all hardwired to zero. */
-#define CSR_SEDELEG_WR_MASK 0xF1FF
+#define CSR_SEDELEG_MASK 0xF1FF
+
+#define INIT_CSR_REG_DEFAULT(_csr, _index, _access_flags, _init_val, _MASK) \
+    _csr[_index].access_flags = _access_flags; \
+    _csr[_index].value = _init_val; \
+    _csr[_index].mask = _MASK; \
+    _csr[_index].priv = NULL; \
+    _csr[_index].read_cb = NULL; \
+    _csr[_index].write_cb = NULL; \
+    _csr[_index].internal_reg = 0;
+
+#define INIT_CSR_REG_SPECIAL(_csr, _index, _access_flags, _init_val, _MASK, _priv, _read_cb, _write_cb, _internal_reg) \
+    _csr[_index].access_flags = _access_flags; \
+    _csr[_index].value = _init_val; \
+    _csr[_index].mask = _MASK; \
+    _csr[_index].priv = _priv; \
+    _csr[_index].read_cb = _read_cb; \
+    _csr[_index].write_cb = _write_cb; \
+    _csr[_index].internal_reg = _internal_reg;
 
 typedef int (*csr_read_cb)(void *priv, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val);
-typedef int (*csr_write_cb)(void *priv, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val, rv_uint_xlen mask);
+typedef int (*csr_write_cb)(void *priv, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val);
 
 typedef struct csr_reg_struct {
     uint16_t access_flags;
     rv_uint_xlen value;
-    rv_uint_xlen write_mask;
+    rv_uint_xlen mask;
 
     /* used if special handling is needed for e.g. pmp */
     void *priv;
@@ -116,7 +134,10 @@ typedef struct csr_reg_struct {
 
 } csr_reg_td;
 
-rv_uint_xlen *csr_get_reg_reference(csr_reg_td *csr_regs, uint16_t address);
+static inline rv_uint_xlen csr_get_mask(csr_reg_td *csr_regs, uint16_t address)
+{
+    return csr_regs[address].mask;
+}
 
 void csr_read_reg_internal(csr_reg_td *csr_regs, uint16_t address, rv_uint_xlen *out_val);
 void csr_write_reg_internal(csr_reg_td *csr_regs, uint16_t address, rv_uint_xlen val);

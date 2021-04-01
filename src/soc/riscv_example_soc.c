@@ -212,7 +212,7 @@ void rv_soc_run(rv_soc_td *rv_soc, rv_uint_xlen success_pc, uint64_t num_cycles)
         //     printf("mei %d, msi %d, mti %d\n", mei, msi, mti);
 
         /* update CSRs for actual interrupt processing */
-        rv_core_process_interrupts(&rv_soc->rv_core0, mei, msi, mti);
+        rv_core_process_interrupts(&rv_soc->rv_core0, mei, mti, msi);
 
         rv_core_reg_dump(&rv_soc->rv_core0);
 

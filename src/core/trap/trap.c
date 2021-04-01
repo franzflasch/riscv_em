@@ -80,11 +80,11 @@ void trap_init(trap_td *trap)
     trap->u.regs[trap_reg_ip] = &trap->regs_data.shared.ip;
 }
 
-int trap_m_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val, rv_uint_xlen mask)
+int trap_m_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
 {
     (void)curr_priv;
     trap_td *trap = priv;
-    *trap->m.regs[reg_index] = csr_val & mask;
+    *trap->m.regs[reg_index] = csr_val;
     // printf("val written %d "PRINTF_FMT"\n", reg_index, *trap->m.regs[reg_index]);
     return RV_ACCESS_OK;
 }
@@ -98,11 +98,11 @@ int trap_m_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, 
     return RV_ACCESS_OK;
 }
 
-int trap_s_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val, rv_uint_xlen mask)
+int trap_s_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
 {
     (void)curr_priv;
     trap_td *trap = priv;
-    *trap->s.regs[reg_index] = csr_val & mask;
+    *trap->s.regs[reg_index] = csr_val;
     // printf("val written %x\n", trap->regs[internal_reg]);
     return RV_ACCESS_OK;
 }
@@ -115,11 +115,11 @@ int trap_s_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, 
     return RV_ACCESS_OK;
 }
 
-int trap_u_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val, rv_uint_xlen mask)
+int trap_u_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
 {
     (void)curr_priv;
     trap_td *trap = priv;
-    *trap->u.regs[reg_index] = csr_val & mask;
+    *trap->u.regs[reg_index] = csr_val;
     // printf("val written %x\n", trap->regs[internal_reg]);
     return RV_ACCESS_OK;
 }
@@ -132,7 +132,7 @@ int trap_u_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, 
     return RV_ACCESS_OK;
 }
 
-void trap_set_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t ext_int, uint8_t sw_int, uint8_t tim_int)
+void trap_set_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int)
 {
     trap_regs_p_td *x = get_priv_regs(trap, priv_level);
     rv_uint_xlen irq_bit = 0;
@@ -150,14 +150,14 @@ void trap_set_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t ex
         assign_xlen_bit(x->regs[trap_reg_ip], irq_bit, sw_int);
 }
 
-void trap_set_pending_bits_all_levels(trap_td *trap, uint8_t ext_int, uint8_t sw_int, uint8_t tim_int)
+void trap_set_pending_bits_all_levels(trap_td *trap, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int)
 {
-    trap_set_pending_bits(trap, machine_mode, ext_int, sw_int, tim_int);
-    trap_set_pending_bits(trap, supervisor_mode, ext_int, sw_int, tim_int);
-    trap_set_pending_bits(trap, user_mode, ext_int, sw_int, tim_int);
+    trap_set_pending_bits(trap, machine_mode, ext_int, tim_int, sw_int);
+    trap_set_pending_bits(trap, supervisor_mode, ext_int, tim_int, sw_int);
+    trap_set_pending_bits(trap, user_mode, ext_int, tim_int, sw_int);
 }
 
-void trap_clear_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t ext_int, uint8_t sw_int, uint8_t tim_int)
+void trap_clear_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int)
 {
     rv_uint_xlen tmp = ( ((ext_int&1) << (8 + priv_level)) | 
                          ((tim_int&1) << (4 + priv_level)) | 
@@ -167,11 +167,11 @@ void trap_clear_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t 
     *x->regs[trap_reg_ip] &= ~tmp;
 }
 
-void trap_clear_pending_bits_all_levels(trap_td *trap, uint8_t ext_int, uint8_t sw_int, uint8_t tim_int)
+void trap_clear_pending_bits_all_levels(trap_td *trap, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int)
 {
-    trap_clear_pending_bits(trap, machine_mode, ext_int, sw_int, tim_int);
-    trap_clear_pending_bits(trap, supervisor_mode, ext_int, sw_int, tim_int);
-    trap_clear_pending_bits(trap, user_mode, ext_int, sw_int, tim_int);
+    trap_clear_pending_bits(trap, machine_mode, ext_int, tim_int, sw_int);
+    trap_clear_pending_bits(trap, supervisor_mode, ext_int, tim_int, sw_int);
+    trap_clear_pending_bits(trap, user_mode, ext_int, tim_int, sw_int);
 }
 
 trap_ret trap_check_interrupt_pending(trap_td *trap, privilege_level curr_priv_mode, privilege_level target_priv_mode, trap_irq_type type )
@@ -254,6 +254,9 @@ rv_uint_xlen trap_serve_interrupt(trap_td *trap,
 {
     rv_uint_xlen ie = 0;
     trap_regs_p_td *x = get_priv_regs(trap, serving_priv_mode);
+
+    // trap_regs_p_td *tmp = get_priv_regs(trap, machine_mode);
+    // printf("serve interrupt status: %lx\n", *tmp->regs[trap_reg_status]);
 
     *x->regs[trap_reg_epc] = is_interrupt ? curr_pc : (curr_pc - 4);
     *x->regs[trap_reg_cause] = ( (is_interrupt<<(XLEN-1)) | cause );

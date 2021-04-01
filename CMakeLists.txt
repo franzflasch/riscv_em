@@ -38,14 +38,16 @@ set(INC_CORE
 )
 
 set(SRC_PERIPH
-    src/peripherals/clint.c
-    src/peripherals/plic.c
-    src/peripherals/simple_uart.c
-    src/peripherals/uart_8250.c
+    src/peripherals/clint/clint.c
+    src/peripherals/plic/plic.c
+    src/peripherals/uart/simple_uart.c
+    src/peripherals/uart/uart_8250.c
 )
 
 set(INC_PERIPH
-    src/peripherals
+    src/peripherals/clint
+    src/peripherals/plic
+    src/peripherals/uart
 )
 
 set(SRC_SOC 
