@@ -6,12 +6,10 @@
 #include <csr.h>
 #include <pmp.h>
 #include <trap.h>
+#include <mmu.h>
 #include <clint.h>
 
 #define NR_RVI_REGS 32
-
-typedef rv_uint_xlen (*rv_core_read_mem)(void *priv, rv_uint_xlen address, uint8_t len, int *err);
-typedef void (*rv_core_write_mem)(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t len);
 
 typedef struct rv_core_struct rv_core_td;
 typedef struct rv_core_struct
@@ -45,12 +43,14 @@ typedef struct rv_core_struct
 
     /* externally hooked */
     void *priv;
-    rv_core_read_mem read_mem;
-    rv_core_write_mem write_mem;
+    bus_access_func bus_access;
+    // bus_read_mem read_mem;
+    // bus_write_mem write_mem;
 
     csr_reg_td csr_regs[CSR_ADDR_MAX];
     pmp_td pmp;
     trap_td trap;
+    mmu_td mmu;
 
     int lr_valid;
     rv_uint_xlen lr_address;
@@ -63,8 +63,7 @@ void rv_core_reg_dump(rv_core_td *rv_core);
 void rv_core_reg_dump_more_regs(rv_core_td *rv_core);
 void rv_core_init(rv_core_td *rv_core,
                   void *priv,
-                  rv_core_read_mem read_mem,
-                  rv_core_write_mem write_mem
+                  bus_access_func bus_access
                   );
 
 typedef struct instruction_hook_struct

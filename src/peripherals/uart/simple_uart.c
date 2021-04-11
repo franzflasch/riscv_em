@@ -27,68 +27,64 @@ void simple_uart_init(simple_uart_td *uart)
     fifo_init(&uart->tx_fifo, uart->tx_fifo_data, SIMPLE_UART_FIFO_SIZE);
 }
 
-int simple_uart_write(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint8_t nr_bytes)
+rv_ret simple_uart_bus_access(void *priv, privilege_level priv_level, bus_access_type access_type, rv_uint_xlen address, void *value, uint8_t len)
 {
-    simple_uart_td *uart = priv;
-    uint8_t val_u8 = val;
-
-    pthread_mutex_lock(&uart->lock);
-
-    if(nr_bytes != 1)
-        die_msg("UART WRITE: Only single byte access allowed!\n");
-
-    switch(address_internal)
-    {
-        case SIMPLE_UART_TX_RX_REG:
-            fifo_in(&uart->tx_fifo, &val_u8, 1);
-            if(val_u8 == '\n')
-                uart->tx_needs_flush = 1;
-            // putchar(val_u8);
-            // fflush(stdout);
-            uart->tx_triggered = 0;
-        break;
-        case SIMPLE_UART_STATUS_REG:
-            uart->rx_irq_enabled = extract8(val_u8, SIMPLE_UART_RXIEN_BIT, 1);
-            uart->tx_irq_enabled = extract8(val_u8, SIMPLE_UART_TXIEN_BIT, 1);
-            // printf("\n\nrx irq_enabled %x tx irq_enabled %x\n\n", uart->rx_irq_enabled, uart->tx_irq_enabled);
-        break;
-        default:
-            die_msg("UART-Write Reg " PRINTF_FMT " not supported yet!\n", address_internal);
-    }
-
-    pthread_mutex_unlock(&uart->lock);
-
-    return RV_ACCESS_OK;
-}
-
-int simple_uart_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
-{
+    (void) priv_level;
     simple_uart_td *uart = priv;
     uint8_t val_u8 = 0;
 
+    if(len != 1)
+        die_msg("UART WRITE: Only single byte access allowed!\n");
+
     pthread_mutex_lock(&uart->lock);
 
-    switch(address_internal)
+    if(access_type == bus_write_access)
     {
-        case SIMPLE_UART_TX_RX_REG:
-            fifo_out(&uart->rx_fifo, &val_u8, 1);
-            *outval = val_u8;
-        break;
-        case SIMPLE_UART_STATUS_REG:
-            val_u8 |= fifo_is_empty(&uart->rx_fifo)<<SIMPLE_UART_RXEMPTY_BIT;
-            val_u8 |= fifo_is_empty(&uart->tx_fifo)<<SIMPLE_UART_TXEMPTY_BIT;
-            val_u8 |= uart->rx_irq_enabled<<SIMPLE_UART_RXIEN_BIT;
-            val_u8 |= uart->tx_irq_enabled<<SIMPLE_UART_TXIEN_BIT;
-            *outval = val_u8;
-        break;
-        default:
-            die_msg("UART-Read Reg " PRINTF_FMT " not supported yet!\n", address_internal);
+        val_u8 = *(uint8_t*)value;
+        switch(address)
+        {
+            case SIMPLE_UART_TX_RX_REG:
+                fifo_in(&uart->tx_fifo, &val_u8, 1);
+                if(val_u8 == '\n')
+                    uart->tx_needs_flush = 1;
+                // putchar(val_u8);
+                // fflush(stdout);
+                uart->tx_triggered = 0;
+            break;
+            case SIMPLE_UART_STATUS_REG:
+                uart->rx_irq_enabled = extract8(val_u8, SIMPLE_UART_RXIEN_BIT, 1);
+                uart->tx_irq_enabled = extract8(val_u8, SIMPLE_UART_TXIEN_BIT, 1);
+                // printf("\n\nrx irq_enabled %x tx irq_enabled %x\n\n", uart->rx_irq_enabled, uart->tx_irq_enabled);
+            break;
+            default:
+                die_msg("UART-Write Reg " PRINTF_FMT " not supported yet!\n", address);
+        }
+    }
+    else
+    {
+        switch(address)
+        {
+            case SIMPLE_UART_TX_RX_REG:
+                fifo_out(&uart->rx_fifo, &val_u8, 1);
+                memcpy(value, &val_u8, 1);
+            break;
+            case SIMPLE_UART_STATUS_REG:
+                val_u8 |= fifo_is_empty(&uart->rx_fifo)<<SIMPLE_UART_RXEMPTY_BIT;
+                val_u8 |= fifo_is_empty(&uart->tx_fifo)<<SIMPLE_UART_TXEMPTY_BIT;
+                val_u8 |= uart->rx_irq_enabled<<SIMPLE_UART_RXIEN_BIT;
+                val_u8 |= uart->tx_irq_enabled<<SIMPLE_UART_TXIEN_BIT;
+                memcpy(value, &val_u8, 1);
+            break;
+            default:
+                die_msg("UART-Read Reg " PRINTF_FMT " not supported yet!\n", address);
+        }
     }
 
     pthread_mutex_unlock(&uart->lock);
 
-    return RV_ACCESS_OK;
+    return rv_ok;
 }
+
 
 uint8_t simple_uart_update(void *priv)
 {

@@ -47,8 +47,7 @@ typedef struct uart_ns8250_struct
 } uart_ns8250_td;
 
 void uart_init(uart_ns8250_td *uart);
-int uart_write(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint8_t nr_bytes);
-int uart_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval);
+rv_ret uart_bus_access(void *priv, privilege_level priv_level, bus_access_type access_type, rv_uint_xlen address, void *value, uint8_t len);
 uint8_t uart_update(void *priv);
 void uart_add_rx_char(uart_ns8250_td *uart, uint8_t x);
 

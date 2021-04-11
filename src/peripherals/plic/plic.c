@@ -142,59 +142,48 @@ uint8_t plic_update(plic_td *plic)
     return 0;
 }
 
-int plic_read_reg(void *priv, rv_uint_xlen address, rv_uint_xlen *out_val)
+rv_ret plic_bus_access(void *priv, privilege_level priv_level, bus_access_type access_type, rv_uint_xlen address, void *value, uint8_t len)
 {
+    (void) priv_level;
     plic_td *plic = priv;
     uint8_t is_claim_complete = 0;
     uint32_t irq_reg = 0;
     uint32_t irq_bit = 0;
     uint8_t *u8_ptr = get_u8_reg_ptr(plic, address, &is_claim_complete);
+    uint32_t tmp_val = 0;
 
     if(u8_ptr)
     {
-        memcpy(out_val, u8_ptr, sizeof(*out_val));
-        
-        /* check if it is the claim complete reg */
-        if(is_claim_complete)
+        if(access_type == bus_write_access)
         {
-            PLIC_DBG("CLAIM READ! %lx\n", *out_val);
-            irq_reg = *out_val/32;
-            irq_bit = *out_val%32;
-            if(CHECK_BIT(plic->pending_bits[irq_reg], irq_bit))
-                assign_u32_bit(&plic->claimed_bits[irq_reg], irq_bit, 1);
+            memcpy(u8_ptr, value, len);
+            tmp_val = *(uint32_t*)value;
+            /* check if it is the claim complete reg */
+            if(is_claim_complete)
+            {
+                PLIC_DBG("CLAIM WRITE! %lx\n", val);
+                irq_reg = tmp_val/32;
+                irq_bit = tmp_val%32;
+                assign_u32_bit(&plic->claimed_bits[irq_reg], irq_bit, 0);
+            }
+            /* be sure that all updated values are sane */
+            plic_check_sanity(plic);
         }
-
-        return RV_ACCESS_OK;
+        else 
+        {
+            memcpy(value, u8_ptr, len);
+            tmp_val = *(uint32_t*)u8_ptr;
+            /* check if it is the claim complete reg */
+            if(is_claim_complete)
+            {
+                PLIC_DBG("CLAIM READ! %lx\n", *out_val);
+                irq_reg = tmp_val/32;
+                irq_bit = tmp_val%32;
+                if(CHECK_BIT(plic->pending_bits[irq_reg], irq_bit))
+                    assign_u32_bit(&plic->claimed_bits[irq_reg], irq_bit, 1);
+            }
+        }
     }
 
-    return RV_ACCESS_ERR;
-}
-
-int plic_write_reg(void *priv, rv_uint_xlen address, rv_uint_xlen val, uint8_t nr_bytes)
-{
-    plic_td *plic = priv;
-    uint8_t is_claim_complete = 0;
-    uint32_t irq_reg = 0;
-    uint32_t irq_bit = 0;
-    uint8_t *u8_ptr = get_u8_reg_ptr(plic, address, &is_claim_complete);
-
-    if(u8_ptr)
-    {
-        memcpy(u8_ptr, &val, nr_bytes);
-
-        /* check if it is the claim complete reg */
-        if(is_claim_complete)
-        {
-            PLIC_DBG("CLAIM WRITE! %lx\n", val);
-            irq_reg = val/32;
-            irq_bit = val%32;
-            assign_u32_bit(&plic->claimed_bits[irq_reg], irq_bit, 0);
-        }
-
-        /* be sure that all updated values are sane */
-        plic_check_sanity(plic);
-        return RV_ACCESS_OK;
-    }
-
-    return RV_ACCESS_ERR;
+    return rv_ok;
 }

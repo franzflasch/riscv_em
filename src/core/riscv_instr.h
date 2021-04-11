@@ -85,14 +85,19 @@
     #define FUNC3_INSTR_FENCE 0x0
     #define FUNC3_INSTR_FENCE_I 0x1
 
-#define INSTR_ECALL_EBREAK_MRET_SRET_URET_WFI_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI 0x73
-    #define FUNC3_INSTR_ECALL_EBREAK_MRET_SRET_URET_WFI 0x0
-        #define FUNC12_ECALL 0x0
-        #define FUNC12_EBREAK 0x1
-        #define FUNC12_INSTR_MRET 0x302
-        #define FUNC12_INSTR_SRET 0x102
-        #define FUNC12_INSTR_URET 0x2
-        #define FUNC12_INSTR_WFI 0x105
+#define INSTR_ECALL_EBREAK_MRET_SRET_URET_WFI_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI_SFENCEVMA 0x73
+    #define FUNC3_INSTR_ECALL_EBREAK_MRET_SRET_URET_WFI_SFENCEVMA 0x0
+        /* FUNC12 will be splitted in FUNC7 and FUNC5 */
+        #define FUNC7_INSTR_ECALL_EBREAK_URET 0x0
+            #define FUNC5_INSTR_ECALL 0x0
+            #define FUNC5_INSTR_EBREAK 0x1
+            #define FUNC5_INSTR_URET 0x2
+        #define FUNC7_INSTR_SRET_WFI 0x8
+            #define FUNC5_INSTR_SRET 0x2
+            #define FUNC5_INSTR_WFI 0x5
+        #define FUNC7_INSTR_MRET 0x18
+            #define FUNC5_INSTR_MRET 0x2
+        #define FUNC7_INSTR_SFENCEVMA 0x9
     #define FUNC3_INSTR_CSRRW 0x1
     #define FUNC3_INSTR_CSRRS 0x2
     #define FUNC3_INSTR_CSRRC 0x3

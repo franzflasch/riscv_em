@@ -28,8 +28,7 @@ typedef struct simple_uart_struct
 } simple_uart_td;
 
 void simple_uart_init(simple_uart_td *uart);
-int simple_uart_write(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint8_t nr_bytes);
-int simple_uart_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval);
+rv_ret simple_uart_bus_access(void *priv, privilege_level priv_level, bus_access_type access_type, rv_uint_xlen address, void *value, uint8_t len);
 uint8_t simple_uart_update(void *priv);
 void simple_uart_add_rx_char(simple_uart_td *uart, uint8_t x);
 

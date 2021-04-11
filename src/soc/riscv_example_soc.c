@@ -8,72 +8,49 @@
 
 #include <file_helper.h>
 
-#define INIT_MEM_ACCESS_STRUCT(_ref_rv_soc, _entry, _read_func, _write_func, _priv, _addr_start, _mem_size) \
+#define INIT_MEM_ACCESS_STRUCT(_ref_rv_soc, _entry, _bus_access_func, _priv, _addr_start, _mem_size) \
 { \
     size_t _tmp_count = _entry; \
     if(_tmp_count >= (sizeof(_ref_rv_soc->mem_access_cbs)/sizeof(_ref_rv_soc->mem_access_cbs[0]))) \
         die_msg("No mem access pointer available for entry nr %d, please increase mem_access_cbs!\n", _entry); \
-    _ref_rv_soc->mem_access_cbs[_tmp_count].read = _read_func; \
-    _ref_rv_soc->mem_access_cbs[_tmp_count].write = _write_func; \
+    _ref_rv_soc->mem_access_cbs[_tmp_count].bus_access = _bus_access_func; \
     _ref_rv_soc->mem_access_cbs[_tmp_count].priv = _priv; \
     _ref_rv_soc->mem_access_cbs[_tmp_count].addr_start = _addr_start; \
     _ref_rv_soc->mem_access_cbs[_tmp_count].mem_size = _mem_size; \
 }
 
-static int memory_read(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval)
+static rv_ret memory_bus_access(void *priv, privilege_level priv_level, bus_access_type access_type, rv_uint_xlen address, void *value, uint8_t len)
 {
+    (void) priv_level;
     uint8_t *mem_ptr = priv;
-    rv_uint_xlen *xlen_ptr = (rv_uint_xlen *)&mem_ptr[address_internal];
-    *outval = *xlen_ptr;
-    return RV_ACCESS_OK;
+
+    if(access_type == bus_write_access)
+        memcpy(&mem_ptr[address], value, len);
+    else 
+        memcpy(value, &mem_ptr[address], len);
+
+    // printf("memory_bus_access! %x\n", mem_ptr[0]);
+    // rv_uint_xlen val = *(rv_uint_xlen*)value;
+
+    // printf("memory_bus_access! %lx\n", mem_ptr[0]);
+    return rv_ok;
 }
 
-static int memory_write(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint8_t nr_bytes)
-{
-    uint8_t *mem_ptr = priv;
-    memcpy(&mem_ptr[address_internal], &val, nr_bytes);
-    return RV_ACCESS_OK;
-}
-
-static void rv_soc_init_mem_acces_cbs(rv_soc_td *rv_soc)
+static void rv_soc_init_mem_access_cbs(rv_soc_td *rv_soc)
 {
     int count = 0;
-    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, memory_read, memory_write, rv_soc->ram, RAM_BASE_ADDR, RAM_SIZE_BYTES);
-    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, clint_read_reg, clint_write_reg, &rv_soc->clint, CLINT_BASE_ADDR, CLINT_SIZE_BYTES);
-    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, plic_read_reg, plic_write_reg, &rv_soc->plic, PLIC_BASE_ADDR, PLIC_SIZE_BYTES);
+    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, memory_bus_access, rv_soc->ram, RAM_BASE_ADDR, RAM_SIZE_BYTES);
+    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, clint_bus_access, &rv_soc->clint, CLINT_BASE_ADDR, CLINT_SIZE_BYTES);
+    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, plic_bus_access, &rv_soc->plic, PLIC_BASE_ADDR, PLIC_SIZE_BYTES);
     #ifdef USE_SIMPLE_UART
-        INIT_MEM_ACCESS_STRUCT(rv_soc, count++, simple_uart_read, simple_uart_write, &rv_soc->uart, SIMPLE_UART_TX_REG_ADDR, SIMPLE_UART_SIZE_BYTES);
+        INIT_MEM_ACCESS_STRUCT(rv_soc, count++, simple_uart_bus_access, &rv_soc->uart, SIMPLE_UART_TX_REG_ADDR, SIMPLE_UART_SIZE_BYTES);
     #else
-        INIT_MEM_ACCESS_STRUCT(rv_soc, count++, uart_read, uart_write, &rv_soc->uart8250, UART8250_TX_REG_ADDR, UART_NS8250_NR_REGS);
+        INIT_MEM_ACCESS_STRUCT(rv_soc, count++, uart_bus_access, &rv_soc->uart8250, UART8250_TX_REG_ADDR, UART_NS8250_NR_REGS);
     #endif
-    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, memory_read, memory_write, rv_soc->mrom, MROM_BASE_ADDR, MROM_SIZE_BYTES);
+    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, memory_bus_access, rv_soc->mrom, MROM_BASE_ADDR, MROM_SIZE_BYTES);
 }
 
-static rv_uint_xlen rv_soc_read_mem(void *priv, rv_uint_xlen address, uint8_t len, int *err)
-{
-    rv_soc_td *rv_soc = priv;
-    rv_uint_xlen tmp_addr = 0;
-    rv_uint_xlen read_val = 0;
-    size_t i = 0;
-
-    *err = RV_ACCESS_ERR;
-
-    for(i=0;i<(sizeof(rv_soc->mem_access_cbs)/sizeof(rv_soc->mem_access_cbs[0]));i++)
-    {
-        if(ADDR_WITHIN_LEN(address, len, rv_soc->mem_access_cbs[i].addr_start, rv_soc->mem_access_cbs[i].mem_size))
-        {
-            tmp_addr = address - rv_soc->mem_access_cbs[i].addr_start;
-            rv_soc->mem_access_cbs[i].read(rv_soc->mem_access_cbs[i].priv, tmp_addr, &read_val);
-            *err = RV_ACCESS_OK;
-            return read_val;
-        }
-    }
-
-    die_msg("Invalid Address, or no valid read pointer found, read not executed!: Addr: "PRINTF_FMT" Len: %d Cycle: %ld  PC: "PRINTF_FMT"\n", address, len, rv_soc->rv_core0.curr_cycle, rv_soc->rv_core0.pc);
-    return 0;
-}
-
-static void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t len)
+static rv_ret rv_soc_bus_access(void *priv, privilege_level priv_level, bus_access_type access_type, rv_uint_xlen address, void *value, uint8_t len)
 {
     rv_soc_td *rv_soc = priv;
     rv_uint_xlen tmp_addr = 0;
@@ -84,13 +61,11 @@ static void rv_soc_write_mem(void *priv, rv_uint_xlen address, rv_uint_xlen valu
         if(ADDR_WITHIN_LEN(address, len, rv_soc->mem_access_cbs[i].addr_start, rv_soc->mem_access_cbs[i].mem_size))
         {
             tmp_addr = address - rv_soc->mem_access_cbs[i].addr_start;
-            rv_soc->mem_access_cbs[i].write(rv_soc->mem_access_cbs[i].priv, tmp_addr, value, len);
-            return;
+            return rv_soc->mem_access_cbs[i].bus_access(rv_soc->mem_access_cbs[i].priv, priv_level, access_type, tmp_addr, value, len);
         }
     }
 
     die_msg("Invalid Address, or no valid write pointer found, write not executed!: Addr: "PRINTF_FMT" Len: %d Cycle: %ld  PC: "PRINTF_FMT"\n", address, len, rv_soc->rv_core0.curr_cycle, rv_soc->rv_core0.pc);
-    return;
 }
 
 void rv_soc_dump_mem(rv_soc_td *rv_soc)
@@ -169,7 +144,7 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
     }
 
     /* initialize one core with a csr table */
-    rv_core_init(&rv_soc->rv_core0, rv_soc, rv_soc_read_mem, rv_soc_write_mem);
+    rv_core_init(&rv_soc->rv_core0, rv_soc, rv_soc_bus_access);
 
     #ifdef USE_SIMPLE_UART
         simple_uart_init(&rv_soc->uart);
@@ -178,7 +153,7 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
     #endif
 
     /* initialize ram and peripheral read write access pointers */
-    rv_soc_init_mem_acces_cbs(rv_soc);
+    rv_soc_init_mem_access_cbs(rv_soc);
 
     DEBUG_PRINT("rv SOC initialized!\n");
 }

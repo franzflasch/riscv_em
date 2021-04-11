@@ -28,10 +28,10 @@ static rv_int_xlen get_u8_arr_index_offs(rv_uint_xlen address)
     return -1;
 }
 
-int clint_read_reg(void *priv, rv_uint_xlen address, rv_uint_xlen *outval)
+rv_ret clint_bus_access(void *priv, privilege_level priv_level, bus_access_type access_type, rv_uint_xlen address, void *value, uint8_t len)
 {
+    (void) priv_level;
     clint_td *clint = priv;
-    int ret_val = RV_ACCESS_ERR;
     rv_uint_xlen tmp_addr = 0;
     uint8_t *tmp_u8 = (uint8_t *)clint->regs;
     rv_int_xlen arr_index_offs = -1;
@@ -41,35 +41,13 @@ int clint_read_reg(void *priv, rv_uint_xlen address, rv_uint_xlen *outval)
     if(arr_index_offs >= 0)
     {
         tmp_addr = (address & 0x7) + arr_index_offs;
-        memcpy(outval, &tmp_u8[tmp_addr], sizeof(*outval));
-        ret_val = RV_ACCESS_OK;
+        if(access_type == bus_write_access)
+            memcpy(&tmp_u8[tmp_addr], value, len);
+        else 
+            memcpy(value, &tmp_u8[tmp_addr], len);
     }
 
-    // printf("clint %lx %lx %lx\n", clint->regs[clint_msip], clint->regs[clint_mtime], clint->regs[clint_mtimecmp]);
-
-    return ret_val;
-}
-
-int clint_write_reg(void *priv, rv_uint_xlen address, rv_uint_xlen val, uint8_t nr_bytes)
-{
-    clint_td *clint = priv;
-    int ret_val = RV_ACCESS_ERR;
-    rv_uint_xlen tmp_addr = 0;
-    uint8_t *tmp_u8 = (uint8_t *)clint->regs;
-    rv_int_xlen arr_index_offs = -1;
-
-    arr_index_offs = get_u8_arr_index_offs(address);
-
-    if(arr_index_offs >= 0)
-    {
-        tmp_addr = (address & 0x7) + arr_index_offs;
-        memcpy(&tmp_u8[tmp_addr], &val, nr_bytes);
-        ret_val = RV_ACCESS_OK;
-    }
-
-    // printf("mtimecmp: %ld\n", clint->regs[clint_mtimecmp]);
-
-    return ret_val;
+    return rv_ok;
 }
 
 void clint_update(clint_td *clint, uint8_t *msi, uint8_t *mti)

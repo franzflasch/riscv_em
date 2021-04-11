@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 
 project (riscv_em)
 set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wextra -Wpedantic")
+add_definitions ("-Wall -Werror -Wextra -Wpedantic")
 
 OPTION(RV_ARCH "RISC-V Arch" "64")
 if(RV_ARCH STREQUAL "64")
@@ -28,6 +28,7 @@ set(SRC_CORE
     src/core/csr/csr.c
     src/core/pmp/pmp.c
     src/core/trap/trap.c
+    src/core/mmu/mmu.c
 )
 
 set(INC_CORE
@@ -35,6 +36,7 @@ set(INC_CORE
     src/core/csr
     src/core/pmp
     src/core/trap
+    src/core/mmu
 )
 
 set(SRC_PERIPH

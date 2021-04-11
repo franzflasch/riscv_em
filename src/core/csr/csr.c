@@ -16,10 +16,10 @@ void csr_write_reg_internal(csr_reg_td *csr_regs, uint16_t address, rv_uint_xlen
     csr_regs[address].value = val;
 }
 
-int csr_read_reg(csr_reg_td *csr_regs, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val)
+rv_ret csr_read_reg(csr_reg_td *csr_regs, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val)
 {
     if(address>CSR_ADDR_MAX)
-        return RV_ACCESS_ERR;
+        return rv_err;
 
     if(CSR_ACCESS_READ_GRANTED(curr_priv_mode, csr_regs[address].access_flags))
     {
@@ -27,17 +27,17 @@ int csr_read_reg(csr_reg_td *csr_regs, privilege_level curr_priv_mode, uint16_t 
             return csr_regs[address].read_cb(csr_regs[address].priv, curr_priv_mode, csr_regs[address].internal_reg, out_val);
 
         *out_val = csr_regs[address].value;
-        return RV_ACCESS_OK;
+        return rv_ok;
     }
 
-    return RV_ACCESS_ERR;
+    return rv_err;
 }
 
-int csr_write_reg(csr_reg_td *csr_regs, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val)
+rv_ret csr_write_reg(csr_reg_td *csr_regs, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val)
 {
     // printf("csr write %x\n", address);
     if(address>CSR_ADDR_MAX)
-        return RV_ACCESS_ERR;
+        return rv_err;
 
     if(CSR_ACCESS_WRITE_GRANTED(curr_priv_mode, csr_regs[address].access_flags))
     {
@@ -49,8 +49,8 @@ int csr_write_reg(csr_reg_td *csr_regs, privilege_level curr_priv_mode, uint16_t
         
         // printf("csr addr: %x %x\n", address, csr_regs[address].value);
         csr_regs[address].value = val & csr_regs[address].mask;
-        return RV_ACCESS_OK;
+        return rv_ok;
     }
 
-    return RV_ACCESS_ERR;
+    return rv_err;
 }

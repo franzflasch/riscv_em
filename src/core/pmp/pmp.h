@@ -32,14 +32,6 @@ typedef enum
 
 } pmp_addr_matching;
 
-typedef enum
-{
-    pmp_read_access = 0,
-    pmp_write_access,
-    pmp_instr_access
-
-} pmp_access_type;
-
 typedef struct pmp_struct
 {
     union {
@@ -52,11 +44,11 @@ typedef struct pmp_struct
 
 } pmp_td;
 
-int pmp_write_csr_cfg(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
-int pmp_read_csr_cfg(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val);
-int pmp_write_csr_addr(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
-int pmp_read_csr_addr(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val);
-int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr, uint8_t len, pmp_access_type access_type);
+rv_ret pmp_write_csr_cfg(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
+rv_ret pmp_read_csr_cfg(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen *out_val);
+rv_ret pmp_write_csr_addr(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
+rv_ret pmp_read_csr_addr(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen *out_val);
+rv_ret pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr, uint8_t len, bus_access_type access_type);
 void pmp_dump_cfg_regs(pmp_td *pmp);
 
 #endif /* RISCV_PMP_H */

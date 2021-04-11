@@ -23,17 +23,16 @@
 #define TRAP_REG_IP          0x44
 
 // /* XSTATUS BITS */
+#define TRAP_XSTATUS_SIE_BIT 1
 #define TRAP_XSTATUS_MIE_BIT 3
-// #define TRAP_XSTATUS_MIE_MASK 0x1
-#define TRAP_XSTATUS_MPIE_BIT 7
 #define TRAP_XSTATUS_UPIE_BIT 4
+#define TRAP_XSTATUS_SPIE_BIT 5
+#define TRAP_XSTATUS_MPIE_BIT 7
 #define TRAP_XSTATUS_SPP_BIT 8
 #define TRAP_XSTATUS_MPP_BIT 11 /* and 12 */
-// #define TRAP_XSTATUS_MPP_MASK 0x3
 #define TRAP_XSTATUS_MPRV_BIT 17
-#define TRAP_XSTATUS_SPIE_BIT 5
-#define TRAP_XSTATUS_SIE_BIT 1
-// #define TRAP_XSTATUS_SIE_MASK 0x1
+#define TRAP_XSTATUS_SUM_BIT 18
+#define TRAP_XSTATUS_MXR_BIT 19
 
 #define GET_GLOBAL_IRQ_BIT(priv_level) (1<<priv_level)
 #define GET_LOCAL_IRQ_BIT(priv_level, trap_type) ( (1<<(priv_level_max*trap_type)) << priv_level )
@@ -178,14 +177,14 @@ typedef struct trap_struct
 
 void trap_init(trap_td *trap);
 
-int trap_m_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
-int trap_m_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val);
+rv_ret trap_m_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
+rv_ret trap_m_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val);
 
-int trap_s_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
-int trap_s_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val);
+rv_ret trap_s_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
+rv_ret trap_s_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val);
 
-int trap_u_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
-int trap_u_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val);
+rv_ret trap_u_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
+rv_ret trap_u_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val);
 
 void trap_set_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int);
 void trap_set_pending_bits_all_levels(trap_td *trap, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int);

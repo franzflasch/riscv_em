@@ -72,6 +72,8 @@
 #define CSR_ADDR_STVAL        0x143
 #define CSR_ADDR_SIP          0x144
 
+#define CSR_ADDR_SATP         0x180
+
 #define CSR_ADDR_MAX          0xFFF
 
 /* CSR WRITE MASKS */
@@ -87,6 +89,8 @@
     #define CSR_MTVEC_MASK 0xFFFFFFFC
 
     #define CSR_SSTATUS_MASK 0x800DE133
+    /* ASID (Bit 30-22) is not used here */
+    #define CSR_SATP_MASK 0x803FFFFF
 #endif
 #define CSR_MASK_ZERO 0
 #define CSR_MIP_MIE_MASK 0xBBB
@@ -118,8 +122,8 @@
     _csr[_index].write_cb = _write_cb; \
     _csr[_index].internal_reg = _internal_reg;
 
-typedef int (*csr_read_cb)(void *priv, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val);
-typedef int (*csr_write_cb)(void *priv, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val);
+typedef rv_ret (*csr_read_cb)(void *priv, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val);
+typedef rv_ret (*csr_write_cb)(void *priv, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val);
 
 typedef struct csr_reg_struct {
     uint16_t access_flags;
@@ -142,7 +146,7 @@ static inline rv_uint_xlen csr_get_mask(csr_reg_td *csr_regs, uint16_t address)
 void csr_read_reg_internal(csr_reg_td *csr_regs, uint16_t address, rv_uint_xlen *out_val);
 void csr_write_reg_internal(csr_reg_td *csr_regs, uint16_t address, rv_uint_xlen val);
 
-int csr_read_reg(csr_reg_td *csr_regs, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val);
-int csr_write_reg(csr_reg_td *csr_regs, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val);
+rv_ret csr_read_reg(csr_reg_td *csr_regs, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val);
+rv_ret csr_write_reg(csr_reg_td *csr_regs, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val);
 
 #endif /* RISCV_CSR_H */

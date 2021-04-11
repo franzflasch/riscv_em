@@ -80,56 +80,56 @@ void trap_init(trap_td *trap)
     trap->u.regs[trap_reg_ip] = &trap->regs_data.shared.ip;
 }
 
-int trap_m_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
+rv_ret trap_m_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
 {
     (void)curr_priv;
     trap_td *trap = priv;
     *trap->m.regs[reg_index] = csr_val;
     // printf("val written %d "PRINTF_FMT"\n", reg_index, *trap->m.regs[reg_index]);
-    return RV_ACCESS_OK;
+    return rv_ok;
 }
 
-int trap_m_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val)
+rv_ret trap_m_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val)
 {
     (void)curr_priv_mode;
     trap_td *trap = priv;
     *out_val = *trap->m.regs[reg_index];
     // printf("m read! %d %x\n", reg_index, *out_val);
-    return RV_ACCESS_OK;
+    return rv_ok;
 }
 
-int trap_s_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
+rv_ret trap_s_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
 {
     (void)curr_priv;
     trap_td *trap = priv;
     *trap->s.regs[reg_index] = csr_val;
     // printf("val written %x\n", trap->regs[internal_reg]);
-    return RV_ACCESS_OK;
+    return rv_ok;
 }
 
-int trap_s_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val)
+rv_ret trap_s_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val)
 {
     (void)curr_priv_mode;
     trap_td *trap = priv;
     *out_val = *trap->s.regs[reg_index];
-    return RV_ACCESS_OK;
+    return rv_ok;
 }
 
-int trap_u_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
+rv_ret trap_u_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
 {
     (void)curr_priv;
     trap_td *trap = priv;
     *trap->u.regs[reg_index] = csr_val;
     // printf("val written %x\n", trap->regs[internal_reg]);
-    return RV_ACCESS_OK;
+    return rv_ok;
 }
 
-int trap_u_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val)
+rv_ret trap_u_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val)
 {
     (void)curr_priv_mode;
     trap_td *trap = priv;
     *out_val = *trap->u.regs[reg_index];
-    return RV_ACCESS_OK;
+    return rv_ok;
 }
 
 void trap_set_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int)

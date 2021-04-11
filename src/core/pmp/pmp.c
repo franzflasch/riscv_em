@@ -12,7 +12,7 @@
 #endif
 
 #ifdef PMP_SUPPORT
-int pmp_write_csr_cfg(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
+rv_ret pmp_write_csr_cfg(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
 {
     uint8_t i = 0;
     pmp_td *pmp = priv;
@@ -21,7 +21,7 @@ int pmp_write_csr_cfg(void *priv, privilege_level curr_priv, uint16_t reg_index,
 
     /* All PMP cfgs can only be changed in machine mode */
     if(curr_priv != machine_mode)
-        return RV_ACCESS_ERR;
+        return rv_err;
 
     for(i=0;i<sizeof(rv_uint_xlen);i++)
     {
@@ -32,19 +32,19 @@ int pmp_write_csr_cfg(void *priv, privilege_level curr_priv, uint16_t reg_index,
         }
     }
 
-    return RV_ACCESS_OK;
+    return rv_ok;
 }
 
-int pmp_read_csr_cfg(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val)
+rv_ret pmp_read_csr_cfg(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen *out_val)
 {
-    (void) curr_priv_mode;
+    (void) curr_priv;
 
     pmp_td *pmp = priv;
     *out_val = pmp->cfg[reg_index];
-    return RV_ACCESS_OK;
+    return rv_ok;
 }
 
-int pmp_write_csr_addr(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
+rv_ret pmp_write_csr_addr(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val)
 {
     pmp_td *pmp = priv;
     uint8_t cfg_reg_idx = reg_index/sizeof(rv_uint_xlen);
@@ -54,7 +54,7 @@ int pmp_write_csr_addr(void *priv, privilege_level curr_priv, uint16_t reg_index
 
     /* All PMP cfgs can only be changed in machine mode */
     if(curr_priv != machine_mode)
-        return RV_ACCESS_ERR;
+        return rv_err;
 
     /* check if the next index is locked and set to tor */
     if(cfg_idx < (PMP_NR_ADDR_REGS-1))
@@ -63,7 +63,7 @@ int pmp_write_csr_addr(void *priv, privilege_level curr_priv, uint16_t reg_index
         if( (addr_mode_next_entry == pmp_a_tor) &&
             CHECK_BIT(cfg_ptr[cfg_idx+1], PMP_CFG_L_BIT) )
         {
-            return RV_ACCESS_OK;
+            return rv_ok;
         }
     }
 
@@ -72,21 +72,21 @@ int pmp_write_csr_addr(void *priv, privilege_level curr_priv, uint16_t reg_index
     */
     if(CHECK_BIT(cfg_ptr[cfg_idx], PMP_CFG_L_BIT))
     {
-        return RV_ACCESS_OK;
+        return rv_ok;
     }
 
     pmp->addr[reg_index] = csr_val;
 
-    return RV_ACCESS_OK;
+    return rv_ok;
 }
 
-int pmp_read_csr_addr(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val)
+rv_ret pmp_read_csr_addr(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen *out_val)
 {
-    (void) curr_priv_mode;
+    (void) curr_priv;
 
     pmp_td *pmp = priv;
     *out_val = pmp->addr[reg_index];
-    return RV_ACCESS_OK;
+    return rv_ok;
 }
 
 static inline rv_uint_xlen get_pmp_napot_size_from_pmpaddr(rv_uint_xlen addr)
@@ -102,7 +102,7 @@ static inline rv_uint_xlen get_pmp_napot_addr_from_pmpaddr(rv_uint_xlen addr)
     return (addr - mask) << 2;
 }
 
-int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr, uint8_t len, pmp_access_type access_type)
+rv_ret pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr, uint8_t len, bus_access_type access_type)
 {
     /* check if the address matches any enabled config */
     /* lower cfgs have precedence over higher ones */
@@ -195,31 +195,31 @@ int pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr, uin
 
             /* lower addr is within, but upper not, so access not granted, except when we are in machine mode and RWX flags match */
             if(lower_addr_match && !upper_addr_match)
-                return ( (curr_priv == machine_mode) && (curr_access_flags & allowed_access)) ? RV_ACCESS_OK : RV_ACCESS_ERR;
+                return ( (curr_priv == machine_mode) && (curr_access_flags & allowed_access)) ? rv_ok : rv_err;
             
             /* upper addr is within, but lower not, so access not granted, except when we are in machine mode and RWX flags match */
             if(upper_addr_match && !lower_addr_match)
-                return ( (curr_priv == machine_mode) && (curr_access_flags & allowed_access)) ? RV_ACCESS_OK : RV_ACCESS_ERR;
+                return ( (curr_priv == machine_mode) && (curr_access_flags & allowed_access)) ? rv_ok : rv_err;
 
             /* Both are within the range, return with OK */
             if(upper_addr_match && lower_addr_match)
-                return (curr_access_flags & allowed_access) ? RV_ACCESS_OK : RV_ACCESS_ERR;
+                return (curr_access_flags & allowed_access) ? rv_ok : rv_err;
         }
     }
 
     /* If we get here in machine mode, access is granted */
     if(curr_priv == machine_mode)
-        return RV_ACCESS_OK;
+        return rv_ok;
 
     /* If at least one config is active and we are not in machine mode access is not granted */
     if(at_least_one_active)
     {
         PMP_DEBUG("No PMP match found!\n");
-        return RV_ACCESS_ERR;
+        return rv_err;
     }
 
     /* No config seems to be active and therefore PMP is not used so access is granted */
-    return RV_ACCESS_OK;
+    return rv_ok;
 }
 
 void pmp_dump_cfg_regs(pmp_td *pmp)

@@ -10,8 +10,7 @@
 
 typedef struct rv_soc_mem_access_cb_struct
 {
-    int (*read)(void *priv, rv_uint_xlen address_internal, rv_uint_xlen *outval);
-    int (*write)(void *priv, rv_uint_xlen address_internal, rv_uint_xlen val, uint8_t nr_bytes);
+    bus_access_func bus_access;
     void *priv;
     rv_uint_xlen addr_start;
     rv_uint_xlen mem_size;

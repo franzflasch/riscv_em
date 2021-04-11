@@ -17,9 +17,16 @@
     typedef int32_t rv_int_xlen;
 #endif
 
-#define RV_ACCESS_OK 0
-#define RV_ACCESS_ERR 1
-#define RV_ACCESS_PMP_ACCESS_ERR 2
+// #define RV_ACCESS_OK 0
+// #define RV_ACCESS_ERR 1
+// #define RV_ACCESS_PMP_ACCESS_ERR 2
+
+typedef enum
+{
+    rv_ok,
+    rv_err
+
+} rv_ret;
 
 typedef enum  
 {
@@ -31,5 +38,20 @@ typedef enum
     priv_level_max = 4
 
 } privilege_level;
+
+typedef enum
+{
+    bus_read_access = 0,
+    bus_write_access,
+    bus_instr_access,
+
+    bus_access_type_max
+
+} bus_access_type;
+
+typedef rv_ret (*bus_access_func)(void *priv, privilege_level priv_level, bus_access_type access_type, rv_uint_xlen addr, void *value, uint8_t len);
+
+// typedef rv_uint_xlen (*bus_read_mem)(void *priv, rv_uint_xlen address, uint8_t len, int *err);
+// typedef void (*bus_write_mem)(void *priv, rv_uint_xlen address, rv_uint_xlen value, uint8_t len);
 
 #endif /* RISCV_TYPES_H */
