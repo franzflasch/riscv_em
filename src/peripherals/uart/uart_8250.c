@@ -58,7 +58,7 @@ rv_ret uart_bus_access(void *priv, privilege_level priv_level, bus_access_type a
     (void) priv_level;
     uart_ns8250_td *uart = priv;
     uint8_t tmp = 0;
-    rv_uint_xlen outval = 0;
+    rv_uint_xlen *outval = value;
     uint8_t val_u8 = 0;
     uint8_t tmp_bits = 0;
 
@@ -175,7 +175,7 @@ rv_ret uart_bus_access(void *priv, privilege_level priv_level, bus_access_type a
                 if(!uart->dlab)
                 {
                     fifo_out(&uart->rx_fifo, &tmp, 1);
-                    outval = tmp;
+                    *outval = tmp;
                     // printf("RX: %c %d\n", tmp_out_val, uart->lsr_change);
                 }
                 else
@@ -187,7 +187,7 @@ rv_ret uart_bus_access(void *priv, privilege_level priv_level, bus_access_type a
             case REG_IER_LATCH_HI:
                 if(!uart->dlab)
                 {
-                    outval = ( (uart->irq_enabled_rx_data_available << 0) |
+                    *outval = ( (uart->irq_enabled_rx_data_available << 0) |
                             (uart->irq_enabled_tx_holding_reg_empty << 1) | 
                             (uart->irq_enabled_rlsr_change << 2) |
                             (uart->irq_enabled_msr_change << 3) |
@@ -204,7 +204,7 @@ rv_ret uart_bus_access(void *priv, privilege_level priv_level, bus_access_type a
             case REG_IIR:
                 /* 1 means no interrupt pending */
                 // printf("RX: %x %d %d\n", uart->regs[REG_IIR], uart->lsr_change, fifo_len(&uart->rx_fifo));
-                outval = uart->regs[REG_IIR];
+                *outval = uart->regs[REG_IIR];
                 // uart->wait_for_iir_read = 0;
                 if(uart->regs[REG_IIR] == 2)
                 {
@@ -224,7 +224,7 @@ rv_ret uart_bus_access(void *priv, privilege_level priv_level, bus_access_type a
                     uint8_t thr_empty_and_idle = thr_empty;
                     uint8_t err_data_fifo = 0;
 
-                    outval = ( data_avail << 0 |
+                    *outval = ( data_avail << 0 |
                             overrun_err << 1 |
                             parity_err << 2 |
                             framing_err << 3 |
@@ -241,15 +241,15 @@ rv_ret uart_bus_access(void *priv, privilege_level priv_level, bus_access_type a
                 }
             break;
             case REG_LCR:
-                outval = uart->regs[REG_LCR];
+                *outval = uart->regs[REG_LCR];
             break;
             case REG_MSR:
                 /* Not supported currently */
-                outval = 0xb0;
+                *outval = 0xb0;
             break;
             case REG_MCR:
                 /* Not supported currently */
-                outval = 0x8;
+                *outval = 0x8;
             break;
             default:
                 die_msg("UART-Read Reg " PRINTF_FMT " not supported yet!\n", address);

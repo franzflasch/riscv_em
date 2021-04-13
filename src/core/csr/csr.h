@@ -29,7 +29,7 @@
 #define CSR_ADDR_MIDELEG      0x303
 #define CSR_ADDR_MIE          0x304
 #define CSR_ADDR_MTVEC        0x305
-#define CSR_ADDR_MCOUNTEREN   0x305
+#define CSR_ADDR_MCOUNTEREN   0x306
 
 #define CSR_ADDR_MSCRATCH     0x340
 #define CSR_ADDR_MEPC         0x341
@@ -74,6 +74,18 @@
 
 #define CSR_ADDR_SATP         0x180
 
+#define CSR_ADDR_MCYCLE       0xB00
+#define CSR_ADDR_MINSTRET     0xB02
+#define CSR_ADDR_MCYCLEH      0xB80
+#define CSR_ADDR_MINSTRETH    0xB82
+
+#define CSR_ADDR_CYCLE        0xC00
+#define CSR_ADDR_TIME         0xC01
+#define CSR_ADDR_CYCLEH       0xC80
+#define CSR_ADDR_TIMEH        0xC81
+
+#define CSR_HPMCOUNTER_WARL_MAX 32
+
 #define CSR_ADDR_MAX          0xFFF
 
 /* CSR WRITE MASKS */
@@ -104,23 +116,22 @@
 /* In particular, sedeleg[11:9] are all hardwired to zero. */
 #define CSR_SEDELEG_MASK 0xF1FF
 
-#define INIT_CSR_REG_DEFAULT(_csr, _index, _access_flags, _init_val, _MASK) \
+#define INIT_CSR_REG_DEFAULT(_csr, _index, _access_flags, _init_val, _MASK) { \
     _csr[_index].access_flags = _access_flags; \
     _csr[_index].value = _init_val; \
     _csr[_index].mask = _MASK; \
     _csr[_index].priv = NULL; \
     _csr[_index].read_cb = NULL; \
     _csr[_index].write_cb = NULL; \
-    _csr[_index].internal_reg = 0;
+    _csr[_index].internal_reg = 0; }
 
-#define INIT_CSR_REG_SPECIAL(_csr, _index, _access_flags, _init_val, _MASK, _priv, _read_cb, _write_cb, _internal_reg) \
+#define INIT_CSR_REG_SPECIAL(_csr, _index, _access_flags, _MASK, _priv, _read_cb, _write_cb, _internal_reg) { \
     _csr[_index].access_flags = _access_flags; \
-    _csr[_index].value = _init_val; \
     _csr[_index].mask = _MASK; \
     _csr[_index].priv = _priv; \
     _csr[_index].read_cb = _read_cb; \
     _csr[_index].write_cb = _write_cb; \
-    _csr[_index].internal_reg = _internal_reg;
+    _csr[_index].internal_reg = _internal_reg; }
 
 typedef rv_ret (*csr_read_cb)(void *priv, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen *out_val);
 typedef rv_ret (*csr_write_cb)(void *priv, privilege_level curr_priv_mode, uint16_t address, rv_uint_xlen val);

@@ -9,8 +9,10 @@
 #else
     #define PMP_NR_CFG_REGS 4
 #endif
+#define PMP_NR_CFG_REGS_WARL_MAX 16
 
 #define PMP_NR_ADDR_REGS 16
+#define PMP_NR_ADDR_REGS_WARL_MAX 64
 
 /* Lock bit */
 #define PMP_CFG_L_BIT 7

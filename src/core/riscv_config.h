@@ -6,7 +6,7 @@
 #define MULTIPLY_SUPPORT
 #define PMP_SUPPORT
 
-// #define USE_SIMPLE_UART
+#define USE_SIMPLE_UART
 
 #define MROM_BASE_ADDR 0x1000UL
 #define MROM_SIZE_BYTES 0xf000UL
@@ -24,5 +24,12 @@
 #define PLIC_SIZE_BYTES 0x3FFF004UL
 
 #define UART8250_TX_REG_ADDR 0x10000000UL
+
+#define RV_EXTENSION_TO_MISA(extension) (1 << (extension - 'A'))
+#define RV_SUPPORTED_EXTENSIONS ( RV_EXTENSION_TO_MISA('I') | \
+                                  RV_EXTENSION_TO_MISA('M') | \
+                                  RV_EXTENSION_TO_MISA('A') | \
+                                  RV_EXTENSION_TO_MISA('S') | \
+                                  RV_EXTENSION_TO_MISA('U') )
 
 #endif /* RISCV_CONFIG_H */
