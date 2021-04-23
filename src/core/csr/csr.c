@@ -23,6 +23,11 @@ rv_ret csr_read_reg(csr_reg_td *csr_regs, privilege_level curr_priv_mode, uint16
 
     if(CSR_ACCESS_READ_GRANTED(curr_priv_mode, csr_regs[address].access_flags))
     {
+        // if(address==CSR_ADDR_MSCRATCH)
+        // {
+        //     printf("scratch!!! %d\n", *out_val );
+        // }
+
         if(csr_regs[address].read_cb)
             return csr_regs[address].read_cb(csr_regs[address].priv, curr_priv_mode, csr_regs[address].internal_reg, out_val);
 

@@ -52,7 +52,7 @@ void *uart_rx_thread(void* p)
     {
         // x = getchar();
         x = getch();
-        printf("Press: %c PC: "PRINTF_FMT"\n", x , rv_soc->rv_core0.pc);
+        // printf("Press: %c PC: "PRINTF_FMT" virt: "PRINTF_FMT" phys: "PRINTF_FMT"\n", x , rv_soc->rv_core0.pc, rv_soc->rv_core0.mmu.last_virt_pc, rv_soc->rv_core0.mmu.last_phys_pc);
 
         #ifdef USE_SIMPLE_UART
             simple_uart_add_rx_char(&rv_soc->uart, x);

@@ -22,6 +22,8 @@
 #define SV32_PTESHIFT 2
 
 #ifdef RV64
+    #define MMU_SATP_MODE_BIT 60
+    #define MMU_SATP_MODE_NR_BITS 4
 #else
     #define MMU_SATP_MODE_BIT 31
     #define MMU_SATP_MODE_NR_BITS 1
@@ -47,7 +49,12 @@ typedef struct mmu_struct
     /* priv pointer for read and write mem cb */
     void *priv;
 
+    rv_uint_xlen last_virt_pc;
+    rv_uint_xlen last_phys_pc;    
+
 } mmu_td;
+
+#include <core.h>
 
 void mmu_init(mmu_td *mmu, bus_access_func bus_access, void *priv);
 uint64_t mmu_virt_to_phys(mmu_td *mmu, 
@@ -56,7 +63,9 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
                           bus_access_type access_type, 
                           uint8_t mxr, 
                           uint8_t sum, 
-                          mmu_ret *ret_val);
+                          mmu_ret *ret_val,
+                          rv_core_td *rv_core,
+                          rv_uint_xlen value);
 mmu_ret mmu_mem_read(mmu_td *mmu, 
                      privilege_level curr_priv, 
                      rv_uint_xlen virt_addr, 

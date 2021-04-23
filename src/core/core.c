@@ -21,12 +21,13 @@
 /*
  * Functions for internal use
  */
-static inline void prepare_sync_trap(rv_core_td *rv_core, rv_uint_xlen cause)
+static inline void prepare_sync_trap(rv_core_td *rv_core, rv_uint_xlen cause, rv_uint_xlen tval)
 {
     if(!rv_core->sync_trap_pending)
     {
         rv_core->sync_trap_pending = 1;
         rv_core->sync_trap_cause = cause;
+        rv_core->sync_trap_tval = tval;
     }
 }
 
@@ -49,9 +50,27 @@ rv_ret pmp_checked_bus_access(void *priv, privilege_level priv_level, bus_access
                               (access_type == bus_read_access) ? trap_cause_load_access_fault : 
                               trap_cause_store_amo_access_fault;
 
+    // if(addr == 0x825d3000)
+    // {
+    //     int tmp_i = 0;
+    //     rv_uint_xlen *tmp = value;
+    //     rv_uint_xlen tmp_read_val = 0;
+
+    //     for(tmp_i=-10000;tmp_i<10000;tmp_i+=4)
+    //     {
+    //         rv_core->bus_access(rv_core->priv, machine_mode, bus_read_access, 0x825dd000 + tmp_i, &tmp_read_val, 4);
+    //         if(tmp_read_val != 0)
+    //             printf("READ::addr: %x: %x\n", 0x825dd000 + tmp_i, tmp_read_val);
+    //     }
+
+    //     printf("pmp_checked_bus_access addr: %x! access_type: %d priv: %d value: %x pc: %x\n", addr, access_type, priv_level, *tmp, rv_core->pc);
+    // }
+
+
     if(pmp_mem_check(&rv_core->pmp, priv_level, addr, len, access_type))
     {
-        prepare_sync_trap(rv_core, trap_cause);
+        printf("PMP Violation!\n");
+        prepare_sync_trap(rv_core, trap_cause, addr);
         return rv_err;
     }
 
@@ -70,13 +89,16 @@ rv_ret mmu_checked_bus_access(void *priv, privilege_level priv_level, bus_access
 
     uint8_t mxr = CHECK_BIT(*rv_core->trap.m.regs[trap_reg_status], TRAP_XSTATUS_MXR_BIT) ? 1 : 0;
     uint8_t sum = CHECK_BIT(*rv_core->trap.m.regs[trap_reg_status], TRAP_XSTATUS_SUM_BIT) ? 1 : 0;
-    uint64_t phys_addr = mmu_virt_to_phys(&rv_core->mmu, internal_priv_level, addr, access_type, mxr, sum, &mmu_ret_val);
+
+    rv_uint_xlen tmp = *(rv_uint_xlen *)value;
+    uint64_t phys_addr = mmu_virt_to_phys(&rv_core->mmu, internal_priv_level, addr, access_type, mxr, sum, &mmu_ret_val, rv_core, tmp);
 
     // printf("translated addr: virt: %x phys: %lx\n", addr, phys_addr);
 
     if(mmu_ret_val != mmu_ok)
     {
-        prepare_sync_trap(rv_core, trap_cause);
+        // printf("mmu sync trap! "PRINTF_FMT"\n", trap_cause);
+        prepare_sync_trap(rv_core, trap_cause, addr);
         return rv_err;
     }
 
@@ -114,7 +136,7 @@ static void instr_JAL(rv_core_td *rv_core)
     if(ADDR_MISALIGNED(rv_core->jump_offset))
     {
         die_msg("Addr misaligned!\n");
-        prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign);
+        prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign, 0);
         return;
     }
 
@@ -133,7 +155,7 @@ static void instr_JALR(rv_core_td *rv_core)
     if(ADDR_MISALIGNED(rv_core->next_pc))
     {
         die_msg("Addr misaligned!\n");
-        prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign);
+        prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign, 0);
         return;
     }
 
@@ -148,7 +170,7 @@ static void instr_BEQ(rv_core_td *rv_core)
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
             die_msg("Addr misaligned!\n");
-            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign);
+            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign, 0);
             return;
         }
 
@@ -164,7 +186,7 @@ static void instr_BNE(rv_core_td *rv_core)
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
             die_msg("Addr misaligned!\n");
-            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign);
+            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign, 0);
             return;
         }
 
@@ -183,7 +205,7 @@ static void instr_BLT(rv_core_td *rv_core)
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
             die_msg("Addr misaligned!\n");
-            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign);
+            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign, 0);
             return;
         }
 
@@ -202,7 +224,7 @@ static void instr_BGE(rv_core_td *rv_core)
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
             die_msg("Addr misaligned!\n");
-            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign);
+            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign, 0);
             return;
         }
 
@@ -218,7 +240,7 @@ static void instr_BLTU(rv_core_td *rv_core)
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
             die_msg("Addr misaligned!\n");
-            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign);
+            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign, 0);
             return;
         }
 
@@ -234,7 +256,7 @@ static void instr_BGEU(rv_core_td *rv_core)
         if(ADDR_MISALIGNED(rv_core->jump_offset))
         {
             die_msg("Addr misaligned!\n");
-            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign);
+            prepare_sync_trap(rv_core, trap_cause_instr_addr_misalign, 0);
             return;
         }
 
@@ -458,6 +480,10 @@ static void instr_SB(rv_core_td *rv_core)
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     uint8_t value_to_write = (uint8_t)rv_core->x[rv_core->rs2];
+    // if(address == 0x000e4725)
+    // {
+    //     printf("instr_SB: addr: %x! value: %x x[rs2]: %x pc: %x\n", address, value_to_write, rv_core->x[rv_core->rs2], rv_core->pc);
+    // }
     mmu_checked_bus_access(rv_core, rv_core->curr_priv_mode, bus_write_access, address, &value_to_write, 1);
 }
 
@@ -467,6 +493,10 @@ static void instr_SH(rv_core_td *rv_core)
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     uint16_t value_to_write = (uint16_t)rv_core->x[rv_core->rs2];
+    // if(address == 0x000e4725)
+    // {
+    //     printf("instr_SH: addr: %x! value: %x pc: %x\n", address, value_to_write, rv_core->pc);
+    // }
     mmu_checked_bus_access(rv_core, rv_core->curr_priv_mode, bus_write_access, address, &value_to_write, 2);
 }
 
@@ -476,6 +506,17 @@ static void instr_SW(rv_core_td *rv_core)
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     rv_uint_xlen value_to_write = (rv_uint_xlen)rv_core->x[rv_core->rs2];
+
+    // if(address == 0x000e4725 || value_to_write == 0x000e4725)
+    // {
+    //     printf("instr_SW: addr: %x! value: %x pc: %x\n", address, value_to_write, rv_core->pc);
+    // }
+
+    // if(rv_core->pc == 0xc05b7244)
+    // {
+    //     printf("instr_SW: addr: %x! value: %x pc: %x\n", address, value_to_write, rv_core->pc);
+    // }
+
     mmu_checked_bus_access(rv_core, rv_core->curr_priv_mode, bus_write_access, address, &value_to_write, 4);
 }
 
@@ -600,9 +641,14 @@ static void instr_SW(rv_core_td *rv_core)
             if(csr_read_reg(rv_core->csr_regs, rv_core->curr_priv_mode, csr_addr, &csr_val))
             {
                 // die_msg("Error reading CSR %x "PRINTF_FMT"\n", csr_addr, rv_core->pc);
-                prepare_sync_trap(rv_core, trap_cause_illegal_instr);
+                prepare_sync_trap(rv_core, trap_cause_illegal_instr, 0);
                 return;
             }
+
+            // if(csr_addr == CSR_ADDR_MSCRATCH)
+            // {
+            //     printf("READ: mscratch! %x pc: %x\n", csr_val, rv_core->pc);
+            // }
         }
 
         not_allowed_bits = csr_val & ~csr_mask;
@@ -611,9 +657,14 @@ static void instr_SW(rv_core_td *rv_core)
         if(csr_write_reg(rv_core->csr_regs, rv_core->curr_priv_mode, csr_addr, new_csr_val))
         {
             // die_msg("Error reading CSR %x "PRINTF_FMT"\n", csr_addr, rv_core->pc);
-            prepare_sync_trap(rv_core, trap_cause_illegal_instr);
+            prepare_sync_trap(rv_core, trap_cause_illegal_instr, 0);
             return;
         }
+
+        // if(csr_addr == CSR_ADDR_MSCRATCH)
+        // {
+        //     printf("WRITE: mscratch! %x pc: %x priv: %x\n", new_csr_val, rv_core->pc, rv_core->curr_priv_mode);
+        // }
 
         rv_core->x[rv_core->rd] = csr_val & csr_mask;
     }
@@ -629,7 +680,7 @@ static void instr_SW(rv_core_td *rv_core)
         if(csr_read_reg(rv_core->csr_regs, rv_core->curr_priv_mode, csr_addr, &csr_val))
         {
             // die_msg("Error reading CSR %x "PRINTF_FMT"\n", csr_addr, rv_core->pc);
-            prepare_sync_trap(rv_core, trap_cause_illegal_instr);
+            prepare_sync_trap(rv_core, trap_cause_illegal_instr, 0);
             return;
         }
 
@@ -640,7 +691,7 @@ static void instr_SW(rv_core_td *rv_core)
             if(csr_write_reg(rv_core->csr_regs, rv_core->curr_priv_mode, csr_addr, csr_val | new_csr_val))
             {
                 // die_msg("Error reading CSR %x "PRINTF_FMT"\n", csr_addr, rv_core->pc);
-                prepare_sync_trap(rv_core, trap_cause_illegal_instr);
+                prepare_sync_trap(rv_core, trap_cause_illegal_instr, 0);
                 return;
             }
         }
@@ -659,7 +710,7 @@ static void instr_SW(rv_core_td *rv_core)
         if(csr_read_reg(rv_core->csr_regs, rv_core->curr_priv_mode, csr_addr, &csr_val))
         {
             // die_msg("Error reading CSR %x "PRINTF_FMT"\n", csr_addr, rv_core->pc);
-            prepare_sync_trap(rv_core, trap_cause_illegal_instr);
+            prepare_sync_trap(rv_core, trap_cause_illegal_instr, 0);
             return;
         }
 
@@ -670,7 +721,7 @@ static void instr_SW(rv_core_td *rv_core)
             if(csr_write_reg(rv_core->csr_regs, rv_core->curr_priv_mode, csr_addr, csr_val & ~new_csr_val))
             {
                 // die_msg("Error reading CSR %x "PRINTF_FMT"\n", csr_addr, rv_core->pc);
-                prepare_sync_trap(rv_core, trap_cause_illegal_instr);
+                prepare_sync_trap(rv_core, trap_cause_illegal_instr, 0);
                 return;
             }
         }
@@ -709,8 +760,8 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_ECALL(rv_core_td *rv_core)
     {
-        CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
-        prepare_sync_trap(rv_core, trap_cause_user_ecall + rv_core->curr_priv_mode);
+        // printf("%s: %x from: %d\n", __func__, rv_core->instruction, trap_cause_user_ecall + rv_core->curr_priv_mode);
+        prepare_sync_trap(rv_core, trap_cause_user_ecall + rv_core->curr_priv_mode, 0);
     }
 
     static void instr_EBREAK(rv_core_td *rv_core)
@@ -734,11 +785,20 @@ static void instr_SW(rv_core_td *rv_core)
         privilege_level restored_priv_level = trap_restore_irq_settings(&rv_core->trap, rv_core->curr_priv_mode);
         rv_core->curr_priv_mode = restored_priv_level;
         rv_core->next_pc = *rv_core->trap.s.regs[trap_reg_epc];
+        // if(CHECK_BIT(*rv_core->trap.m.regs[trap_reg_status], TRAP_XSTATUS_TSR_BIT))
+        // {
+        //     printf("TSR!!!!\n");
+        //     while(1);
+        // }
+
+        // printf("SRET!!!! %x\n", *rv_core->trap.m.regs[trap_reg_status]);
     }
 
     static void instr_URET(rv_core_td *rv_core)
     {
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+        printf("URET!\n");
+        while(1);
         /* not implemented */
         (void)rv_core;
     }
@@ -1699,7 +1759,19 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
 #ifdef CSR_SUPPORT
     static inline void rv_core_update_interrupts(rv_core_td *rv_core, uint8_t mei, uint8_t mti, uint8_t msi)
     {
-        trap_set_pending_bits_all_levels(&rv_core->trap, mei, mti, msi);
+        // if(*rv_core->trap.m.regs[trap_reg_status] & (1 << (TRAP_XSTATUS_MIE_BIT) ) )
+        // {
+        //     printf("MIE on!\n");
+        //     while(1);
+        // }
+
+        trap_set_pending_bits(&rv_core->trap, mei, mti, msi);
+
+        if(((1 << 11) & *rv_core->trap.m.regs[trap_reg_ie]))
+        {
+            // printf("mei: %d mti: %d msi: %d\n", mei, mti, msi);
+            printf("mie: %x mip %x mstatus %x mideleg %x\n", *rv_core->trap.m.regs[trap_reg_ie], *rv_core->trap.m.regs[trap_reg_ip], *rv_core->trap.m.regs[trap_reg_status], *rv_core->trap.m.regs[trap_reg_ideleg]);
+        }
     }
 
     /* Interrupts are prioritized as follows, in decreasing order of priority:
@@ -1709,40 +1781,67 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
     */
     static inline uint8_t rv_core_prepare_interrupts(rv_core_td *rv_core)
     {
-        trap_irq_type irq_type = 0;
+        trap_cause_interrupt interrupt_cause = 0;
         trap_ret trap_retval = 0;
         privilege_level serving_priv_level = machine_mode;
-        rv_uint_xlen cause = 0;
 
         // static rv_uint_xlen old_status = 0;
         // if(*rv_core->trap.m.regs[trap_reg_status] != old_status)
         //     printf("TRACE status: %lx\n", *rv_core->trap.m.regs[trap_reg_status]);
         // old_status = *rv_core->trap.m.regs[trap_reg_status];
 
-        /* First get the target privilege level of the interrupt */
-        for(irq_type=trap_type_exti;irq_type>=trap_type_swi;irq_type--)
-        {
-            trap_retval = trap_check_interrupt_level(&rv_core->trap, rv_core->curr_priv_mode, irq_type, &serving_priv_level);
-            if(trap_retval)
-            {
-                cause = (irq_type*priv_level_max) + serving_priv_level;
-                rv_core->pc = trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 1, cause, rv_core->pc);
-                rv_core->curr_priv_mode = serving_priv_level;
-                return 1;
-            }
-        }
+        // static rv_uint_xlen tmp_value = 0;
 
         if(rv_core->sync_trap_pending)
         {
             serving_priv_level = trap_check_exception_delegation(&rv_core->trap, rv_core->curr_priv_mode, rv_core->sync_trap_cause);
 
-            // printf("exception! %x %x "PRINTF_FMT" "PRINTF_FMT"\n", serving_priv_level, rv_core->sync_trap_pending, rv_core->sync_trap_cause, *rv_core->trap.m.regs[trap_reg_status]);
-            rv_core->pc = trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 0, rv_core->sync_trap_cause, rv_core->pc);
-            rv_core->curr_priv_mode = serving_priv_level;
-            rv_core->sync_trap_pending = 0;
-            rv_core->sync_trap_cause = 0;
-            return 1;
+            if(serving_priv_level >= rv_core->curr_priv_mode)
+            {
+                // printf("exception! serving priv: %d cause %d edeleg %x curr priv mode %x cycle %ld\n", serving_priv_level, rv_core->sync_trap_cause, *rv_core->trap.m.regs[trap_reg_edeleg], rv_core->curr_priv_mode, rv_core->curr_cycle);
+                // printf("exception! serving: %x curr priv %x "PRINTF_FMT" "PRINTF_FMT" pc: "PRINTF_FMT"\n", serving_priv_level, rv_core->curr_priv_mode, rv_core->sync_trap_cause, *rv_core->trap.m.regs[trap_reg_status], rv_core->pc);
+                rv_core->pc = trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 0, rv_core->sync_trap_cause, rv_core->pc, rv_core->sync_trap_tval);
+                rv_core->curr_priv_mode = serving_priv_level;
+                rv_core->sync_trap_pending = 0;
+                rv_core->sync_trap_cause = 0;
+                rv_core->sync_trap_tval = 0;
+                return 1;
+            }
         }
+
+        for(interrupt_cause=trap_cause_machine_exti;interrupt_cause>=trap_cause_user_swi;interrupt_cause--)
+        {
+            trap_retval = trap_check_interrupt_pending(&rv_core->trap, rv_core->curr_priv_mode, interrupt_cause, &serving_priv_level);
+            if(trap_retval)
+            {
+                rv_core->pc = trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 1, interrupt_cause, rv_core->pc, rv_core->sync_trap_tval);
+                rv_core->curr_priv_mode = serving_priv_level;
+                // tmp_value = 1;
+
+                // if(interrupt_cause == trap_cause_super_exti)
+                //      printf("irq! serving priv: %d cause %d cycle %ld ip: "PRINTF_FMT" pc: "PRINTF_FMT"\n", serving_priv_level, interrupt_cause, rv_core->curr_cycle, *rv_core->trap.m.regs[trap_reg_ip], rv_core->pc);
+
+
+                return 1;
+            }            
+        }
+
+        // if(tmp_value==1)
+        //     printf("no interrupt anymore! %x\n", *rv_core->trap.m.regs[trap_reg_ip]);
+
+        // /* First get the target privilege level of the interrupt */
+        // for(irq_type=trap_type_exti;irq_type>=trap_type_swi;irq_type--)
+        // {
+        //     trap_retval = trap_check_interrupt_level(&rv_core->trap, rv_core->curr_priv_mode, irq_type, &serving_priv_level);
+        //     if(trap_retval)
+        //     {
+        //         printf("irq! serving priv: %d\n", serving_priv_level);
+        //         cause = (irq_type*priv_level_max) + serving_priv_level;
+        //         rv_core->pc = trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 1, cause, rv_core->pc);
+        //         rv_core->curr_priv_mode = serving_priv_level;
+        //         return 1;
+        //     }
+        // }
 
         return 0;
     }
@@ -1795,13 +1894,28 @@ void rv_core_run(rv_core_td *rv_core)
     /* increase program counter here */
     rv_core->pc = rv_core->next_pc ? rv_core->next_pc : rv_core->pc + 4;
 
+    // if(rv_core->curr_priv_mode == user_mode)
+    //     printf("user mode!\n");
+    
+    // if(rv_core->x[10] == 0xe4725)
+    //     printf("core_run %x a0:%x t0:%x t1:%x\n", rv_core->pc, rv_core->x[10], rv_core->x[5], rv_core->x[6]);
+
+    // rv_uint_xlen tmp_read_val = 0;
+    // rv_core->bus_access(rv_core->priv, machine_mode, bus_read_access, 0x825DCFFF, &tmp_read_val, 4);
+    // if(tmp_read_val != 0)
+    //     printf("core_run: %x\n", tmp_read_val);
+
     rv_core->curr_cycle++;
     rv_core->csr_regs[CSR_ADDR_MCYCLE].value = rv_core->curr_cycle;
     rv_core->csr_regs[CSR_ADDR_MINSTRET].value = rv_core->curr_cycle;
+    rv_core->csr_regs[CSR_ADDR_CYCLE].value = rv_core->curr_cycle;
+    rv_core->csr_regs[CSR_ADDR_TIME].value = rv_core->curr_cycle;
 
     #ifndef RV64
         rv_core->csr_regs[CSR_ADDR_MCYCLEH].value = rv_core->curr_cycle >> 32;
         rv_core->csr_regs[CSR_ADDR_MINSTRETH].value = rv_core->curr_cycle >> 32;
+        rv_core->csr_regs[CSR_ADDR_CYCLEH].value = rv_core->curr_cycle >> 32;
+        rv_core->csr_regs[CSR_ADDR_TIMEH].value = rv_core->curr_cycle >> 32;
     #endif
 }
 
@@ -1874,7 +1988,7 @@ static void rv_core_init_csr_regs(rv_core_td *rv_core)
     /* Set supported ISA Extension bits */
     *rv_core->trap.m.regs[trap_reg_isa] = RV_SUPPORTED_EXTENSIONS;
     #ifdef RV64
-        *rv_core->trap.m.regs[trap_reg_isa] |= (2 << (XLEN-2));
+        *rv_core->trap.m.regs[trap_reg_isa] |= (2UL << (XLEN-2));
     #else
         *rv_core->trap.m.regs[trap_reg_isa] |= (1 << (XLEN-2));
     #endif
@@ -1930,19 +2044,19 @@ static void rv_core_init_csr_regs(rv_core_td *rv_core)
     INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MINSTRET), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL);
     INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MINSTRETH), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL);
 
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_CYCLE), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RW(supervisor_mode) | CSR_ACCESS_RW(user_mode), 0, CSR_MASK_ZERO);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_CYCLEH), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RW(supervisor_mode) | CSR_ACCESS_RW(user_mode), 0, CSR_MASK_ZERO);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_TIME), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RW(supervisor_mode) | CSR_ACCESS_RW(user_mode), 0, CSR_MASK_ZERO);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_TIMEH), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RW(supervisor_mode) | CSR_ACCESS_RW(user_mode), 0, CSR_MASK_ZERO);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_CYCLE), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_WR_ALL);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_CYCLEH), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_WR_ALL);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_TIME), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_WR_ALL);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_TIMEH), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_WR_ALL);
 
     /* All others are WARL, they start at 3 */
     for(i=3;i<CSR_HPMCOUNTER_WARL_MAX;i++)
-        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MCYCLE+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO);
-        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_CYCLE+i), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RW(supervisor_mode) | CSR_ACCESS_RW(user_mode), 0, CSR_MASK_ZERO);
+        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MCYCLE+i), CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO);
+        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_CYCLE+i), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_ZERO);
 
     for(i=3;i<CSR_HPMCOUNTER_WARL_MAX;i++)
         INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MCYCLEH+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO);
-        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_CYCLEH+i), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RW(supervisor_mode) | CSR_ACCESS_RW(user_mode), 0, CSR_MASK_ZERO);
+        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_CYCLEH+i), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_ZERO);
 }
 
 void rv_core_init(rv_core_td *rv_core,

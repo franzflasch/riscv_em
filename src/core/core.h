@@ -6,12 +6,14 @@
 #include <csr.h>
 #include <pmp.h>
 #include <trap.h>
-#include <mmu.h>
 #include <clint.h>
 
 #define NR_RVI_REGS 32
 
 typedef struct rv_core_struct rv_core_td;
+
+#include <mmu.h>
+
 typedef struct rv_core_struct
 {
     privilege_level curr_priv_mode;
@@ -37,6 +39,7 @@ typedef struct rv_core_struct
 
     uint8_t sync_trap_pending;
     rv_uint_xlen sync_trap_cause;
+    rv_uint_xlen sync_trap_tval;
 
     /* points to the next instruction */
     void (*execute_cb)(rv_core_td *rv_core);

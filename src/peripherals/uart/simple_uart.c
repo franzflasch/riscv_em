@@ -111,7 +111,7 @@ uint8_t simple_uart_update(void *priv)
 
     if( uart->rx_irq_enabled && (fifo_is_full(&uart->rx_fifo)) ) //&& !uart->rx_triggered )
     {
-        //printf("RX IRQ trigger! %d\n", count);
+        // printf("RX IRQ trigger! %d\n", count);
         irq_trigger = 1;
         uart->rx_triggered = 1;
         count++;

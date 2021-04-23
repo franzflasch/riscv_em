@@ -158,6 +158,7 @@ rv_ret plic_bus_access(void *priv, privilege_level priv_level, bus_access_type a
         {
             memcpy(u8_ptr, value, len);
             tmp_val = *(uint32_t*)value;
+            // printf("plic write access! "PRINTF_FMT" %x\n", address, tmp_val);
             /* check if it is the claim complete reg */
             if(is_claim_complete)
             {

@@ -176,14 +176,16 @@ void rv_soc_run(rv_soc_td *rv_soc, rv_uint_xlen success_pc, uint64_t num_cycles)
             uart_irq_pending = uart_update(&rv_soc->uart8250);
         #endif
 
-        // printf("Uart pending: %d\n", uart_irq_pending);
-
         /* update interrupt controllers */
         plic_update_pending(&rv_soc->plic, 10, uart_irq_pending);
         mei = plic_update(&rv_soc->plic);
+
+        // if(mei)
+        //     printf("mei Uart pending: %d\n", uart_irq_pending);
+    
         clint_update(&rv_soc->clint, &msi, &mti);
 
-        // if(msi)
+        // if(msi | mti | mei)
         //     printf("mei %d, msi %d, mti %d\n", mei, msi, mti);
 
         /* update CSRs for actual interrupt processing */

@@ -35,7 +35,7 @@ void trap_init(trap_td *trap)
     trap->m.regs[trap_reg_status] = &trap->regs_data.shared.status;
     trap->m.regs[trap_reg_isa] = &trap->regs_data.m_setup.isa;
     trap->m.regs[trap_reg_edeleg] = &trap->regs_data.m_setup.edeleg;
-    trap->m.regs[trap_reg_ideleg] = &trap->regs_data.shared.ideleg;
+    trap->m.regs[trap_reg_ideleg] = &trap->regs_data.m_setup.ideleg;
     trap->m.regs[trap_reg_ie] = &trap->regs_data.shared.ie;
     trap->m.regs[trap_reg_tvec] = &trap->regs_data.m_setup.tvec;
     trap->m.regs[trap_reg_counteren] = &trap->regs_data.m_setup.counteren;
@@ -51,7 +51,7 @@ void trap_init(trap_td *trap)
     trap->s.regs[trap_reg_status] = &trap->regs_data.shared.status;
     trap->s.regs[trap_reg_isa] = &trap->regs_data.s_setup.isa;
     trap->s.regs[trap_reg_edeleg] = &trap->regs_data.s_setup.edeleg;
-    trap->s.regs[trap_reg_ideleg] = &trap->regs_data.shared.ideleg;
+    trap->s.regs[trap_reg_ideleg] = &trap->regs_data.s_setup.ideleg;
     trap->s.regs[trap_reg_ie] = &trap->regs_data.shared.ie;
     trap->s.regs[trap_reg_tvec] = &trap->regs_data.s_setup.tvec;
     trap->s.regs[trap_reg_counteren] = &trap->regs_data.s_setup.counteren;
@@ -67,7 +67,7 @@ void trap_init(trap_td *trap)
     trap->u.regs[trap_reg_status] = &trap->regs_data.shared.status;
     trap->u.regs[trap_reg_isa] = &trap->regs_data.u_setup.isa;
     trap->u.regs[trap_reg_edeleg] = &trap->regs_data.u_setup.edeleg;
-    trap->u.regs[trap_reg_ideleg] = &trap->regs_data.shared.ideleg;
+    trap->u.regs[trap_reg_ideleg] = &trap->regs_data.u_setup.ideleg;
     trap->u.regs[trap_reg_ie] = &trap->regs_data.shared.ie;
     trap->u.regs[trap_reg_tvec] = &trap->regs_data.u_setup.tvec;
     trap->u.regs[trap_reg_counteren] = &trap->regs_data.u_setup.counteren;
@@ -94,6 +94,12 @@ rv_ret trap_m_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_inde
     (void)curr_priv_mode;
     trap_td *trap = priv;
     *out_val = *trap->m.regs[reg_index];
+
+    // if(reg_index==trap_reg_scratch)
+    // {
+    //     printf("scratch!!! %x\n", *out_val );
+    // }
+
     // printf("m read! %d %x\n", reg_index, *out_val);
     return rv_ok;
 }
@@ -132,91 +138,86 @@ rv_ret trap_u_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_inde
     return rv_ok;
 }
 
-void trap_set_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int)
+void trap_set_pending_bits(trap_td *trap, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int)
 {
-    trap_regs_p_td *x = get_priv_regs(trap, priv_level);
-    rv_uint_xlen irq_bit = 0;
+    /* IRQ coming from the clint are only assigned to machine mode bits, all
+       other bits are actually pure SW interrupts, set for e.g. by m-mode context
+     */
+    trap_regs_p_td *x = get_priv_regs(trap, machine_mode);
 
-    irq_bit = (trap_type_exti*priv_level_max) + priv_level;
-    if(CHECK_BIT(*x->regs[trap_reg_ie], irq_bit))
-        assign_xlen_bit(x->regs[trap_reg_ip], irq_bit, ext_int);
+    /* "Additionally, the platformlevel interrupt controller may generate supervisor-level external interrupts. The logical-OR of the
+    software-writeable bit and the signal from the external interrupt controller is used to generate
+    external interrupts to the supervisor." */
 
-    irq_bit = (trap_type_ti*priv_level_max) + priv_level;
-    if(CHECK_BIT(*x->regs[trap_reg_ie], irq_bit))
-        assign_xlen_bit(x->regs[trap_reg_ip], irq_bit, tim_int);
+    // /* Get seip, if it is possibly set to 1 by SW */
+    // uint8_t seip = CHECK_BIT(*x->regs[trap_reg_ip], trap_cause_super_exti) ? 1 : 0;
+    // /* now OR it with ext_int */
+    // seip |= ext_int;
 
-    irq_bit = (trap_type_swi*priv_level_max) + priv_level;
-    if(CHECK_BIT(*x->regs[trap_reg_ie], irq_bit))
-        assign_xlen_bit(x->regs[trap_reg_ip], irq_bit, sw_int);
+    if(CHECK_BIT(*x->regs[trap_reg_ie], trap_cause_machine_exti))
+        assign_xlen_bit(x->regs[trap_reg_ip], trap_cause_machine_exti, ext_int);
+
+    /* Special seip handling */
+    if(CHECK_BIT(*x->regs[trap_reg_ie], trap_cause_super_exti))
+        assign_xlen_bit(x->regs[trap_reg_ip], trap_cause_super_exti, ext_int);
+
+    if(CHECK_BIT(*x->regs[trap_reg_ie], trap_cause_machine_ti))
+        assign_xlen_bit(x->regs[trap_reg_ip], trap_cause_machine_ti, tim_int);
+
+    if(CHECK_BIT(*x->regs[trap_reg_ie], trap_cause_machine_swi))
+        assign_xlen_bit(x->regs[trap_reg_ip], trap_cause_machine_swi, sw_int);
 }
 
-void trap_set_pending_bits_all_levels(trap_td *trap, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int)
+trap_ret trap_check_interrupt_pending(trap_td *trap, privilege_level curr_priv_mode, trap_cause_interrupt irq, privilege_level *serving_priv_level )
 {
-    trap_set_pending_bits(trap, machine_mode, ext_int, tim_int, sw_int);
-    trap_set_pending_bits(trap, supervisor_mode, ext_int, tim_int, sw_int);
-    trap_set_pending_bits(trap, user_mode, ext_int, tim_int, sw_int);
-}
+    rv_uint_xlen interrupt_bit = (1 << irq);
+    privilege_level delegation_level = 0;
+    trap_regs_p_td *x = NULL;
+    trap_regs_p_td *deleg_register_set = NULL;
+    *serving_priv_level = machine_mode;
 
-void trap_clear_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int)
-{
-    rv_uint_xlen tmp = ( ((ext_int&1) << (8 + priv_level)) | 
-                         ((tim_int&1) << (4 + priv_level)) | 
-                         ((sw_int&1) << priv_level) );
+    x = get_priv_regs(trap, curr_priv_mode);
 
-    trap_regs_p_td *x = get_priv_regs(trap, priv_level);
-    *x->regs[trap_reg_ip] &= ~tmp;
-}
-
-void trap_clear_pending_bits_all_levels(trap_td *trap, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int)
-{
-    trap_clear_pending_bits(trap, machine_mode, ext_int, tim_int, sw_int);
-    trap_clear_pending_bits(trap, supervisor_mode, ext_int, tim_int, sw_int);
-    trap_clear_pending_bits(trap, user_mode, ext_int, tim_int, sw_int);
-}
-
-trap_ret trap_check_interrupt_pending(trap_td *trap, privilege_level curr_priv_mode, privilege_level target_priv_mode, trap_irq_type type )
-{
-    rv_uint_xlen interrupt_bit = GET_LOCAL_IRQ_BIT(target_priv_mode, type);
-
-    trap_regs_p_td *x = get_priv_regs(trap, curr_priv_mode);
-
-    /* delegation will only be done if the currenc priv level is lower than the target priv level */
-    if( (*x->regs[trap_reg_ideleg] & interrupt_bit) && 
-        (curr_priv_mode < target_priv_mode) )
-        return trap_ret_irq_delegated;
-
-    /* check if an interrupt is pending */
-    if( !(*x->regs[trap_reg_ip] & interrupt_bit ) )
-        return trap_ret_none;
-
-    /* check if interrupts are even enabled */
-    if( !(*x->regs[trap_reg_status] & GET_GLOBAL_IRQ_BIT(target_priv_mode) ) ||
+    /* check if an interrupt is pending and if it is even enabled. 
+     * we only need to do this once for all priv levels, as
+     * these registers are shared accross all levels
+     */
+    if( !(*x->regs[trap_reg_ip] & interrupt_bit ) || 
         !(*x->regs[trap_reg_ie] & interrupt_bit ) )
         return trap_ret_none;
 
-    return trap_ret_irq_pending;
-}
-
-trap_ret trap_check_interrupt_level(trap_td *trap, privilege_level curr_priv_mode, trap_irq_type type, privilege_level *serving_priv_level)
-{
-    trap_ret ret_val = trap_ret_none;
-    privilege_level priv_index = 0;
-
-    /* First get the target privilege level of the interrupt */
-    for(priv_index=machine_mode;priv_index>=user_mode;priv_index--)
+    /* If we come here than there is an interrupt pending, now check if it is delegated to lower priv levels */
+    for(delegation_level=machine_mode;delegation_level>=curr_priv_mode;delegation_level--)
     {
-        if(priv_index == reserved_mode)
+        if(delegation_level == reserved_mode)
             continue;
 
-        ret_val = trap_check_interrupt_pending(trap, curr_priv_mode, priv_index, type);
+        deleg_register_set = get_priv_regs(trap, delegation_level);
 
-        if((ret_val == trap_ret_irq_pending) || (ret_val == trap_ret_none))
+        /* check which level is intended to serve the interrupt */
+        if( !( *deleg_register_set->regs[trap_reg_ideleg] & interrupt_bit) )
             break;
     }
 
-    /* set target priv mode to the privilege level which is supposed to serve the IRQ */
-    *serving_priv_level = (ret_val == trap_ret_irq_pending) ? priv_index : priv_level_unknown;
-    return ret_val;
+    // printf("delegation level %d\n", delegation_level);
+
+    /* if we are on a lower priv level and
+     * the lower xIE is globally enabled, we need to handle the IRQ
+     * on a higher level. (except if they are delegated)
+     */
+    if( /* First we check if we need to handle this irq. It depends on the xIE bits and the current privilege level
+         * we do this by shifting the mask 0xF0 towards the xIE bits */ 
+        ( (0xF0 >> (priv_level_max - curr_priv_mode)) & (*x->regs[trap_reg_status] & 0xF) ) & 
+        /* The first check might result in a true but it could still be possible that it is delegated
+         * and not handled by the curr_priv, in this case we do not serve any interrupt */
+        ( 0xF >> (machine_mode - delegation_level) ) 
+      )
+    {
+        *serving_priv_level = delegation_level;
+        return trap_ret_irq_pending;   
+    }
+
+    return trap_ret_none;
 }
 
 privilege_level trap_check_exception_delegation(trap_td *trap, privilege_level curr_priv_mode, trap_cause_exception cause)
@@ -237,9 +238,10 @@ privilege_level trap_check_exception_delegation(trap_td *trap, privilege_level c
 
         if( !(*x->regs[trap_reg_edeleg] & exception_bit) )
             break;
-        
-        if( curr_priv_mode >= priv_index )
-            break;
+
+        (void) curr_priv_mode;
+        // if( curr_priv_mode >= priv_index )
+        //     break;
     }
 
     return priv_index;
@@ -250,7 +252,8 @@ rv_uint_xlen trap_serve_interrupt(trap_td *trap,
                                   privilege_level previous_priv_mode, 
                                   rv_uint_xlen is_interrupt,
                                   rv_uint_xlen cause,
-                                  rv_uint_xlen curr_pc)
+                                  rv_uint_xlen curr_pc,
+                                  rv_uint_xlen tval)
 {
     rv_uint_xlen ie = 0;
     trap_regs_p_td *x = get_priv_regs(trap, serving_priv_mode);
@@ -276,6 +279,9 @@ rv_uint_xlen trap_serve_interrupt(trap_td *trap,
     assign_xlen_bit(x->regs[trap_reg_status], TRAP_XSTATUS_UPIE_BIT + serving_priv_mode, ie);
 
     CLEAR_BIT(*x->regs[trap_reg_status], serving_priv_mode);
+
+    /* Also set tval */
+    *x->regs[trap_reg_tval] = tval;
 
     return *x->regs[trap_reg_tvec];
 }

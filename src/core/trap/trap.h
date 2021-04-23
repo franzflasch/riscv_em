@@ -33,6 +33,7 @@
 #define TRAP_XSTATUS_MPRV_BIT 17
 #define TRAP_XSTATUS_SUM_BIT 18
 #define TRAP_XSTATUS_MXR_BIT 19
+#define TRAP_XSTATUS_TSR_BIT 22
 
 #define GET_GLOBAL_IRQ_BIT(priv_level) (1<<priv_level)
 #define GET_LOCAL_IRQ_BIT(priv_level, trap_type) ( (1<<(priv_level_max*trap_type)) << priv_level )
@@ -40,6 +41,8 @@
 
 typedef enum
 {
+    trap_cause_irq_min = -1,
+
     trap_cause_user_swi = 0,
     trap_cause_super_swi,
     trap_cause_rsvd_0,
@@ -110,14 +113,12 @@ typedef enum
 {
     trap_ret_none = 0,
     trap_ret_irq_pending,
-    trap_ret_irq_delegated,
 
 } trap_ret;
 
 typedef struct trap_shared_struct
 {
     rv_uint_xlen status;
-    rv_uint_xlen ideleg;
     rv_uint_xlen ie;
     rv_uint_xlen ip;
 
@@ -126,7 +127,8 @@ typedef struct trap_shared_struct
 typedef struct trap_setup_struct
 {
     rv_uint_xlen isa;
-    rv_uint_xlen edeleg; 
+    rv_uint_xlen edeleg;
+    rv_uint_xlen ideleg;
     rv_uint_xlen tvec;
     rv_uint_xlen counteren;
 
@@ -186,12 +188,13 @@ rv_ret trap_s_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_inde
 rv_ret trap_u_write(void *priv, privilege_level curr_priv, uint16_t reg_index, rv_uint_xlen csr_val);
 rv_ret trap_u_read(void *priv, privilege_level curr_priv_mode, uint16_t reg_index, rv_uint_xlen *out_val);
 
-void trap_set_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int);
-void trap_set_pending_bits_all_levels(trap_td *trap, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int);
-void trap_clear_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int);
-void trap_clear_pending_bits_all_levels(trap_td *trap, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int);
+// void trap_set_pending_bits(trap_td *trap, privilege_level priv_level, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int);
+// void trap_set_pending_bits_all_levels(trap_td *trap, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int);
+void trap_set_pending_bits(trap_td *trap, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int);
+// void trap_clear_pending_bits_all_levels(trap_td *trap, uint8_t ext_int, uint8_t tim_int, uint8_t sw_int);
 
-trap_ret trap_check_interrupt_pending(trap_td *trap, privilege_level curr_priv_mode, privilege_level target_priv_mode, trap_irq_type type);
+// trap_ret trap_check_interrupt_pending(trap_td *trap, privilege_level curr_priv_mode, privilege_level target_priv_mode, trap_irq_type type);
+trap_ret trap_check_interrupt_pending(trap_td *trap, privilege_level curr_priv_mode, trap_cause_interrupt irq, privilege_level *serving_priv_level );
 trap_ret trap_check_interrupt_level(trap_td *trap, privilege_level curr_priv_mode, trap_irq_type type, privilege_level *ret_priv_mode);
 privilege_level trap_check_exception_delegation(trap_td *trap, privilege_level curr_priv_mode, trap_cause_exception cause);
 rv_uint_xlen trap_serve_interrupt(trap_td *trap, 
@@ -199,7 +202,8 @@ rv_uint_xlen trap_serve_interrupt(trap_td *trap,
                                   privilege_level previous_priv_mode, 
                                   rv_uint_xlen is_interrupt,
                                   rv_uint_xlen cause,
-                                  rv_uint_xlen curr_pc);
+                                  rv_uint_xlen curr_pc,
+                                  rv_uint_xlen tval);
 
 privilege_level trap_restore_irq_settings(trap_td *trap, privilege_level serving_priv_mode);
 

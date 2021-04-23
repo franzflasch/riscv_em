@@ -1,13 +1,13 @@
 /dts-v1/;
 / {
-    #address-cells = <1>;
-    #size-cells = <1>;
+    #address-cells = <2>;
+    #size-cells = <2>;
     compatible = "riscv-virtio";
     model = "riscv-virtio,qemu";
 
     chosen {
-        bootargs = "root=/dev/vda ro console=ttyS0";
-        stdout-path = "/uart@10000000";
+        bootargs = "root=/dev/vda ro console=ttySU0";
+        stdout-path = "/uart@3000000";
     };
 
     cpus {
@@ -19,8 +19,9 @@
             device_type = "cpu";
             reg = <0>;
             compatible = "riscv";
-            riscv,isa = "rv32ima";
-            mmu-type = "none";
+            riscv,isa = "rv32imasu";
+            mmu-type = "riscv,sv32";
+            clock-frequency = <10000000>;
             cpu0_intc: interrupt-controller {
                 #interrupt-cells = <1>;
                 compatible = "riscv,cpu-intc";
@@ -31,19 +32,19 @@
 
     sram: memory@80000000 {
         device_type = "memory";
-        reg = <0x80000000 0x8000000>;
+        reg = <0x0 0x80000000 0x0 0x8000000>;
     };
 
     soc {
-        #address-cells = <1>;
-        #size-cells = <1>;
+        #address-cells = <2>;
+        #size-cells = <2>;
         compatible = "simple-bus";
         ranges;
 
         clint0: clint@2000000 {
             #interrupt-cells = <1>;
             compatible = "riscv,clint0";
-            reg = <0x2000000 0xC000>;
+            reg = <0x0 0x2000000 0x0 0xC000>;
             interrupts-extended =  <&cpu0_intc 3 &cpu0_intc 7>;
         };
 
@@ -52,8 +53,8 @@
             #interrupt-cells = <1>;
             interrupt-controller;
             compatible = "riscv,plic0";
-            reg = <0xC000000 0x4000000>;
-            interrupts-extended = <&cpu0_intc 11>, <&cpu0_intc 0xffffffff>;
+            reg = <0x0 0xC000000 0x0 0x4000000>;
+            interrupts-extended = <&cpu0_intc 9>, <&cpu0_intc 11>;
             riscv,ndev = <1>;
             riscv,max-priority = <7>;
         };
@@ -70,7 +71,7 @@
             interrupts = <0xa>;
             interrupt-parent = <&plic0>;
             clock-frequency = <0x384000>;
-            reg = <0x3000000 0x1>;
+            reg = <0x0 0x3000000 0x0 0x1>;
             compatible = "simple-uart";
         };
     };

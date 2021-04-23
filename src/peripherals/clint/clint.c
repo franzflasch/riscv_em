@@ -22,6 +22,8 @@ static rv_int_xlen get_u8_arr_index_offs(rv_uint_xlen address)
     }
     else if(ADDR_WITHIN(address, CLINT_MTIME_OFFS, CLINT_REG_SIZE_BYTES))
     {
+        // printf("NOOOOO!\n");
+        // while(1);
         return (2*CLINT_REG_SIZE_BYTES);
     }
 
@@ -42,9 +44,23 @@ rv_ret clint_bus_access(void *priv, privilege_level priv_level, bus_access_type 
     {
         tmp_addr = (address & 0x7) + arr_index_offs;
         if(access_type == bus_write_access)
+        {
             memcpy(&tmp_u8[tmp_addr], value, len);
-        else 
+            // rv_uint_xlen tmp_xlen = 0;
+            // memcpy(&tmp_xlen, value, len);
+            // printf("addr: %x CMP %d cmp reg: %ld time reg: %ld len %d arr index offs %d tmp_addr: %d\n", address, tmp_u32, clint->regs[clint_mtimecmp], clint->regs[clint_mtime], len, arr_index_offs, tmp_addr);
+            // if(address == 0xBFF8)
+            //     printf("addr: "PRINTF_FMT" CMP %ld cmp reg: %lu time reg: %lu tmp_addr "PRINTF_FMT"\n", address, tmp_xlen, clint->regs[clint_mtimecmp], clint->regs[clint_mtime], tmp_addr);
+        }
+        else
+        {
             memcpy(value, &tmp_u8[tmp_addr], len);
+            // if(address == 0xBFF8)
+            // {
+            //     printf("0xBFF8!!!!!!!!!!!!!!\n");
+            //     while(1);
+            // }
+        }
     }
 
     return rv_ok;
@@ -52,12 +68,15 @@ rv_ret clint_bus_access(void *priv, privilege_level priv_level, bus_access_type 
 
 void clint_update(clint_td *clint, uint8_t *msi, uint8_t *mti)
 {
-    // static uint8_t i = 0;
-    // if(i%1 == 0)
+    static int i = 1;
+    if(i%1 == 0)
         clint->regs[clint_mtime]+=1;
 
-    // i++;
+    i++;
 
     *mti = (clint->regs[clint_mtime] >= clint->regs[clint_mtimecmp]);
     *msi = (clint->regs[clint_msip] & 0x1);
+
+    // if(*mti)
+    //     printf("MTI!!! time: %ld cmp: %ld\n", clint->regs[clint_mtime], clint->regs[clint_mtimecmp]);
 }
