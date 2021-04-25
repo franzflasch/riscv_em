@@ -50,23 +50,6 @@ rv_ret pmp_checked_bus_access(void *priv, privilege_level priv_level, bus_access
                               (access_type == bus_read_access) ? trap_cause_load_access_fault : 
                               trap_cause_store_amo_access_fault;
 
-    // if(addr == 0x825d3000)
-    // {
-    //     int tmp_i = 0;
-    //     rv_uint_xlen *tmp = value;
-    //     rv_uint_xlen tmp_read_val = 0;
-
-    //     for(tmp_i=-10000;tmp_i<10000;tmp_i+=4)
-    //     {
-    //         rv_core->bus_access(rv_core->priv, machine_mode, bus_read_access, 0x825dd000 + tmp_i, &tmp_read_val, 4);
-    //         if(tmp_read_val != 0)
-    //             printf("READ::addr: %x: %x\n", 0x825dd000 + tmp_i, tmp_read_val);
-    //     }
-
-    //     printf("pmp_checked_bus_access addr: %x! access_type: %d priv: %d value: %x pc: %x\n", addr, access_type, priv_level, *tmp, rv_core->pc);
-    // }
-
-
     if(pmp_mem_check(&rv_core->pmp, priv_level, addr, len, access_type))
     {
         printf("PMP Violation!\n");
@@ -93,11 +76,8 @@ rv_ret mmu_checked_bus_access(void *priv, privilege_level priv_level, bus_access
     rv_uint_xlen tmp = *(rv_uint_xlen *)value;
     uint64_t phys_addr = mmu_virt_to_phys(&rv_core->mmu, internal_priv_level, addr, access_type, mxr, sum, &mmu_ret_val, rv_core, tmp);
 
-    // printf("translated addr: virt: %x phys: %lx\n", addr, phys_addr);
-
     if(mmu_ret_val != mmu_ok)
     {
-        // printf("mmu sync trap! "PRINTF_FMT"\n", trap_cause);
         prepare_sync_trap(rv_core, trap_cause, addr);
         return rv_err;
     }
@@ -480,10 +460,6 @@ static void instr_SB(rv_core_td *rv_core)
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     uint8_t value_to_write = (uint8_t)rv_core->x[rv_core->rs2];
-    // if(address == 0x000e4725)
-    // {
-    //     printf("instr_SB: addr: %x! value: %x x[rs2]: %x pc: %x\n", address, value_to_write, rv_core->x[rv_core->rs2], rv_core->pc);
-    // }
     mmu_checked_bus_access(rv_core, rv_core->curr_priv_mode, bus_write_access, address, &value_to_write, 1);
 }
 
@@ -493,10 +469,6 @@ static void instr_SH(rv_core_td *rv_core)
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     uint16_t value_to_write = (uint16_t)rv_core->x[rv_core->rs2];
-    // if(address == 0x000e4725)
-    // {
-    //     printf("instr_SH: addr: %x! value: %x pc: %x\n", address, value_to_write, rv_core->pc);
-    // }
     mmu_checked_bus_access(rv_core, rv_core->curr_priv_mode, bus_write_access, address, &value_to_write, 2);
 }
 
@@ -506,17 +478,6 @@ static void instr_SW(rv_core_td *rv_core)
     rv_int_xlen signed_offset = SIGNEX_BIT_11(rv_core->immediate);
     rv_uint_xlen address = rv_core->x[rv_core->rs1] + signed_offset;
     rv_uint_xlen value_to_write = (rv_uint_xlen)rv_core->x[rv_core->rs2];
-
-    // if(address == 0x000e4725 || value_to_write == 0x000e4725)
-    // {
-    //     printf("instr_SW: addr: %x! value: %x pc: %x\n", address, value_to_write, rv_core->pc);
-    // }
-
-    // if(rv_core->pc == 0xc05b7244)
-    // {
-    //     printf("instr_SW: addr: %x! value: %x pc: %x\n", address, value_to_write, rv_core->pc);
-    // }
-
     mmu_checked_bus_access(rv_core, rv_core->curr_priv_mode, bus_write_access, address, &value_to_write, 4);
 }
 
@@ -644,11 +605,6 @@ static void instr_SW(rv_core_td *rv_core)
                 prepare_sync_trap(rv_core, trap_cause_illegal_instr, 0);
                 return;
             }
-
-            // if(csr_addr == CSR_ADDR_MSCRATCH)
-            // {
-            //     printf("READ: mscratch! %x pc: %x\n", csr_val, rv_core->pc);
-            // }
         }
 
         not_allowed_bits = csr_val & ~csr_mask;
@@ -660,11 +616,6 @@ static void instr_SW(rv_core_td *rv_core)
             prepare_sync_trap(rv_core, trap_cause_illegal_instr, 0);
             return;
         }
-
-        // if(csr_addr == CSR_ADDR_MSCRATCH)
-        // {
-        //     printf("WRITE: mscratch! %x pc: %x priv: %x\n", new_csr_val, rv_core->pc, rv_core->curr_priv_mode);
-        // }
 
         rv_core->x[rv_core->rd] = csr_val & csr_mask;
     }
@@ -785,13 +736,6 @@ static void instr_SW(rv_core_td *rv_core)
         privilege_level restored_priv_level = trap_restore_irq_settings(&rv_core->trap, rv_core->curr_priv_mode);
         rv_core->curr_priv_mode = restored_priv_level;
         rv_core->next_pc = *rv_core->trap.s.regs[trap_reg_epc];
-        // if(CHECK_BIT(*rv_core->trap.m.regs[trap_reg_status], TRAP_XSTATUS_TSR_BIT))
-        // {
-        //     printf("TSR!!!!\n");
-        //     while(1);
-        // }
-
-        // printf("SRET!!!! %x\n", *rv_core->trap.m.regs[trap_reg_status]);
     }
 
     static void instr_URET(rv_core_td *rv_core)
