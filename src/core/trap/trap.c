@@ -239,9 +239,8 @@ privilege_level trap_check_exception_delegation(trap_td *trap, privilege_level c
         if( !(*x->regs[trap_reg_edeleg] & exception_bit) )
             break;
 
-        (void) curr_priv_mode;
-        // if( curr_priv_mode >= priv_index )
-        //     break;
+        if( curr_priv_mode >= priv_index )
+            break;
     }
 
     return priv_index;

@@ -1759,19 +1759,7 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
 #ifdef CSR_SUPPORT
     static inline void rv_core_update_interrupts(rv_core_td *rv_core, uint8_t mei, uint8_t mti, uint8_t msi)
     {
-        // if(*rv_core->trap.m.regs[trap_reg_status] & (1 << (TRAP_XSTATUS_MIE_BIT) ) )
-        // {
-        //     printf("MIE on!\n");
-        //     while(1);
-        // }
-
         trap_set_pending_bits(&rv_core->trap, mei, mti, msi);
-
-        if(((1 << 11) & *rv_core->trap.m.regs[trap_reg_ie]))
-        {
-            // printf("mei: %d mti: %d msi: %d\n", mei, mti, msi);
-            printf("mie: %x mip %x mstatus %x mideleg %x\n", *rv_core->trap.m.regs[trap_reg_ie], *rv_core->trap.m.regs[trap_reg_ip], *rv_core->trap.m.regs[trap_reg_status], *rv_core->trap.m.regs[trap_reg_ideleg]);
-        }
     }
 
     /* Interrupts are prioritized as follows, in decreasing order of priority:
@@ -1785,28 +1773,18 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
         trap_ret trap_retval = 0;
         privilege_level serving_priv_level = machine_mode;
 
-        // static rv_uint_xlen old_status = 0;
-        // if(*rv_core->trap.m.regs[trap_reg_status] != old_status)
-        //     printf("TRACE status: %lx\n", *rv_core->trap.m.regs[trap_reg_status]);
-        // old_status = *rv_core->trap.m.regs[trap_reg_status];
-
-        // static rv_uint_xlen tmp_value = 0;
-
         if(rv_core->sync_trap_pending)
         {
             serving_priv_level = trap_check_exception_delegation(&rv_core->trap, rv_core->curr_priv_mode, rv_core->sync_trap_cause);
 
-            if(serving_priv_level >= rv_core->curr_priv_mode)
-            {
-                // printf("exception! serving priv: %d cause %d edeleg %x curr priv mode %x cycle %ld\n", serving_priv_level, rv_core->sync_trap_cause, *rv_core->trap.m.regs[trap_reg_edeleg], rv_core->curr_priv_mode, rv_core->curr_cycle);
-                // printf("exception! serving: %x curr priv %x "PRINTF_FMT" "PRINTF_FMT" pc: "PRINTF_FMT"\n", serving_priv_level, rv_core->curr_priv_mode, rv_core->sync_trap_cause, *rv_core->trap.m.regs[trap_reg_status], rv_core->pc);
-                rv_core->pc = trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 0, rv_core->sync_trap_cause, rv_core->pc, rv_core->sync_trap_tval);
-                rv_core->curr_priv_mode = serving_priv_level;
-                rv_core->sync_trap_pending = 0;
-                rv_core->sync_trap_cause = 0;
-                rv_core->sync_trap_tval = 0;
-                return 1;
-            }
+            // printf("exception! serving priv: %d cause %d edeleg %x curr priv mode %x cycle %ld\n", serving_priv_level, rv_core->sync_trap_cause, *rv_core->trap.m.regs[trap_reg_edeleg], rv_core->curr_priv_mode, rv_core->curr_cycle);
+            // printf("exception! serving: %x curr priv %x "PRINTF_FMT" "PRINTF_FMT" pc: "PRINTF_FMT"\n", serving_priv_level, rv_core->curr_priv_mode, rv_core->sync_trap_cause, *rv_core->trap.m.regs[trap_reg_status], rv_core->pc);
+            rv_core->pc = trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 0, rv_core->sync_trap_cause, rv_core->pc, rv_core->sync_trap_tval);
+            rv_core->curr_priv_mode = serving_priv_level;
+            rv_core->sync_trap_pending = 0;
+            rv_core->sync_trap_cause = 0;
+            rv_core->sync_trap_tval = 0;
+            return 1;
         }
 
         for(interrupt_cause=trap_cause_machine_exti;interrupt_cause>=trap_cause_user_swi;interrupt_cause--)
@@ -1816,32 +1794,9 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
             {
                 rv_core->pc = trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 1, interrupt_cause, rv_core->pc, rv_core->sync_trap_tval);
                 rv_core->curr_priv_mode = serving_priv_level;
-                // tmp_value = 1;
-
-                // if(interrupt_cause == trap_cause_super_exti)
-                //      printf("irq! serving priv: %d cause %d cycle %ld ip: "PRINTF_FMT" pc: "PRINTF_FMT"\n", serving_priv_level, interrupt_cause, rv_core->curr_cycle, *rv_core->trap.m.regs[trap_reg_ip], rv_core->pc);
-
-
                 return 1;
             }            
         }
-
-        // if(tmp_value==1)
-        //     printf("no interrupt anymore! %x\n", *rv_core->trap.m.regs[trap_reg_ip]);
-
-        // /* First get the target privilege level of the interrupt */
-        // for(irq_type=trap_type_exti;irq_type>=trap_type_swi;irq_type--)
-        // {
-        //     trap_retval = trap_check_interrupt_level(&rv_core->trap, rv_core->curr_priv_mode, irq_type, &serving_priv_level);
-        //     if(trap_retval)
-        //     {
-        //         printf("irq! serving priv: %d\n", serving_priv_level);
-        //         cause = (irq_type*priv_level_max) + serving_priv_level;
-        //         rv_core->pc = trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 1, cause, rv_core->pc);
-        //         rv_core->curr_priv_mode = serving_priv_level;
-        //         return 1;
-        //     }
-        // }
 
         return 0;
     }
@@ -1893,17 +1848,6 @@ void rv_core_run(rv_core_td *rv_core)
 
     /* increase program counter here */
     rv_core->pc = rv_core->next_pc ? rv_core->next_pc : rv_core->pc + 4;
-
-    // if(rv_core->curr_priv_mode == user_mode)
-    //     printf("user mode!\n");
-    
-    // if(rv_core->x[10] == 0xe4725)
-    //     printf("core_run %x a0:%x t0:%x t1:%x\n", rv_core->pc, rv_core->x[10], rv_core->x[5], rv_core->x[6]);
-
-    // rv_uint_xlen tmp_read_val = 0;
-    // rv_core->bus_access(rv_core->priv, machine_mode, bus_read_access, 0x825DCFFF, &tmp_read_val, 4);
-    // if(tmp_read_val != 0)
-    //     printf("core_run: %x\n", tmp_read_val);
 
     rv_core->curr_cycle++;
     rv_core->csr_regs[CSR_ADDR_MCYCLE].value = rv_core->curr_cycle;

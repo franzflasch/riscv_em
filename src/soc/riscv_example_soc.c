@@ -29,10 +29,6 @@ static rv_ret memory_bus_access(void *priv, privilege_level priv_level, bus_acce
     else 
         memcpy(value, &mem_ptr[address], len);
 
-    // printf("memory_bus_access! %x\n", mem_ptr[0]);
-    // rv_uint_xlen val = *(rv_uint_xlen*)value;
-
-    // printf("memory_bus_access! %lx\n", mem_ptr[0]);
     return rv_ok;
 }
 
@@ -180,13 +176,8 @@ void rv_soc_run(rv_soc_td *rv_soc, rv_uint_xlen success_pc, uint64_t num_cycles)
         plic_update_pending(&rv_soc->plic, 10, uart_irq_pending);
         mei = plic_update(&rv_soc->plic);
 
-        // if(mei)
-        //     printf("mei Uart pending: %d\n", uart_irq_pending);
-    
+        /* Feed clint and update internall states */    
         clint_update(&rv_soc->clint, &msi, &mti);
-
-        // if(msi | mti | mei)
-        //     printf("mei %d, msi %d, mti %d\n", mei, msi, mti);
 
         /* update CSRs for actual interrupt processing */
         rv_core_process_interrupts(&rv_soc->rv_core0, mei, mti, msi);

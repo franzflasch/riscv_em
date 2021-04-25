@@ -195,94 +195,24 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
                           rv_core_td *rv_core,
                           rv_uint_xlen value)
 {
+    /* We only have these here for debug purposes */
     (void) value;
+    (void) rv_core;
 
     int i,j = 0;
     rv_uint_xlen a = 0;
+    rv_uint_xlen pte = 0;
     rv_uint_xlen pte_addr = 0;
     uint8_t pte_flags = 0;
     uint8_t user_page = 0;
     *ret_val = mmu_ok;
     uint8_t mode = extractxlen(mmu->satp_reg, MMU_SATP_MODE_BIT, MMU_SATP_MODE_NR_BITS);
 
-    // static privilege_level old_priv = machine_mode;
-    // static uint8_t old_mode = 0;
-    // static rv_uint_xlen old_satp = 0;
-
-    // static rv_uint_xlen old_ie = 0;
-    // if(old_ie != *rv_core->trap.m.regs[trap_reg_ie])
-    // {
-    //     printf("ie change! IE: %x\n", *rv_core->trap.m.regs[trap_reg_ie]);
-    //     old_ie = *rv_core->trap.m.regs[trap_reg_ie];
-    // }
-
-    // static rv_uint_xlen old_ip = 0;
-    // if(old_ip != *rv_core->trap.m.regs[trap_reg_ip])
-    // {
-    //     // if( (*rv_core->trap.m.regs[trap_reg_ip] & (1 << 7)) == 0x0)
-    //     printf("ip change! IP: %x\n", *rv_core->trap.m.regs[trap_reg_ip]);
-    //     old_ip = *rv_core->trap.m.regs[trap_reg_ip];
-    // }
-
-    // if(old_priv != curr_priv)
-    // {
-    //     printf("priv change! %d IP: %x\n", curr_priv, *rv_core->trap.m.regs[trap_reg_ip]);
-    //     old_priv = curr_priv;
-    // }
-
-    // if(old_mode != mode)
-    // {
-    //     printf("mode change! %d\n", mode);
-    //     old_mode = mode;
-    // }
-
-    // if(old_satp != mmu->satp_reg)
-    // {
-    //     printf("satp change! "PRINTF_FMT"\n", mmu->satp_reg);
-    //     old_satp = mmu->satp_reg;
-    // }
-
     /* in machine mode we don't have address translation */
     if( (curr_priv == machine_mode) || !mode )
     {
         return virt_addr;
     }
-
-    // static int printed = 0;
-    // if(mode & !printed)
-    // {
-    //     printf("mmu enabled!\n");
-    //     printed = 1;
-    // }
-
-    // if(virt_addr == 0x000e0725)
-    // {
-    //     printf("pc: %x\n", pc);
-    // }
-
-    // if(virt_addr == 0x000e4725)
-    // {
-    //     printf("mmu1: virt_addr: "PRINTF_FMT"! access_type: %d priv: %d value: "PRINTF_FMT" pc: "PRINTF_FMT"\n", virt_addr, access_type, curr_priv, value, rv_core->pc);
-    // }
-
-    // static int count = 0;
-    // static int started = 0;
-    // if(count < 200)
-    // {
-    //     // if(access_type == bus_instr_access |)
-    //     // {
-    //         if(virt_addr == 0xc04dd5bc)
-    //             started = 1;
-
-    //         if(started)
-    //         {
-    //             printf("PC: "PRINTF_FMT" %s a0:%x t0:%x t1:%x \n", virt_addr, (access_type == bus_instr_access) ? "instr" : (access_type == bus_read_access) ? "read" : "write", rv_core->x[10], rv_core->x[5], rv_core->x[6] );
-    //             count++;
-    //         }
-    //     // }
-    // }
-
-    rv_uint_xlen pte = 0;
 
     rv_uint_xlen vpn[SV32_LEVELS] = 
     {
@@ -295,9 +225,6 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
     /*
      * 1. Let a be satp.ppn × PAGESIZE, and let i = LEVELS − 1. (For Sv32, PAGESIZE=2^12 and LEVELS=2.) 
      */
-    // rv_uint_xlen root_pg_table_addr = (mmu->satp_reg & 0x3FFFFF) * SV32_PAGE_SIZE;
-    // MMU_DEBUG("root pg addr: %x\n", root_pg_table_addr);
-
     a = (mmu->satp_reg & 0x3FFFFF) * SV32_PAGE_SIZE;
     MMU_DEBUG("satp: %x\n", mmu->satp_reg);
 
@@ -313,9 +240,7 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
         /* Here we should raise an exception if PMP violation occurs, will be done automatically
          * if read_mem is set to the "checked_read_mem()" function.
          */
-        if(mmu->bus_access(mmu->priv, curr_priv, bus_read_access, pte_addr, &pte, sizeof(rv_uint_xlen)) != rv_ok)
-            printf("mmu bus access err!\n");
-        // pte = mmu->read_mem(NULL, pte_addr, sizeof(rv_uint_xlen), &err);
+        mmu->bus_access(mmu->priv, curr_priv, bus_read_access, pte_addr, &pte, sizeof(rv_uint_xlen));
         MMU_DEBUG("pte[%d] "PRINTF_FMT"\n", i, pte);
         pte_flags = pte;
 
@@ -324,20 +249,7 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
          */
         if( (!(pte_flags & MMU_PAGE_VALID)) || ((!(pte_flags & MMU_PAGE_READ)) && (pte_flags & MMU_PAGE_WRITE)) )
         {
-            MMU_DEBUG("root pg addr: %x last virt pc: "PRINTF_FMT" level: %d\n", a, mmu->last_virt_pc, i);
-            // printf("page fault: pte.v = 0, or if pte.r = 0 and pte.w = 1 access_type: %d a: "PRINTF_FMT" virt_addr: "PRINTF_FMT" pte: "PRINTF_FMT" pte_addr: "PRINTF_FMT" flags: %x curr_priv: %d level: %d pc: "PRINTF_FMT" value: "PRINTF_FMT"\n", access_type, a, virt_addr, pte, pte_addr, pte_flags, curr_priv, i, rv_core->pc, value);
-
-            (void) rv_core;
-            // int tmp = 0;
-            // rv_uint_xlen tmp_read_val = 0;
-            // rv_uint_xlen tmp_address = 0;
-            // for(tmp=0;tmp<1000;tmp++)
-            // {
-            //     tmp_address = a + (4*tmp);
-            //     rv_core->bus_access(rv_core->priv, machine_mode, bus_read_access, tmp_address, &tmp_read_val, sizeof(rv_uint_xlen));
-            //     printf("page table: addr %x %x\n", tmp_address, tmp_read_val);
-            // }
-
+            MMU_DEBUG("page fault: pte.v = 0, or if pte.r = 0 and pte.w = 1 access_type: %d a: "PRINTF_FMT" virt_addr: "PRINTF_FMT" pte: "PRINTF_FMT" pte_addr: "PRINTF_FMT" flags: %x curr_priv: %d level: %d pc: "PRINTF_FMT" value: "PRINTF_FMT"\n", access_type, a, virt_addr, pte, pte_addr, pte_flags, curr_priv, i, rv_core->pc, value);
             goto exit_page_fault;
         }
 
@@ -349,7 +261,7 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
         /* check if any RWX flag is set */
         if(pte_flags & 0xA)
         {
-            // MMU_DEBUG("Leaf pte %d\n", i);
+            MMU_DEBUG("Leaf pte %d\n", i);
             break;
         }
 
@@ -358,7 +270,7 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
 
     if(i<0)
     {
-        // printf("page fault: i < 0\n");
+        MMU_DEBUG("page fault: i < 0\n");
         goto exit_page_fault;
     }
 
@@ -376,11 +288,10 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
         goto exit_page_fault;
     }
 
-    // (void) sum;
     /* Supervisor only has access to user pages if SUM = 1 */
     if( (curr_priv == supervisor_mode) && user_page && !sum )
     {
-        // printf("page fault: supervisor access to user page!\n");
+        MMU_DEBUG("page fault: supervisor access to user page!\n");
         goto exit_page_fault;
     }
 
@@ -390,13 +301,9 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
 
     if(!(ACCESS_TYPE_TO_MMU(access_type) & pte_flags ))
     {
-        // printf("page fault: invalid RWX flags!\n");
+        MMU_DEBUG("page fault: invalid RWX flags!\n");
         goto exit_page_fault;
     }
-
-    // MMU_DEBUG("virt addr: %x\n", virt_addr);
-    // MMU_DEBUG("pte: "PRINTF_FMT"\n", pte);
-    // MMU_DEBUG("level: %x\n", i);
 
     pte = pte << SV32_PTESHIFT;
     /* physical addresses are 34 Bit wide!!! even on RV32 systems */
@@ -421,23 +328,22 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
      */
     if(i > 0 && ppn[i-1] != 0)
     {
-        // printf("misaligned superpage!\n");
+        MMU_DEBUG("misaligned superpage!\n");
         goto exit_page_fault;
     }
 
-    /* This check here is disabled for now, as qemu also don't seem to care about this */
     #if 1
-    /*
-     * 7. If pte.a = 0, or if the memory access is a store and pte.d = 0, either raise a page-fault exception or:
-     *  - Set pte.a to 1 and, if the memory access is a store, also set pte.d to 1.
-     *  - If this access violates a PMA or PMP check, raise an access exception.
-     *  - This update and the loading of pte in step 2 must be atomic; in particular, no intervening store to the PTE may be perceived to have occurred in-between.
-     */
-    if( (!(pte_flags & MMU_PAGE_ACCESSED)) || ((access_type == bus_write_access) && !(pte_flags & MMU_PAGE_DIRTY)) )
-    {
-        // printf("pta.a or pte.d page fault!\n");
-        goto exit_page_fault;
-    }
+        /*
+        * 7. If pte.a = 0, or if the memory access is a store and pte.d = 0, either raise a page-fault exception or:
+        *  - Set pte.a to 1 and, if the memory access is a store, also set pte.d to 1.
+        *  - If this access violates a PMA or PMP check, raise an access exception.
+        *  - This update and the loading of pte in step 2 must be atomic; in particular, no intervening store to the PTE may be perceived to have occurred in-between.
+        */
+        if( (!(pte_flags & MMU_PAGE_ACCESSED)) || ((access_type == bus_write_access) && !(pte_flags & MMU_PAGE_DIRTY)) )
+        {
+            // printf("pta.a or pte.d page fault!\n");
+            goto exit_page_fault;
+        }
     #endif
 
     /*
@@ -446,17 +352,11 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
      * - If i > 0, then this is a superpage translation and pa.ppn[i − 1 : 0] = va.vpn[i − 1 : 0].
      * - pa.ppn[LEVELS − 1 : i] = pte.ppn[LEVELS − 1 : i].
      */
-    // MMU_DEBUG("translated addr: virt: %x phys: %lx\n", virt_addr, phys_addr_translation[i]);
     if(access_type == bus_instr_access)
     {
         mmu->last_phys_pc = phys_addr_translation[i];
         mmu->last_virt_pc = virt_addr;
     }
-
-    // if(phys_addr_translation[i] == 0x825dd000)
-    // {
-    //     printf("mmu2: virt_addr: %x! phys_addr: %lx access_type: %d priv: %d value: %x pc: %x\n", virt_addr, phys_addr_translation[i], access_type, curr_priv, value, rv_core->pc);
-    // }
 
     return phys_addr_translation[i];
 
