@@ -312,7 +312,6 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
         (pte >> 12) & 0x3ff,
         (pte >> 22) & 0xfff
     };
-
     // MMU_DEBUG("ppn[1]: %x\n", ppn[1]);
     // MMU_DEBUG("ppn[0]: %x\n", ppn[0]);
 

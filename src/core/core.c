@@ -33,7 +33,7 @@ static inline void prepare_sync_trap(rv_core_td *rv_core, rv_uint_xlen cause, rv
 
 static inline privilege_level check_mprv_override(rv_core_td *rv_core, bus_access_type access_type)
 {
-    if(access_type == bus_instr_access) 
+    if(access_type == bus_instr_access)
         return rv_core->curr_priv_mode;
 
     int mprv = extractxlen(*rv_core->trap.m.regs[trap_reg_status], TRAP_XSTATUS_MPRV_BIT, 1);
@@ -45,9 +45,9 @@ rv_ret pmp_checked_bus_access(void *priv, privilege_level priv_level, bus_access
 {
     (void) priv_level;
     rv_core_td *rv_core = priv;
-    
-    rv_uint_xlen trap_cause = (access_type == bus_instr_access) ? trap_cause_instr_access_fault : 
-                              (access_type == bus_read_access) ? trap_cause_load_access_fault : 
+
+    rv_uint_xlen trap_cause = (access_type == bus_instr_access) ? trap_cause_instr_access_fault :
+                              (access_type == bus_read_access) ? trap_cause_load_access_fault :
                               trap_cause_store_amo_access_fault;
 
     if(pmp_mem_check(&rv_core->pmp, priv_level, addr, len, access_type))
@@ -65,8 +65,8 @@ rv_ret mmu_checked_bus_access(void *priv, privilege_level priv_level, bus_access
     (void) priv_level;
     rv_core_td *rv_core = priv;
     privilege_level internal_priv_level = check_mprv_override(rv_core, access_type);
-    rv_uint_xlen trap_cause = (access_type == bus_instr_access) ? trap_cause_instr_page_fault : 
-                              (access_type == bus_read_access) ? trap_cause_load_page_fault : 
+    rv_uint_xlen trap_cause = (access_type == bus_instr_access) ? trap_cause_instr_page_fault :
+                              (access_type == bus_read_access) ? trap_cause_load_page_fault :
                               trap_cause_store_amo_page_fault;
     mmu_ret mmu_ret_val = mmu_ok;
 
@@ -1706,17 +1706,28 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
         trap_set_pending_bits(&rv_core->trap, mei, mti, msi);
     }
 
-    /* Interrupts are prioritized as follows, in decreasing order of priority:
-       Machine external interrupts (with configurable external priority)
-       Machine software interrupts
-       Machine timer interrupts
-    */
     static inline uint8_t rv_core_prepare_interrupts(rv_core_td *rv_core)
     {
         trap_cause_interrupt interrupt_cause = 0;
         trap_ret trap_retval = 0;
         privilege_level serving_priv_level = machine_mode;
 
+        /* Privilege Spec: "Multiple simultaneous interrupts and traps at the same privilege level are handled in the following
+         * decreasing priority order: external interrupts, software interrupts, timer interrupts, then finally any
+         * synchronous traps."
+         *
+         * NOTE: We actually don't use this priority order here. The problem is, that if an interrupt and a synchronous
+         * trap is active at the same cycle the interrupt will be handled first and in the next cycle immediately the synchronous trap
+         * (as they will also occur when interrupts are globally disabled) which will potentially disrupt the privilige level at which
+         * the synchronous trap should actually be handled. (This issue actually happenend when a user ecall and a timer IRQ occured at the same cycle).
+         * So we use another prio order to circumvent this:
+         * We handle synchronous traps at the highest prio. (Interrupts will be disabled during the handling, regardless if it is a sync trap or a IRQ)
+         * This ensures atomicity among sync traps and Interrupts.
+         *
+         * Possible solution for this: we could remember pending sync traps for each priv level separately. And handle them only if we are in the
+         * appropriate priv level. Anyway for now we just keep it simple like this, as except that we don't follow the spec here 100% it works just fine.
+         * Furthermore simultanious interrupts at the same cycle should be very rare anyway.
+         */
         if(rv_core->sync_trap_pending)
         {
             serving_priv_level = trap_check_exception_delegation(&rv_core->trap, rv_core->curr_priv_mode, rv_core->sync_trap_cause);
@@ -1731,6 +1742,10 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
             return 1;
         }
 
+        /* For simplicity we just stupidly go down from machine exti to user swi
+         * Altough the correct order should be (exti, swi, timer, probably for each priv level separately)
+         * Simplicity definitely wins here over spec correctness
+         */
         for(interrupt_cause=trap_cause_machine_exti;interrupt_cause>=trap_cause_user_swi;interrupt_cause--)
         {
             trap_retval = trap_check_interrupt_pending(&rv_core->trap, rv_core->curr_priv_mode, interrupt_cause, &serving_priv_level);
@@ -1739,7 +1754,7 @@ static void rv_call_from_opcode_list(rv_core_td *rv_core, instruction_desc_td *o
                 rv_core->pc = trap_serve_interrupt(&rv_core->trap, serving_priv_level, rv_core->curr_priv_mode, 1, interrupt_cause, rv_core->pc, rv_core->sync_trap_tval);
                 rv_core->curr_priv_mode = serving_priv_level;
                 return 1;
-            }            
+            }
         }
 
         return 0;
