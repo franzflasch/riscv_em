@@ -3,7 +3,7 @@
 set -e
 
 sudo apt update
-sudo apt install -y cmake unzip qemu-system-riscv32 qemu-system-riscv64
+sudo apt install -y cmake unzip qemu-system-riscv32 qemu-system-riscv64 device-tree-compiler
 
 ROOT_DIR=${PWD}
 
@@ -18,6 +18,10 @@ tar xf *.tar.xz && rm -rf *.tar.xz
 cd ${TOOLCHAIN_DIR32}/toolchain/bin && export PATH=${PWD}:${PATH}
 
 riscv32-none-elf-gcc --version
+
+# Build device trees
+cd ${ROOT_DIR}/dts
+./build_dtb.sh
 
 cd ${ROOT_DIR}
 mkdir build32 && cd build32

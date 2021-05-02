@@ -13,7 +13,7 @@ cd ${TOOLCHAIN_DIR32}/toolchain/bin && export PATH=${PWD}:${PATH}
 riscv32-none-elf-gcc --version
 
 cd ${ROOT_DIR}/riscv-test-scripts
-./build_riscv_em_tests.sh 32
+./build_riscv_em_tests.sh 32 ${ROOT_DIR}/dts/riscv_em.dtb
 
 
 TOOLCHAIN_DIR64=${ROOT_DIR}/toolchain64
@@ -24,4 +24,4 @@ cd ${TOOLCHAIN_DIR64}/toolchain/bin && export PATH=${PWD}:${PATH}
 riscv64-none-elf-gcc --version
 
 cd ${ROOT_DIR}/riscv-test-scripts
-./build_riscv_em_tests.sh 64
+./build_riscv_em_tests.sh 64 ${ROOT_DIR}/dts/riscv_em.dtb
