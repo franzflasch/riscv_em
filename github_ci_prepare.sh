@@ -3,7 +3,7 @@
 set -e
 
 sudo apt update
-sudo apt install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison 
+sudo apt install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison ninja
 sudo apt install -y flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev git cmake cmake unzip device-tree-compiler
 
 ROOT_DIR=${PWD}
