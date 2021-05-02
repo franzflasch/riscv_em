@@ -6,7 +6,7 @@
 #define MULTIPLY_SUPPORT
 #define PMP_SUPPORT
 
-#define USE_SIMPLE_UART
+// #define USE_SIMPLE_UART
 
 #define MROM_BASE_ADDR 0x1000UL
 #define MROM_SIZE_BYTES 0xf000UL
