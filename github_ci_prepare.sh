@@ -3,9 +3,17 @@
 set -e
 
 sudo apt update
-sudo apt install -y cmake unzip qemu-system-riscv32 qemu-system-riscv64 device-tree-compiler
+sudo apt install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison 
+sudo apt install -y flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev git cmake cmake unzip device-tree-compiler
 
 ROOT_DIR=${PWD}
+
+############################# QEMU #############################
+git clone --depth=1 --branch v5.2.0 https://github.com/qemu/qemu
+cd qemu
+./configure --target-list=riscv64-softmmu,riscv32-softmmu
+make -j $(nproc)
+sudo make install
 
 ############################# RV32 #############################
 
