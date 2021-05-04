@@ -12,6 +12,8 @@ endif()
 OPTION(RISCV_EM_DEBUG "RISC-V Debug Enable" "1")
 if(RISCV_EM_DEBUG STREQUAL "1")
     add_compile_definitions(RISCV_EM_DEBUG)
+else()
+    add_compile_definitions(USE_SIMPLE_UART)
 endif()
 
 set(SRC_HELPER 
