@@ -19,7 +19,7 @@ sudo make install
 
 TOOLCHAIN_DIR32=${ROOT_DIR}/toolchain32
 mkdir -p ${TOOLCHAIN_DIR32} && cd ${TOOLCHAIN_DIR32}
-wget -q https://nightly.link/franzflasch/build-tools-gcc/workflows/riscv32-baremetal/master/toolchain_built_from_tar.zip
+wget -q https://nightly.link/franzflasch/gcc-build-tools/workflows/riscv32-baremetal/main/toolchain_built_from_tar.zip
 unzip -q toolchain_built_from_tar.zip && rm toolchain_built_from_tar.zip
 tar xf *.tar.xz && rm -rf *.tar.xz
 
@@ -41,7 +41,7 @@ make
 
 TOOLCHAIN_DIR64=${ROOT_DIR}/toolchain64
 mkdir -p ${TOOLCHAIN_DIR64} && cd ${TOOLCHAIN_DIR64}
-wget -q https://nightly.link/franzflasch/build-tools-gcc/workflows/riscv64-baremetal/master/toolchain_built_from_tar.zip
+wget -q https://nightly.link/franzflasch/gcc-build-tools/workflows/riscv64-baremetal/main/toolchain_built_from_tar.zip
 unzip -q toolchain_built_from_tar.zip && rm toolchain_built_from_tar.zip
 tar xf *.tar.xz && rm -rf *.tar.xz
 
