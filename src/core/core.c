@@ -73,7 +73,8 @@ rv_ret mmu_checked_bus_access(void *priv, privilege_level priv_level, bus_access
     uint8_t mxr = CHECK_BIT(*rv_core->trap.m.regs[trap_reg_status], TRAP_XSTATUS_MXR_BIT) ? 1 : 0;
     uint8_t sum = CHECK_BIT(*rv_core->trap.m.regs[trap_reg_status], TRAP_XSTATUS_SUM_BIT) ? 1 : 0;
 
-    rv_uint_xlen tmp = *(rv_uint_xlen *)value;
+    rv_uint_xlen tmp = 0;
+    memcpy(&tmp, value, len);
     uint64_t phys_addr = mmu_virt_to_phys(&rv_core->mmu, internal_priv_level, addr, access_type, mxr, sum, &mmu_ret_val, rv_core, tmp);
 
     if(mmu_ret_val != mmu_ok)
