@@ -116,7 +116,7 @@ uint8_t plic_update(plic_td *plic)
                     /* qemu also seems to clear pending bit if it was already claimed */
                     assign_u32_bit(&plic->pending_bits[i], j, 0);
                 }
-                else if((plic->priority[irq_id_count] > highest_prio))
+                else if((plic->priority[irq_id_count] >= highest_prio))
                 {
                     /* find irq with highest prio */
                     highest_prio = plic->priority[irq_id_count];
