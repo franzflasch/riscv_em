@@ -5,6 +5,7 @@ set -e
 sudo apt update
 sudo apt install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison ninja-build
 sudo apt install -y flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev git cmake cmake unzip device-tree-compiler
+sudo apt install -y libpixman-1-dev libglib2.0-dev pkg-config libpython3.10-dev xxd
 
 ROOT_DIR=${PWD}
 
