@@ -11,7 +11,7 @@ ROOT_DIR=${PWD}
 ############################# QEMU #############################
 git clone --depth=1 --branch v5.2.0 https://github.com/qemu/qemu
 cd qemu
-./configure --target-list=riscv64-softmmu,riscv32-softmmu
+./configure --target-list=riscv64-softmmu,riscv32-softmmu --disable-werror
 make -j $(nproc)
 sudo make install
 
