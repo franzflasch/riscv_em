@@ -4,7 +4,6 @@ set -e
 
 ROOT_DIR=${PWD}
 DEFAULT_PATH=${PATH}
-
 TOOLCHAIN_BASE_DIR=/opt/local
 
 TOOLCHAIN_DIR32=${TOOLCHAIN_BASE_DIR}/cross-tool-riscv32-baremetal-gcc13/
