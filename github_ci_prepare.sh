@@ -19,7 +19,7 @@ TOOLCHAIN_BASE_DIR=/opt/local
 
 ############################# RV32 #############################
 
-TOOLCHAIN_DIR32=${TOOLCHAIN_BASE_DIR}/cross-tool-riscv32-baremetal/
+TOOLCHAIN_DIR32=${TOOLCHAIN_BASE_DIR}/cross-tool-riscv32-baremetal-gcc13/
 mkdir -p ${TOOLCHAIN_BASE_DIR} && cd ${TOOLCHAIN_BASE_DIR}
 wget -q https://nightly.link/franzflasch/gcc-build-tools/workflows/riscv32-baremetal/main/toolchain_built_from_tar.zip
 unzip -q toolchain_built_from_tar.zip && rm toolchain_built_from_tar.zip
@@ -41,7 +41,7 @@ make
 
 ############################# RV64 #############################
 
-TOOLCHAIN_DIR64=${TOOLCHAIN_BASE_DIR}/cross-tool-riscv64-baremetal/
+TOOLCHAIN_DIR64=${TOOLCHAIN_BASE_DIR}/cross-tool-riscv64-baremetal-gcc13/
 mkdir -p ${TOOLCHAIN_BASE_DIR} && cd ${TOOLCHAIN_BASE_DIR}
 wget -q https://nightly.link/franzflasch/gcc-build-tools/workflows/riscv64-baremetal/main/toolchain_built_from_tar.zip
 unzip -q toolchain_built_from_tar.zip && rm toolchain_built_from_tar.zip
