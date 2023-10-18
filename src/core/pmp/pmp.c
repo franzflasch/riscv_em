@@ -114,7 +114,6 @@ rv_ret pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr, 
     rv_uint_xlen addr_end = 0;
     rv_uint_xlen pmp_addr_start = 0;
     rv_uint_xlen pmp_addr_size = 0;
-    int at_least_one_active = 0;
     uint8_t curr_access_flags = (1 << access_type);
     uint8_t allowed_access = 0;
     uint8_t lower_addr_match = 0;
@@ -142,8 +141,6 @@ rv_ret pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr, 
                 continue;
 
             allowed_access = cfg_ptr[j] & 0x7;
-
-            at_least_one_active = 1;
 
             switch(addr_mode)
             {
@@ -211,15 +208,8 @@ rv_ret pmp_mem_check(pmp_td *pmp, privilege_level curr_priv, rv_uint_xlen addr, 
     if(curr_priv == machine_mode)
         return rv_ok;
 
-    /* If at least one config is active and we are not in machine mode access is not granted */
-    if(at_least_one_active)
-    {
-        PMP_DEBUG("No PMP match found!\n");
-        return rv_err;
-    }
-
     /* No config seems to be active and therefore PMP is not used so access is granted */
-    return rv_ok;
+    return rv_err;
 }
 
 void pmp_dump_cfg_regs(pmp_td *pmp)
