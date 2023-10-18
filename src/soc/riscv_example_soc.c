@@ -103,10 +103,10 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
          * This is a little annoying: qemu keeps changing this stuff 
          * from time to time and I need to do it the same, otherwise the 
          * tests would fail as they won't match with qemu's results anymore
-         * Be Aware: 2 * MiB was taken from qemu 5.2 but it seems
-         * they already changed this again in later versions to 16 * MiB
+         * Be Aware: 16 * MiB was taken from qemu 6.2.0 but it could be
+         * that they changed it already in later versions
          */
-        fdt_addr = ADDR_ALIGN_DOWN(ram_addr_end - fdt_size, 2 * MiB);
+        fdt_addr = ADDR_ALIGN_DOWN(ram_addr_end - fdt_size, 16 * MiB);
         tmp = fdt_addr - RAM_BASE_ADDR;
         write_mem_from_file(dtb_file_name, &soc_ram[tmp], RAM_SIZE_BYTES-tmp);
     }
