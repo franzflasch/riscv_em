@@ -1866,101 +1866,106 @@ void rv_core_reg_dump_more_regs(rv_core_td *rv_core)
 static void rv_core_init_csr_regs(rv_core_td *rv_core)
 {
     uint16_t i = 0;
+    rv_uint_xlen xstatus_warl_bits = 0;
+
+    #ifdef RV64
+        xstatus_warl_bits = (CSR_XLEN_64_BIT << CSR_UXL_BIT_BASE) | (CSR_XLEN_64_BIT << CSR_SXL_BIT_BASE);
+    #endif
 
     /* Machine Information Registers */
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MVENDORID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MARCHID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MIMPID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MHARTID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MVENDORID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO, CSR_MASK_ZERO);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MARCHID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO, CSR_MASK_ZERO);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MIMPID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO, CSR_MASK_ZERO);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MHARTID, CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO, CSR_MASK_ZERO);
 
     /* Machine Trap Setup */
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MSTATUS, CSR_ACCESS_RW(machine_mode), CSR_MSTATUS_MASK, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_status);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MISA, CSR_ACCESS_RO(machine_mode), CSR_MASK_WR_ALL, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_isa);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MEDELEG, CSR_ACCESS_RW(machine_mode), CSR_MEDELEG_MASK, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_edeleg);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MIDELEG, CSR_ACCESS_RW(machine_mode), CSR_MIDELEG_MASK, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_ideleg);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MIE, CSR_ACCESS_RW(machine_mode), CSR_MIP_MIE_MASK, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_ie);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MTVEC, CSR_ACCESS_RW(machine_mode), CSR_MTVEC_MASK, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_tvec);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MCOUNTEREN, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MSTATUS, CSR_ACCESS_RW(machine_mode), CSR_MSTATUS_MASK, xstatus_warl_bits, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_status);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MISA, CSR_ACCESS_RO(machine_mode), CSR_MASK_WR_ALL, CSR_MASK_ZERO, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_isa);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MEDELEG, CSR_ACCESS_RW(machine_mode), CSR_MEDELEG_MASK, CSR_MASK_ZERO, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_edeleg);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MIDELEG, CSR_ACCESS_RW(machine_mode), CSR_MIDELEG_MASK, CSR_MASK_ZERO, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_ideleg);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MIE, CSR_ACCESS_RW(machine_mode), CSR_MIP_MIE_MASK, CSR_MASK_ZERO, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_ie);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MTVEC, CSR_ACCESS_RW(machine_mode), CSR_MTVEC_MASK, CSR_MASK_ZERO, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_tvec);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MCOUNTEREN, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO, CSR_MASK_ZERO);
 
     /* Machine Trap Handling */
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MSCRATCH, CSR_ACCESS_RW(machine_mode), CSR_MASK_WR_ALL, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_scratch);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MEPC, CSR_ACCESS_RW(machine_mode), CSR_MASK_WR_ALL, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_epc);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MCAUSE, CSR_ACCESS_RW(machine_mode), CSR_MASK_WR_ALL, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_cause);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MTVAL, CSR_ACCESS_RW(machine_mode), CSR_MASK_WR_ALL, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_tval);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MIP, CSR_ACCESS_RW(machine_mode), CSR_MIP_MIE_MASK, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_ip);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MSCRATCH, CSR_ACCESS_RW(machine_mode), CSR_MASK_WR_ALL, CSR_MASK_ZERO, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_scratch);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MEPC, CSR_ACCESS_RW(machine_mode), CSR_MASK_WR_ALL, CSR_MASK_ZERO, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_epc);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MCAUSE, CSR_ACCESS_RW(machine_mode), CSR_MASK_WR_ALL, CSR_MASK_ZERO, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_cause);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MTVAL, CSR_ACCESS_RW(machine_mode), CSR_MASK_WR_ALL, CSR_MASK_ZERO, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_tval);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MIP, CSR_ACCESS_RW(machine_mode), CSR_MIP_MIE_MASK, CSR_MASK_ZERO, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_ip);
 
     /* Set supported ISA Extension bits */
     *rv_core->trap.m.regs[trap_reg_isa] = RV_SUPPORTED_EXTENSIONS;
     #ifdef RV64
-        *rv_core->trap.m.regs[trap_reg_isa] |= (2UL << (XLEN-2));
+        *rv_core->trap.m.regs[trap_reg_isa] |= (CSR_XLEN_64_BIT << (XLEN-2));
     #else
-        *rv_core->trap.m.regs[trap_reg_isa] |= (1 << (XLEN-2));
+        *rv_core->trap.m.regs[trap_reg_isa] |= (CSR_XLEN_32_BIT << (XLEN-2));
     #endif
 
     /* Machine Protection and Translation */
     for(i=0;i<PMP_NR_CFG_REGS;i++)
     {
         #ifdef PMP_SUPPORT
-            INIT_CSR_REG_SPECIAL(rv_core->csr_regs, (CSR_PMPCFG0+i), CSR_ACCESS_RW(machine_mode), CSR_MASK_WR_ALL, &rv_core->pmp, pmp_read_csr_cfg, pmp_write_csr_cfg, i);
+            INIT_CSR_REG_SPECIAL(rv_core->csr_regs, (CSR_PMPCFG0+i), CSR_ACCESS_RW(machine_mode), CSR_MASK_WR_ALL, CSR_MASK_ZERO, &rv_core->pmp, pmp_read_csr_cfg, pmp_write_csr_cfg, i);
         #else
-            INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_PMPCFG0+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL);
+            INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_PMPCFG0+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, CSR_MASK_ZERO);
         #endif
     }
 
     /* All others are WARL */
     for(i=PMP_NR_CFG_REGS;i<PMP_NR_CFG_REGS_WARL_MAX;i++)
-        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_PMPCFG0+i), CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO);
+        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_PMPCFG0+i), CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO, CSR_MASK_ZERO);
 
     for(i=0;i<PMP_NR_ADDR_REGS;i++)
     {
         #ifdef PMP_SUPPORT
-            INIT_CSR_REG_SPECIAL(rv_core->csr_regs, (CSR_PMPADDR0+i), CSR_ACCESS_RW(machine_mode), CSR_MASK_WR_ALL, &rv_core->pmp, pmp_read_csr_addr, pmp_write_csr_addr, i);
+            INIT_CSR_REG_SPECIAL(rv_core->csr_regs, (CSR_PMPADDR0+i), CSR_ACCESS_RW(machine_mode), CSR_MASK_WR_ALL, CSR_MASK_ZERO, &rv_core->pmp, pmp_read_csr_addr, pmp_write_csr_addr, i);
         #else
-            INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_PMPADDR0+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL);
+            INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_PMPADDR0+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, CSR_MASK_ZERO);
         #endif
     }
 
     /* All others are WARL */
     for(i=PMP_NR_ADDR_REGS;i<PMP_NR_ADDR_REGS_WARL_MAX;i++)
-        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_PMPADDR0+i), CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO);
+        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_PMPADDR0+i), CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO, CSR_MASK_ZERO);
 
     /* Supervisor Trap Setup */
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SSTATUS, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_SSTATUS_MASK, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_status);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SEDELEG, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_SEDELEG_MASK, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_edeleg);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SIDELEG, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_SIDELEG_MASK, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_ideleg);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SIE, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_SIP_SIE_MASK, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_ie);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_STVEC, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_STVEC_MASK, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_tvec);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_SCOUNTEREN, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_MASK_ZERO);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SSTATUS, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_SSTATUS_MASK, CSR_MASK_ZERO, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_status);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SEDELEG, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_SEDELEG_MASK, CSR_MASK_ZERO, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_edeleg);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SIDELEG, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_SIDELEG_MASK, CSR_MASK_ZERO, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_ideleg);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SIE, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_SIP_SIE_MASK, CSR_MASK_ZERO, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_ie);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_STVEC, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_STVEC_MASK, CSR_MASK_ZERO, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_tvec);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_SCOUNTEREN, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), 0, CSR_MASK_ZERO, CSR_MASK_ZERO);
 
     /* Supervisor Trap Setup */
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SSCRATCH, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_MASK_WR_ALL, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_scratch);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SEPC, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_MASK_WR_ALL, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_epc);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SCAUSE, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_MASK_WR_ALL, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_cause);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_STVAL, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_MASK_WR_ALL, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_tval);
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SIP, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_SIP_SIE_MASK, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_ip);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SSCRATCH, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_MASK_WR_ALL, CSR_MASK_ZERO, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_scratch);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SEPC, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_MASK_WR_ALL, CSR_MASK_ZERO, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_epc);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SCAUSE, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_MASK_WR_ALL, CSR_MASK_ZERO, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_cause);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_STVAL, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_MASK_WR_ALL, CSR_MASK_ZERO, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_tval);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SIP, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_SIP_SIE_MASK, CSR_MASK_ZERO, &rv_core->trap, trap_s_read, trap_s_write, trap_reg_ip);
 
     /* Supervisor Address Translation and Protection */
-    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SATP, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_SATP_MASK, &rv_core->mmu, mmu_read_csr, mmu_write_csr, 0);
+    INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_SATP, CSR_ACCESS_RW(machine_mode) | CSR_ACCESS_RW(supervisor_mode), CSR_SATP_MASK, CSR_MASK_ZERO, &rv_core->mmu, mmu_read_csr, mmu_write_csr, 0);
 
     /* Performance Counters */
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MCYCLE), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MCYCLEH), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MINSTRET), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MINSTRETH), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MCYCLE), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, CSR_MASK_ZERO);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MCYCLEH), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, CSR_MASK_ZERO);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MINSTRET), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, CSR_MASK_ZERO);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MINSTRETH), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_WR_ALL, CSR_MASK_ZERO);
 
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_CYCLE), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_WR_ALL);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_CYCLEH), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_WR_ALL);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_TIME), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_WR_ALL);
-    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_TIMEH), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_WR_ALL);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_CYCLE), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_WR_ALL, CSR_MASK_ZERO);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_CYCLEH), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_WR_ALL, CSR_MASK_ZERO);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_TIME), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_WR_ALL, CSR_MASK_ZERO);
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_TIMEH), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_WR_ALL, CSR_MASK_ZERO);
 
     /* All others are WARL, they start at 3 */
     for(i=3;i<CSR_HPMCOUNTER_WARL_MAX;i++)
-        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MCYCLE+i), CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO);
-        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_CYCLE+i), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_ZERO);
+        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MCYCLE+i), CSR_ACCESS_RO(machine_mode), 0, CSR_MASK_ZERO, CSR_MASK_ZERO);
+        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_CYCLE+i), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_ZERO, CSR_MASK_ZERO);
 
     for(i=3;i<CSR_HPMCOUNTER_WARL_MAX;i++)
-        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MCYCLEH+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO);
-        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_CYCLEH+i), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_ZERO);
+        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_MCYCLEH+i), CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO, CSR_MASK_ZERO);
+        INIT_CSR_REG_DEFAULT(rv_core->csr_regs, (CSR_ADDR_CYCLEH+i), CSR_ACCESS_RO(machine_mode) | CSR_ACCESS_RO(supervisor_mode) | CSR_ACCESS_RO(user_mode), 0, CSR_MASK_ZERO, CSR_MASK_ZERO);
 }
 
 void rv_core_init(rv_core_td *rv_core,
