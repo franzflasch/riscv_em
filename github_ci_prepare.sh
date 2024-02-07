@@ -10,7 +10,7 @@ sudo apt install -y libpixman-1-dev libglib2.0-dev pkg-config libpython3.10-dev 
 ROOT_DIR=${PWD}
 
 ############################# QEMU #############################
-git clone --depth=1 --branch v5.2.0 https://github.com/qemu/qemu
+git clone --depth=1 --branch v6.2.0 https://github.com/qemu/qemu
 cd qemu
 ./configure --target-list=riscv64-softmmu,riscv32-softmmu --disable-werror
 make -j $(nproc)

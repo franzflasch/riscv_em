@@ -88,6 +88,13 @@
 
 #define CSR_ADDR_MAX          0xFFF
 
+/* XLEN bits */
+#define CSR_XLEN_32_BIT 1UL
+#define CSR_XLEN_64_BIT 2UL
+#define CSR_XLEN_128_BIT 3UL
+#define CSR_SXL_BIT_BASE 34
+#define CSR_UXL_BIT_BASE 32
+
 /* CSR WRITE MASKS */
 #ifdef RV64
     #define CSR_MASK_WR_ALL 0xFFFFFFFFFFFFFFFF
@@ -117,18 +124,20 @@
 /* In particular, sedeleg[11:9] are all hardwired to zero. */
 #define CSR_SEDELEG_MASK 0xF1FF
 
-#define INIT_CSR_REG_DEFAULT(_csr, _index, _access_flags, _init_val, _MASK) { \
+#define INIT_CSR_REG_DEFAULT(_csr, _index, _access_flags, _init_val, _MASK, _WARL_ALWAYS_ENABLED) { \
     _csr[_index].access_flags = _access_flags; \
     _csr[_index].value = _init_val; \
     _csr[_index].mask = _MASK; \
+    _csr[_index].warl_always_enabled = _WARL_ALWAYS_ENABLED; \
     _csr[_index].priv = NULL; \
     _csr[_index].read_cb = NULL; \
     _csr[_index].write_cb = NULL; \
     _csr[_index].internal_reg = 0; }
 
-#define INIT_CSR_REG_SPECIAL(_csr, _index, _access_flags, _MASK, _priv, _read_cb, _write_cb, _internal_reg) { \
+#define INIT_CSR_REG_SPECIAL(_csr, _index, _access_flags, _MASK, _WARL_ALWAYS_ENABLED, _priv, _read_cb, _write_cb, _internal_reg) { \
     _csr[_index].access_flags = _access_flags; \
     _csr[_index].mask = _MASK; \
+    _csr[_index].warl_always_enabled = _WARL_ALWAYS_ENABLED; \
     _csr[_index].priv = _priv; \
     _csr[_index].read_cb = _read_cb; \
     _csr[_index].write_cb = _write_cb; \
@@ -141,6 +150,7 @@ typedef struct csr_reg_struct {
     uint16_t access_flags;
     rv_uint_xlen value;
     rv_uint_xlen mask;
+    rv_uint_xlen warl_always_enabled;
 
     /* used if special handling is needed for e.g. pmp */
     void *priv;
