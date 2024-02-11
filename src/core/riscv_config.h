@@ -9,8 +9,10 @@
 #define MROM_BASE_ADDR 0x1000UL
 #define MROM_SIZE_BYTES 0xf000UL
 
-#define RAM_BASE_ADDR 0x80000000UL
-#define RAM_SIZE_BYTES 0x8000000UL /* 128MB such as the default for the qemu virt machine */
+// #define RAM_BASE_ADDR 0x80000000UL
+// #define RAM_SIZE_BYTES 0x8000000UL /* 128MB such as the default for the qemu virt machine */
+#define RAM_BASE_ADDR          0x80000000UL
+#define RAM_SIZE_BYTES         0x40000000UL
 
 #define CLINT_BASE_ADDR 0x2000000UL
 #define CLINT_SIZE_BYTES 0x10000UL

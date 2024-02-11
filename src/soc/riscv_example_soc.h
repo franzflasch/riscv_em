@@ -38,7 +38,7 @@ typedef struct rv_soc_struct
 } rv_soc_td;
 
 void rv_soc_dump_mem(rv_soc_td *rv_soc);
-void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name);
+void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name, char *initrd_file_name);
 void rv_soc_run(rv_soc_td *rv_soc, rv_uint_xlen success_pc, uint64_t num_cycles);
 
 #endif /* RISCV_EXAMPLE_SOC_H */

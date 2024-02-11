@@ -74,7 +74,7 @@ void rv_soc_dump_mem(rv_soc_td *rv_soc)
     }
 }
 
-void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
+void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name, char *initrd_file_name)
 {
     #define RESET_VEC_SIZE 10
     #define MiB 0x100000
@@ -113,6 +113,12 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
 
     write_mem_from_file(fw_file_name, soc_ram, sizeof(soc_ram));
 
+    if (initrd_file_name != NULL) {
+     printf("XXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
+      write_mem_from_file(initrd_file_name, &soc_ram[0x80400000 - RAM_BASE_ADDR], 0x8cc00000 - 0x80400000);
+      printf("%x%x%x%x\n", soc_ram[0x80400000 - RAM_BASE_ADDR], soc_ram[0x80400000 - RAM_BASE_ADDR + 1], soc_ram[0x80400000 - RAM_BASE_ADDR + 2], soc_ram[0x80400000 - RAM_BASE_ADDR + 3]);
+    }
+    
     /* this is the reset vector, taken from qemu v5.2 */
     uint32_t reset_vec[RESET_VEC_SIZE] = {
         0x00000297,                  /* 1:  auipc  t0, %pcrel_hi(fw_dyn) */
