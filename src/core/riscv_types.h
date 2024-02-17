@@ -35,6 +35,7 @@ typedef enum
     supervisor_mode = 1,
     reserved_mode = 2, /* Hypervisor ?? */
     machine_mode = 3,
+    supervisor_39_mode = 8,
     priv_level_max = 4
 
 } privilege_level;

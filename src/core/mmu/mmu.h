@@ -21,6 +21,13 @@
 #define SV32_PTESIZE 4
 #define SV32_PTESHIFT 2
 
+#define SV39_LEVELS 3
+#define SV39_PAGE_SIZE 4096
+#define SV39_PAGE_TABLE_ENTRIES 512
+#define SV39_PTESIZE 8
+#define SV39_PTESHIFT 2
+
+
 #ifdef RV64
     #define MMU_SATP_MODE_BIT 60
     #define MMU_SATP_MODE_NR_BITS 4
