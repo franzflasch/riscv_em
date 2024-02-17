@@ -6,10 +6,12 @@
     model = "riscv-virtio,qemu";
 
     chosen {
-        bootargs = "root=/dev/ram0 rw earlycon=simple_uart,mmio,0x3000000 console=ttySU0  make-printk-non-secret";
+        bootargs = "root=/dev/ram0 rw earlycon=simple_uart,mmio,0x3000000 console=ttySU0  make-printk-non-secret noinitrd";
         stdout-path = "/uart@10000000";
-        linux,initrd-start = <0x0 0x80400000>; /* Ram start + kernel size 4MiB */
-        linux,initrd-end   = <0x0 0x8cbfffff>;   /* Ram start + 204MiB - 1 */
+        /*
+        linux,initrd-start = <0x0 0xc0000000>;
+        linux,initrd-end = < 0x0  0xcc800000>;
+        */
     };
 
     cpus {
@@ -35,7 +37,12 @@
         device_type = "memory";
         reg = <0x0 0x80000000 0x0 0x40000000>;
     };
-
+   
+    rom: memory@c0000000 {
+        compatible = "pmem-region";
+        reg = <0x0 0xc0000000 0x0 0xc800000>;
+    };
+     
     soc {
         #address-cells = <2>;
         #size-cells = <2>;
@@ -75,5 +82,35 @@
             reg = <0x0 0x3000000 0x0 0x1>;
             compatible = "simple-uart";
         };
+/*
+        squashfs_partition@c0000000 {
+            label = "squashfs";
+            compatible = "fixed-partitions";
+            reg = <0x0 0xc0000000 0x0 0xc800000>;
+        };
+*/
+/*
+        ram1: ramdisk@c0000000 {
+            label = "ramdisk";
+            compatible = "ramdisk";
+            reg = <0x0 0xc0000000 0x0 0xc800000>;
+            status = "okay";
+        };
+*/
+/*
+        virtio_block@c0000000 {
+            compatible = "virtio,mmio";
+            reg = <0x0 0xc0000000 0x0 0xc800000>;
+ 	};
+*/
+
+/*
+        ram1: squashfs_partition@c0000000 {
+            label = "squashfs";
+            compatible = "ramdisk";
+            reg = <0x0 0xc0000000 0x0 0xc800000>;
+        };
+        */
     };
+    
 };

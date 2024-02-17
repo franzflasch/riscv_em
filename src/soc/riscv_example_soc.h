@@ -23,6 +23,7 @@ typedef struct rv_soc_struct
     rv_core_td rv_core0;
     uint8_t *mrom; /* Contains reset vector and device-tree? */
     uint8_t *ram;
+    uint8_t *from; /* Contains filesystem */
 
     clint_td clint;
     plic_td plic;

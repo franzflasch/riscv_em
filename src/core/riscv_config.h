@@ -32,4 +32,7 @@
                                   RV_EXTENSION_TO_MISA('S') | \
                                   RV_EXTENSION_TO_MISA('U') )
 
+#define FROM_BASE_ADDR 0xc0000000UL
+#define FROM_SIZE_BYTES 0xc800000UL
+
 #endif /* RISCV_CONFIG_H */
