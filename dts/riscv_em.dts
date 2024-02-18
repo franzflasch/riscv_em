@@ -6,7 +6,7 @@
     model = "riscv-virtio,qemu";
 
     chosen {
-        bootargs = "root=/dev/ram0 rw earlycon=simple_uart,mmio,0x3000000 console=ttySU0  make-printk-non-secret noinitrd";
+        bootargs = "root=/dev/vda ro console=ttyS0";
         stdout-path = "/uart@10000000";
     };
 
