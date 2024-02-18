@@ -8,10 +8,6 @@
     chosen {
         bootargs = "root=/dev/ram0 rw earlycon=simple_uart,mmio,0x3000000 console=ttySU0  make-printk-non-secret noinitrd";
         stdout-path = "/uart@10000000";
-        /*
-        linux,initrd-start = <0x0 0xc0000000>;
-        linux,initrd-end = < 0x0  0xcc800000>;
-        */
     };
 
     cpus {
@@ -82,35 +78,6 @@
             reg = <0x0 0x3000000 0x0 0x1>;
             compatible = "simple-uart";
         };
-/*
-        squashfs_partition@c0000000 {
-            label = "squashfs";
-            compatible = "fixed-partitions";
-            reg = <0x0 0xc0000000 0x0 0xc800000>;
-        };
-*/
-/*
-        ram1: ramdisk@c0000000 {
-            label = "ramdisk";
-            compatible = "ramdisk";
-            reg = <0x0 0xc0000000 0x0 0xc800000>;
-            status = "okay";
-        };
-*/
-/*
-        virtio_block@c0000000 {
-            compatible = "virtio,mmio";
-            reg = <0x0 0xc0000000 0x0 0xc800000>;
- 	};
-*/
-
-/*
-        ram1: squashfs_partition@c0000000 {
-            label = "squashfs";
-            compatible = "ramdisk";
-            reg = <0x0 0xc0000000 0x0 0xc800000>;
-        };
-        */
     };
     
 };
