@@ -71,17 +71,19 @@ void start_uart_rx_thread(void *p)
 static void parse_options(int argc, 
                           char** argv, 
                           char **fw_file, 
-                          char **dtb_file, 
+                          char **dtb_file,
+                          char **initrd_file,
                           rv_uint_xlen *success_pc, 
                           uint64_t *num_cycles)
 {
     int c;
     char *arg_fw_file = NULL;
     char *arg_dtb_file = NULL;
+    char *arg_initrd_file = NULL;
     char *arg_success_pc = NULL;
     char *arg_num_cycles = NULL;
 
-    while ((c = getopt(argc, argv, "s:f:d:n:")) != -1)
+    while ((c = getopt(argc, argv, "s:f:d:i:n:")) != -1)
     {
         switch (c)
         {
@@ -107,6 +109,15 @@ static void parse_options(int argc,
             case 'd':
             {
                 arg_dtb_file = optarg;
+                // if (arg_fw_file)
+                // {
+                //     printf("Firmware file %s\n", arg_fw_file);
+                // }
+                break;
+            }
+            case 'i':
+            {
+                arg_initrd_file = optarg;
                 // if (arg_fw_file)
                 // {
                 //     printf("Firmware file %s\n", arg_fw_file);
@@ -144,12 +155,18 @@ static void parse_options(int argc,
         printf("No dtb specified! Linux will probably not work\n");
     }
 
+    if(arg_initrd_file == NULL)
+    {
+        printf("No initrd specified!\n");
+    }
+
     printf("FW file: %s\n", arg_fw_file);
     printf("Success PC: " PRINTF_FMT "\n", *success_pc);
     printf("Num Cycles: %ld\n", *num_cycles);
 
     *fw_file = arg_fw_file;
     *dtb_file = arg_dtb_file;
+    *initrd_file = arg_initrd_file;
 }
 
 
@@ -157,13 +174,14 @@ int main(int argc, char *argv[])
 {
     char *fw_file = NULL;
     char *dtb_file = NULL;
+    char *initrd_file = NULL;
     rv_uint_xlen success_pc = 0;
     uint64_t num_cycles = 0;
 
-    parse_options(argc, argv, &fw_file, &dtb_file, &success_pc, &num_cycles);
+    parse_options(argc, argv, &fw_file, &dtb_file, &initrd_file, &success_pc, &num_cycles);
 
     rv_soc_td rv_soc;
-    rv_soc_init(&rv_soc, fw_file, dtb_file);
+    rv_soc_init(&rv_soc, fw_file, dtb_file, initrd_file);
 
     #ifndef RISCV_EM_DEBUG
         start_uart_rx_thread(&rv_soc);

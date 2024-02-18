@@ -23,6 +23,7 @@ typedef struct rv_soc_struct
     rv_core_td rv_core0;
     uint8_t *mrom; /* Contains reset vector and device-tree? */
     uint8_t *ram;
+    uint8_t *from; /* Contains filesystem */
 
     clint_td clint;
     plic_td plic;
@@ -38,7 +39,7 @@ typedef struct rv_soc_struct
 } rv_soc_td;
 
 void rv_soc_dump_mem(rv_soc_td *rv_soc);
-void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name);
+void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name, char *initrd_file_name);
 void rv_soc_run(rv_soc_td *rv_soc, rv_uint_xlen success_pc, uint64_t num_cycles);
 
 #endif /* RISCV_EXAMPLE_SOC_H */

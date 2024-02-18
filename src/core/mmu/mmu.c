@@ -4,7 +4,7 @@
 #include <mmu.h>
 #include <riscv_helper.h>
 
-// #define MMU_DEBUG_ENABLE
+#define MMU_DEBUG_ENABLE
 #ifdef MMU_DEBUG_ENABLE
 #define MMU_DEBUG(...) do{ printf( __VA_ARGS__ ); } while( 0 )
 #else
@@ -185,6 +185,7 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
 #endif
 
 #if 1
+#define MAX_LEVELS 4
 uint64_t mmu_virt_to_phys(mmu_td *mmu, 
                           privilege_level curr_priv, 
                           rv_uint_xlen virt_addr, 
@@ -208,33 +209,54 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
     *ret_val = mmu_ok;
     uint8_t mode = extractxlen(mmu->satp_reg, MMU_SATP_MODE_BIT, MMU_SATP_MODE_NR_BITS);
 
+    MMU_DEBUG("priv=%i, mode=%i: %lx\n", curr_priv, mode, virt_addr);
+    
     /* in machine mode we don't have address translation */
     if( (curr_priv == machine_mode) || !mode )
     {
+        MMU_DEBUG("=> machine mode\n");
         return virt_addr;
     }
+    
+    rv_uint_xlen vpn[MAX_LEVELS] = {0};
+    uint8_t levels = 0;
+    uint16_t page_size = 0;
+    uint16_t pte_size = 0;
+    uint8_t bits_per_level = 0;
+    if (mode == supervisor_mode) {
+        vpn[0] = (virt_addr >> 12) & 0x3ff;
+        vpn[1] = (virt_addr >> 22) & 0x3ff;
+        levels = SV32_LEVELS;
+        page_size = SV32_PAGE_SIZE;
+        pte_size = SV32_PTESIZE;
+        bits_per_level = 10;
+    } else if (mode == supervisor_39_mode) {
+        vpn[0] = (virt_addr >> 12) & 0x1ff;
+        vpn[1] = (virt_addr >> 21) & 0x1ff;
+        vpn[2] = (virt_addr >> 30) & 0x1ff;
+        levels = SV39_LEVELS; 
+        page_size = SV39_PAGE_SIZE;
+        pte_size = SV39_PTESIZE;
+        bits_per_level = 9;
+    }
 
-    rv_uint_xlen vpn[SV32_LEVELS] = 
-    {
-        (virt_addr >> 12) & 0x3ff,
-        (virt_addr >> 22) & 0x3ff
-    };
-    // MMU_DEBUG("vpn[1] "PRINTF_FMT"\n", vpn[1]);
-    // MMU_DEBUG("vpn[0] "PRINTF_FMT"\n", vpn[0]);
+    MMU_DEBUG("vpn[2] "PRINTF_FMT"\n", vpn[2]);
+    MMU_DEBUG("vpn[1] "PRINTF_FMT"\n", vpn[1]);
+    MMU_DEBUG("vpn[0] "PRINTF_FMT"\n", vpn[0]);
 
     /*
      * 1. Let a be satp.ppn × PAGESIZE, and let i = LEVELS − 1. (For Sv32, PAGESIZE=2^12 and LEVELS=2.) 
      */
-    a = (mmu->satp_reg & 0x3FFFFF) * SV32_PAGE_SIZE;
-    MMU_DEBUG("satp: %x\n", mmu->satp_reg);
+    a = (mmu->satp_reg & 0x3FFFFF) * page_size;
+    MMU_DEBUG("satp: %lx\n", mmu->satp_reg);
 
-    for(i=(SV32_LEVELS-1),j=0;i>=0;i--,j++)
+    for(i=(levels-1),j=0;i>=0;i--,j++)
     {
         /*
         * 2. Let pte be the value of the PTE at address a+va.vpn[i]×PTESIZE. (For Sv32, PTESIZE=4.)
         * If accessing pte violates a PMA or PMP check, raise an access exception.
         */
-        pte_addr = a + (vpn[i] * SV32_PTESIZE);
+        pte_addr = a + (vpn[i] * pte_size);
         MMU_DEBUG("address a: " PRINTF_FMT " pte_addr: "PRINTF_FMT"\n", a, pte_addr);
 
         /* Here we should raise an exception if PMP violation occurs, will be done automatically
@@ -265,7 +287,7 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
             break;
         }
 
-        a = (pte >> 10) * SV32_PAGE_SIZE;
+        a = (pte >> bits_per_level) * page_size;
     }
 
     if(i<0)
@@ -289,7 +311,10 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
     }
 
     /* Supervisor only has access to user pages if SUM = 1 */
-    if( (curr_priv == supervisor_mode) && user_page && !sum )
+    if(   (   curr_priv == supervisor_mode
+           || curr_priv == supervisor_39_mode)
+       && user_page
+       && !sum )
     {
         MMU_DEBUG("page fault: supervisor access to user page!\n");
         goto exit_page_fault;
@@ -305,23 +330,33 @@ uint64_t mmu_virt_to_phys(mmu_td *mmu,
         goto exit_page_fault;
     }
 
-    pte = pte << SV32_PTESHIFT;
     /* physical addresses are 34 Bit wide!!! even on RV32 systems */
-    rv_uint_xlen ppn[SV32_LEVELS] = 
-    {
-        (pte >> 12) & 0x3ff,
-        (pte >> 22) & 0xfff
+    rv_uint_xlen ppn[MAX_LEVELS] = {0};
+    if (mode == supervisor_mode) {
+       pte = pte << SV32_PTESHIFT;
+       ppn[0] = (pte >> 12) & 0x3ff; // 10 bits
+       ppn[1] = (pte >> 22) & 0xfff; // What's going on here? Should be 10 bits here too, to make up 20 bits total (10 to 30).
+    } else if (mode == supervisor_39_mode) {
+        pte = pte << SV39_PTESHIFT;
+        ppn[0] = (pte >> 12) & 0x1ff; // 9 bits
+        ppn[1] = (pte >> 21) & 0x1ff; // 9 bits
+        ppn[2] = (pte >> 30) & 0x1ff; // 9 bits
     };
-    // MMU_DEBUG("ppn[1]: %x\n", ppn[1]);
-    // MMU_DEBUG("ppn[0]: %x\n", ppn[0]);
+    MMU_DEBUG("ppn[2]: %lx\n", ppn[2]);
+    MMU_DEBUG("ppn[1]: %lx\n", ppn[1]);
+    MMU_DEBUG("ppn[0]: %lx\n", ppn[0]);
 
     /* physical addresses are at least 34 Bits wide, so we need uint64_t here */
-    uint64_t phys_addr_translation[SV32_LEVELS] = 
-    {
-        (ppn[1] << 22) | (ppn[0] << 12) | (virt_addr & 0xfff),
-        (ppn[1] << 22) | (virt_addr & 0x3fffff)
-    };
-
+    uint64_t phys_addr_translation[MAX_LEVELS];
+    if (mode == supervisor_mode) {
+        phys_addr_translation[0] = (ppn[1] << 22) | (ppn[0] << 12) | (virt_addr & 0xfff),
+        phys_addr_translation[1] = (ppn[1] << 22) | (virt_addr & 0x3fffff);
+    } else if (mode == supervisor_39_mode) {
+        phys_addr_translation[0] = (ppn[2] << 30) | (ppn[1] << 21) | (ppn[0] << 12) | (virt_addr & 0xfff);
+        phys_addr_translation[1] = (ppn[2] << 30) | (ppn[1] << 21) | (virt_addr & 0x1fffff);
+        phys_addr_translation[1] = (ppn[2] << 30) | (virt_addr & 0x3fffffff);
+    }
+    
     /*
      * 6. If i > 0 and pa.ppn[i − 1 : 0] != 0, this is a misaligned superpage; stop and raise a page-fault exception.
      */
