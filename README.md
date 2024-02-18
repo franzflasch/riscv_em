@@ -49,3 +49,18 @@ Please see https://github.com/franzflasch/linux_for_riscv_em
 ```sh
 ./build/riscv_em -f <linux_for_riscv_em-path>/output_mmu_rv32/opensbi/build/platform/generic/firmware/fw_payload.bin -d dts/riscv_em32_linux.dtb
 ```
+
+### RAM disk
+
+Make a filesystem image using the normal filesystem tools (e.g.
+mkfs.ext3, mksquashfs etc) with a maximum size of 200Mb. Then run
+
+```sh
+./build/riscv_em -f <linux_for_riscv_em-path>/output/linux/loader_64.bin -d dts/riscv_em.dtb -i mydiskimage.ext3
+```
+
+The filesystem will be available as `/dev/pmem0`, which can be either
+mounted from userspace, or specified as the root filesystem. Note that
+this does not use the initrd or initramdisk functionality, as that has
+severe size limitations (tries to unpack/copy the whole filesystem at
+boot).
