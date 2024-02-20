@@ -29,9 +29,14 @@
         };
     };
 
+    /* Make sure these adresses and sizes match the actual
+    configuration in src/core/riscv_config.h */
     sram: memory@80000000 {
         device_type = "memory";
+        reg = <0x0 0x80000000 0x0  0x8000000>;
+        /* Example alternative configuration with much more RAM
         reg = <0x0 0x80000000 0x0 0x40000000>;
+        */
     };
    
     rom: memory@c0000000 {

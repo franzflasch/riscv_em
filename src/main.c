@@ -118,10 +118,6 @@ static void parse_options(int argc,
             case 'i':
             {
                 arg_initrd_file = optarg;
-                // if (arg_fw_file)
-                // {
-                //     printf("Firmware file %s\n", arg_fw_file);
-                // }
                 break;
             }
             case 'n':
