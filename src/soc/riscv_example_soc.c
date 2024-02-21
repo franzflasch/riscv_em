@@ -44,6 +44,7 @@ static void rv_soc_init_mem_access_cbs(rv_soc_td *rv_soc)
         INIT_MEM_ACCESS_STRUCT(rv_soc, count++, uart_bus_access, &rv_soc->uart8250, UART8250_TX_REG_ADDR, UART_NS8250_NR_REGS);
     #endif
     INIT_MEM_ACCESS_STRUCT(rv_soc, count++, memory_bus_access, rv_soc->mrom, MROM_BASE_ADDR, MROM_SIZE_BYTES);
+    INIT_MEM_ACCESS_STRUCT(rv_soc, count++, memory_bus_access, rv_soc->from, FROM_BASE_ADDR, FROM_SIZE_BYTES);
 }
 
 static rv_ret rv_soc_bus_access(void *priv, privilege_level priv_level, bus_access_type access_type, rv_uint_xlen address, void *value, uint8_t len)
@@ -74,7 +75,7 @@ void rv_soc_dump_mem(rv_soc_td *rv_soc)
     }
 }
 
-void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
+void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name, char *initrd_file_name)
 {
     #define RESET_VEC_SIZE 10
     #define MiB 0x100000
@@ -86,11 +87,13 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
     uint64_t fdt_size = 0;
     uint64_t tmp = 0;
 
+    static uint8_t __attribute__((aligned (4))) soc_from[FROM_SIZE_BYTES] = { 0 };
     static uint8_t __attribute__((aligned (4))) soc_mrom[MROM_SIZE_BYTES] = { 0 };
     static uint8_t __attribute__((aligned (4))) soc_ram[RAM_SIZE_BYTES] = { 0 };
 
     /* Init everything to zero */
     memset(rv_soc, 0, sizeof(rv_soc_td));
+    rv_soc->from = soc_from;
     rv_soc->mrom = soc_mrom;
     rv_soc->ram = soc_ram;
 
@@ -113,6 +116,10 @@ void rv_soc_init(rv_soc_td *rv_soc, char *fw_file_name, char *dtb_file_name)
 
     write_mem_from_file(fw_file_name, soc_ram, sizeof(soc_ram));
 
+    if (initrd_file_name != NULL) {
+        write_mem_from_file(initrd_file_name, soc_from, FROM_SIZE_BYTES);
+    }
+    
     /* this is the reset vector, taken from qemu v5.2 */
     uint32_t reset_vec[RESET_VEC_SIZE] = {
         0x00000297,                  /* 1:  auipc  t0, %pcrel_hi(fw_dyn) */

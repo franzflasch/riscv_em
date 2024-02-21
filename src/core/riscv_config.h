@@ -11,6 +11,9 @@
 
 #define RAM_BASE_ADDR 0x80000000UL
 #define RAM_SIZE_BYTES 0x8000000UL /* 128MB such as the default for the qemu virt machine */
+/* Example alternative configuration with much more RAM
+#define RAM_SIZE_BYTES         0x40000000UL
+*/
 
 #define CLINT_BASE_ADDR 0x2000000UL
 #define CLINT_SIZE_BYTES 0x10000UL
@@ -29,5 +32,8 @@
                                   RV_EXTENSION_TO_MISA('A') | \
                                   RV_EXTENSION_TO_MISA('S') | \
                                   RV_EXTENSION_TO_MISA('U') )
+
+#define FROM_BASE_ADDR 0xc0000000UL
+#define FROM_SIZE_BYTES 0xc800000UL
 
 #endif /* RISCV_CONFIG_H */
