@@ -23,6 +23,7 @@
             mmu-type = "riscv,sv32";
             clock-frequency = <10000000>;
             cpu0_intc: interrupt-controller {
+                #address-cells = <1>;
                 #interrupt-cells = <1>;
                 compatible = "riscv,cpu-intc";
                 interrupt-controller;
@@ -50,6 +51,7 @@
 
         /* FIXME: This is probably not correct for now */
         plic0: interrupt-controller@c000000 {
+            #address-cells = <2>;
             #interrupt-cells = <1>;
             interrupt-controller;
             compatible = "riscv,plic0";
