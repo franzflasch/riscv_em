@@ -19,7 +19,7 @@
             device_type = "cpu";
             reg = <0>;
             compatible = "riscv";
-            riscv,isa = "rv32imasu";
+            riscv,isa = "rv32imasu_zicsr_zifencei";
             mmu-type = "riscv,sv32";
             clock-frequency = <10000000>;
             cpu0_intc: interrupt-controller {
