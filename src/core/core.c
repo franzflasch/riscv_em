@@ -1889,6 +1889,15 @@ static void rv_core_init_csr_regs(rv_core_td *rv_core)
     INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MIE, CSR_ACCESS_RW(machine_mode), CSR_MIP_MIE_MASK, CSR_MASK_ZERO, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_ie);
     INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MTVEC, CSR_ACCESS_RW(machine_mode), CSR_MTVEC_MASK, CSR_MASK_ZERO, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_tvec);
     INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MCOUNTEREN, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO, CSR_MASK_ZERO);
+#ifndef RV64
+    /*
+     * mstatush is mandatory on RV32. We implement none of the features it
+     * controls (MBE/SBE/MDT/MPELP/...), so it reads as zero and writes are
+     * ignored. OpenSBI unconditionally does "csrc mstatush, MDT" very early
+     * in fw_base.S, so this must not trap.
+     */
+    INIT_CSR_REG_DEFAULT(rv_core->csr_regs, CSR_ADDR_MSTATUSH, CSR_ACCESS_RW(machine_mode), 0, CSR_MASK_ZERO, CSR_MASK_ZERO);
+#endif
 
     /* Machine Trap Handling */
     INIT_CSR_REG_SPECIAL(rv_core->csr_regs, CSR_ADDR_MSCRATCH, CSR_ACCESS_RW(machine_mode), CSR_MASK_WR_ALL, CSR_MASK_ZERO, &rv_core->trap, trap_m_read, trap_m_write, trap_reg_scratch);

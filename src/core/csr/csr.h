@@ -31,6 +31,9 @@
 #define CSR_ADDR_MTVEC        0x305
 #define CSR_ADDR_MCOUNTEREN   0x306
 
+/* RV32 only: upper 32 bits of mstatus */
+#define CSR_ADDR_MSTATUSH     0x310
+
 #define CSR_ADDR_MSCRATCH     0x340
 #define CSR_ADDR_MEPC         0x341
 #define CSR_ADDR_MCAUSE       0x342
