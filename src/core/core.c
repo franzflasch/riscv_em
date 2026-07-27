@@ -1766,7 +1766,7 @@ static inline rv_uint_xlen rv_core_fetch(rv_core_td *rv_core)
 {
     rv_uint_xlen addr = rv_core->pc;
 
-    return mmu_checked_bus_access(rv_core, rv_core->curr_priv_mode, bus_instr_access, addr, &rv_core->instruction, sizeof(rv_uint_xlen));
+    return mmu_checked_bus_access(rv_core, rv_core->curr_priv_mode, bus_instr_access, addr, &rv_core->instruction, sizeof(uint32_t));
 }
 
 static inline rv_uint_xlen rv_core_decode(rv_core_td *rv_core)
