@@ -718,9 +718,12 @@ static void instr_SW(rv_core_td *rv_core)
 
     static void instr_EBREAK(rv_core_td *rv_core)
     {
-        /* not implemented */
-        (void)rv_core;
         CORE_DBG("%s: %x\n", __func__, rv_core->instruction);
+        /*
+         * ebreak raises a breakpoint exception. mtval/stval is set to the
+         * address of the ebreak instruction itself.
+         */
+        prepare_sync_trap(rv_core, trap_cause_breakpoint, rv_core->pc);
     }
 
     static void instr_MRET(rv_core_td *rv_core)
